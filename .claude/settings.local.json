@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(arm-none-eabi-gcc --version)",
+      "Bash(make -C build/Debug)",
+      "Bash(make clean *)",
+      "Bash(make)",
+      "Bash(unzip -p \"M144Z-M4最小系统板IO引脚分配表——STM32F407.xlsx\" xl/worksheets/sheet1.xml)",
+      "Bash(unzip -p \"M144Z-M4最小系统板IO引脚分配表——STM32F407.xlsx\" xl/sharedStrings.xml)",
+      "Bash(arm-none-eabi-objdump -d build/NewProjectF407.elf)",
+      "Bash(arm-none-eabi-objdump -s -j .isr_vector build/NewProjectF407.elf)",
+      "Bash(arm-none-eabi-objdump -s build/NewProjectF407.elf)",
+      "Bash(arm-none-eabi-objdump -s TEST.axf)",
+      "Bash(arm-none-eabi-objdump -s TEST.hex)",
+      "Bash(rm -rf build/Debug)",
+      "Bash(rm -f build/*.o)",
+      "Bash(pdftotext \"d:/4-Workspace/MCU_Research/project_test/NewProjectF407/实验六代码.pdf\" -)",
+      "Bash(dir \"d:\\\\4-Workspace\\\\MCU_Research\\\\project_test\\\\NewProjectF407\\\\build\\\\\")"
+    ]
+  }
+}
