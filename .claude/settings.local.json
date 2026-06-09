@@ -16,7 +16,12 @@
       "Bash(rm -rf build/Debug)",
       "Bash(rm -f build/*.o)",
       "Bash(pdftotext \"d:/4-Workspace/MCU_Research/project_test/NewProjectF407/实验六代码.pdf\" -)",
-      "Bash(dir \"d:\\\\4-Workspace\\\\MCU_Research\\\\project_test\\\\NewProjectF407\\\\build\\\\\")"
+      "Bash(dir \"d:\\\\4-Workspace\\\\MCU_Research\\\\project_test\\\\NewProjectF407\\\\build\\\\\")",
+      "Bash(git push *)",
+      "Bash(git config *)",
+      "Bash(git count-objects *)",
+      "Bash(git -c http.sslVerify=false -c http.proxy=http://127.0.0.1:7897 push origin main)",
+      "WebSearch"
     ]
   }
 }

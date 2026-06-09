@@ -5,8 +5,9 @@ deviceName: STM32F407ZGTx
 packDir: .pack/Keil/STM32F4xx_DFP.3.1.1
 srcDirs:
   - projects/01-turn-signal
-  - common/hal
-  - common
+  - common/core
+  - common/bsp
+  - common/inc
 virtualFolder:
   name: <virtual_root>
   files: []
@@ -24,7 +25,8 @@ targets:
         - .
         - projects/01-turn-signal
         - common/inc
-        - common/hal
+        - common/core
+        - common/bsp
       libList: []
     excludeList:
       - projects/_template

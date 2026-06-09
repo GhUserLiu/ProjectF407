@@ -1,0 +1,552 @@
+"""
+查重核心模块
+Core Plagiarism Detection Module
+
+提供文本预处理、相似度计算和检测结果管理
+"""
+
+import re
+import hashlib
+from pathlib import Path
+from dataclasses import dataclass, field
+from typing import List, Dict, Optional, Set, Tuple
+from collections import defaultdict
+from enum import Enum
+
+
+class SimilarityMethod(Enum):
+    """相似度计算方法"""
+    SEQUENCE = 'sequence'       # 序列匹配 (difflib)
+    COSINE = 'cosine'          # 余弦相似度 (TF-IDF)
+    JACCARD = 'jaccard'        # Jaccard 相似度
+    LEVENSHTEIN = 'levenshtein'  # 编辑距离
+    HYBRID = 'hybrid'          # 混合方法
+
+
+@dataclass
+class SimilarityResult:
+    """相似度检测结果"""
+    student_id: str
+    similar_to: str
+    overall_similarity: float  # 整体相似度 0-100
+    text_similarity: float     # 文本相似度
+    code_similarity: float     # 代码相似度
+    structure_similarity: float # 结构相似度
+    method: SimilarityMethod
+    is_cross_group: bool = False
+    is_suspicious: bool = False
+    shared_paragraphs: List[Dict] = field(default_factory=list)
+    shared_code_blocks: List[Dict] = field(default_factory=list)
+    metadata: Dict = field(default_factory=dict)
+
+
+@dataclass
+class TextSegment:
+    """文本段落"""
+    content: str
+    segment_type: str  # 'text', 'code', 'heading', 'list'
+    position: int
+    hash: str = ''
+    cleaned: str = ''
+
+    def __post_init__(self):
+        if not self.hash:
+            self.hash = hashlib.md5(self.content.encode('utf-8')).hexdigest()[:16]
+
+
+class TextPreprocessor:
+    """文本预处理器"""
+
+    # 需要过滤的常见停用词
+    STOP_WORDS = {
+        '的', '了', '是', '在', '我', '有', '和', '就', '不', '人',
+        '都', '一', '一个', '上', '也', '很', '到', '说', '要', '去',
+        '你', '会', '着', '没有', '看', '好', '自己', '这', '那', '里',
+        'the', 'a', 'an', 'is', 'are', 'was', 'were', 'be', 'been',
+        'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will',
+    }
+
+    # 代码块识别模式
+    CODE_PATTERNS = [
+        r'```.*?```',                    # Markdown代码块
+        r'~~~.*?~~~',                    # Markdown代码块变体
+        r'void\s+\w+\([^)]*\)\s*{',      # C函数声明
+        r'#include\s*[<"][^>"]+[>"]',    # Include语句
+        r'HAL_\w+\([^)]*\)',             # HAL函数调用
+        r'GPIO_\w+',                     # GPIO常量
+        r'int\s+\w+\s*[=;]',             # 整数变量
+        r'uint\d+_t\s+\w+',              # 类型定义
+    ]
+
+    # 章节标题模式
+    SECTION_PATTERNS = [
+        r'^[一二三四五六七八九十]+[、．.]\s*\w+',
+        r'^\d+[、．.]\s*\w+',
+        r'^[一二三四五六七八九十]+、\s*',
+        r'^\d+\s*\.',
+        r'^\#{1,3}\s+\w+',
+    ]
+
+    def __init__(self, remove_template: bool = True, template_content: str = ''):
+        """
+        初始化预处理器
+
+        Args:
+            remove_template: 是否移除模板内容
+            template_content: 模板内容（将被从文本中排除）
+        """
+        self.remove_template = remove_template
+        self.template_patterns = self._extract_template_patterns(template_content)
+
+    def _extract_template_patterns(self, template_content: str) -> List[str]:
+        """从模板内容中提取特征模式"""
+        if not template_content:
+            return []
+
+        patterns = []
+        # 提取模板中的常见句子（长度>10的句子）
+        sentences = re.split(r'[。！？\n]', template_content)
+        for sent in sentences:
+            sent = sent.strip()
+            if len(sent) > 10 and not re.match(r'^\d+$', sent):
+                # 转换为正则模式，允许一定的变化
+                pattern = re.escape(sent[:20])  # 取前20字符作为特征
+                patterns.append(pattern)
+
+        return patterns[:20]  # 最多保留20个模式
+
+    def extract_segments(self, text: str) -> List[TextSegment]:
+        """
+        提取文本段落和代码块
+
+        Args:
+            text: 原始文本
+
+        Returns:
+            文本段落列表
+        """
+        segments = []
+        position = 0
+
+        # 先提取代码块
+        code_blocks = []
+        for pattern in self.CODE_PATTERNS:
+            for match in re.finditer(pattern, text, re.DOTALL | re.MULTILINE):
+                code_blocks.append((match.start(), match.end()))
+
+        # 按位置排序并去重叠
+        code_blocks = self._merge_overlaps(code_blocks)
+
+        # 提取非代码块的文本段落
+        prev_end = 0
+        for start, end in code_blocks:
+            # 添加代码块前的文本
+            if start > prev_end:
+                text_content = text[prev_end:start].strip()
+                if text_content:
+                    paragraphs = self._split_paragraphs(text_content)
+                    for para in paragraphs:
+                        if para.strip():
+                            seg_type = self._detect_segment_type(para)
+                            segments.append(TextSegment(
+                                content=para,
+                                segment_type=seg_type,
+                                position=position
+                            ))
+                            position += 1
+
+            # 添加代码块
+            code_content = text[start:end].strip()
+            if code_content:
+                segments.append(TextSegment(
+                    content=code_content,
+                    segment_type='code',
+                    position=position
+                ))
+                position += 1
+
+            prev_end = end
+
+        # 处理剩余文本
+        if prev_end < len(text):
+            remaining = text[prev_end:].strip()
+            if remaining:
+                paragraphs = self._split_paragraphs(remaining)
+                for para in paragraphs:
+                    if para.strip():
+                        seg_type = self._detect_segment_type(para)
+                        segments.append(TextSegment(
+                            content=para,
+                            segment_type=seg_type,
+                            position=position
+                        ))
+                        position += 1
+
+        return segments
+
+    def _merge_overlaps(self, intervals: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
+        """合并重叠区间"""
+        if not intervals:
+            return []
+
+        sorted_intervals = sorted(intervals, key=lambda x: x[0])
+        merged = [sorted_intervals[0]]
+
+        for current in sorted_intervals[1:]:
+            last = merged[-1]
+            if current[0] <= last[1]:  # 有重叠
+                merged[-1] = (last[0], max(last[1], current[1]))
+            else:
+                merged.append(current)
+
+        return merged
+
+    def _split_paragraphs(self, text: str) -> List[str]:
+        """分割文本段落"""
+        # 按空行或特定标记分割
+        paragraphs = re.split(r'\n\n+|\n\s*\n|=====+|------+', text)
+        return [p.strip() for p in paragraphs if len(p.strip()) > 5]
+
+    def _detect_segment_type(self, text: str) -> str:
+        """检测段落类型"""
+        for pattern in self.SECTION_PATTERNS:
+            if re.match(pattern, text):
+                return 'heading'
+
+        if text.startswith(('- ', '*', '•', '1.', '2.')):
+            return 'list'
+
+        return 'text'
+
+    def clean_text(self, text: str) -> str:
+        """
+        清理文本（去除空白、标点、停用词等）
+
+        Args:
+            text: 原始文本
+
+        Returns:
+            清理后的文本
+        """
+        # 移除空白字符
+        text = re.sub(r'\s+', '', text)
+
+        # 如果需要移除模板内容
+        if self.remove_template and self.template_patterns:
+            for pattern in self.template_patterns:
+                text = re.sub(pattern, '', text)
+
+        return text
+
+    def normalize_for_comparison(self, segments: List[TextSegment]) -> List[TextSegment]:
+        """
+        标准化文本用于比较
+
+        Args:
+            segments: 原始段落列表
+
+        Returns:
+            标准化后的段落列表
+        """
+        normalized = []
+
+        for seg in segments:
+            # 清理内容
+            cleaned = self.clean_text(seg.content)
+
+            # 过滤太短的内容
+            if len(cleaned) < 10:
+                continue
+
+            # 创建标准化段落
+            normalized_seg = TextSegment(
+                content=seg.content,
+                segment_type=seg.segment_type,
+                position=seg.position,
+                cleaned=cleaned
+            )
+            normalized.append(normalized_seg)
+
+        return normalized
+
+
+class PlagiarismDetector:
+    """查重检测器"""
+
+    def __init__(
+        self,
+        method: SimilarityMethod = SimilarityMethod.HYBRID,
+        threshold: float = 60.0,
+        remove_template: bool = True,
+        template_content: str = '',
+        group_info: Optional[Dict[str, str]] = None
+    ):
+        """
+        初始化检测器
+
+        Args:
+            method: 相似度计算方法
+            threshold: 可疑阈值（0-100）
+            remove_template: 是否移除模板内容
+            template_content: 模板内容
+            group_info: 学生小组信息 {学号: 小组号}
+        """
+        self.method = method
+        self.threshold = threshold
+        self.preprocessor = TextPreprocessor(remove_template, template_content)
+        self.group_info = group_info or {}
+
+    def detect(
+        self,
+        submissions: Dict[str, Dict]
+    ) -> Tuple[Dict[str, List[SimilarityResult]], List[SimilarityResult]]:
+        """
+        执行查重检测
+
+        Args:
+            submissions: 提交内容 {学号: {name, text, ...}}
+
+        Returns:
+            (每个学生的相似度结果, 可疑结果列表)
+        """
+        # 预处理所有提交
+        processed = {}
+        for student_id, submission in submissions.items():
+            text = submission.get('text', '')
+            segments = self.preprocessor.extract_segments(text)
+            normalized = self.preprocessor.normalize_for_comparison(segments)
+
+            processed[student_id] = {
+                'name': submission.get('name', ''),
+                'segments': segments,
+                'normalized': normalized,
+                'full_text': text,
+                'group': self.group_info.get(student_id)
+            }
+
+        # 计算相似度矩阵
+        all_results = defaultdict(list)
+        suspicious = []
+
+        student_ids = list(processed.keys())
+
+        for i, s1 in enumerate(student_ids):
+            for j in range(i + 1, len(student_ids)):
+                s2 = student_ids[j]
+
+                result = self._compare_pair(
+                    processed[s1],
+                    processed[s2],
+                    s1,
+                    s2
+                )
+
+                if result.overall_similarity >= self.threshold:
+                    # 判断是否跨组
+                    result.is_cross_group = self._is_cross_group(s1, s2)
+                    result.is_suspicious = result.is_cross_group or result.overall_similarity >= 85
+
+                    all_results[s1].append(result)
+                    all_results[s2].append(result)
+
+                    if result.is_suspicious:
+                        suspicious.append(result)
+
+        return dict(all_results), suspicious
+
+    def _compare_pair(
+        self,
+        sub1: Dict,
+        sub2: Dict,
+        id1: str,
+        id2: str
+    ) -> SimilarityResult:
+        """比较两个提交的相似度"""
+        from .algorithms import compute_similarity
+
+        # 提取纯文本和代码
+        text1 = ' '.join([s.cleaned for s in sub1['normalized'] if s.segment_type == 'text'])
+        text2 = ' '.join([s.cleaned for s in sub2['normalized'] if s.segment_type == 'text'])
+
+        code1 = ' '.join([s.cleaned for s in sub1['normalized'] if s.segment_type == 'code'])
+        code2 = ' '.join([s.cleaned for s in sub2['normalized'] if s.segment_type == 'code'])
+
+        # 计算相似度
+        text_sim = compute_similarity(text1, text2, self.method)
+        code_sim = compute_similarity(code1, code2, SimilarityMethod.SEQUENCE) if code1 and code2 else 0
+        overall_sim = text_sim * 0.6 + code_sim * 0.4
+
+        # 查找共享段落
+        shared_paragraphs = self._find_shared_paragraphs(sub1, sub2)
+        shared_code = self._find_shared_code(sub1, sub2)
+
+        # 计算结构相似度（基于章节顺序）
+        structure_sim = self._compute_structure_similarity(sub1, sub2)
+
+        return SimilarityResult(
+            student_id=id1,
+            similar_to=id2,
+            overall_similarity=overall_sim,
+            text_similarity=text_sim,
+            code_similarity=code_sim,
+            structure_similarity=structure_sim,
+            method=self.method,
+            shared_paragraphs=shared_paragraphs,
+            shared_code_blocks=shared_code,
+            metadata={
+                'name1': sub1['name'],
+                'name2': sub2['name'],
+                'group1': sub1['group'],
+                'group2': sub2['group']
+            }
+        )
+
+    def _find_shared_paragraphs(
+        self,
+        sub1: Dict,
+        sub2: Dict
+    ) -> List[Dict]:
+        """查找共享的文本段落"""
+        from .algorithms import compute_similarity
+
+        shared = []
+
+        for seg1 in sub1['normalized']:
+            if seg1.segment_type != 'text':
+                continue
+
+            for seg2 in sub2['normalized']:
+                if seg2.segment_type != 'text':
+                    continue
+
+                sim = compute_similarity(
+                    seg1.cleaned,
+                    seg2.cleaned,
+                    SimilarityMethod.SEQUENCE
+                )
+
+                if sim >= 80:  # 段落相似度阈值
+                    shared.append({
+                        'content': seg1.content[:50] + '...',
+                        'similarity': sim,
+                        'position1': seg1.position,
+                        'position2': seg2.position
+                    })
+                    break
+
+        return shared
+
+    def _find_shared_code(
+        self,
+        sub1: Dict,
+        sub2: Dict
+    ) -> List[Dict]:
+        """查找共享的代码块"""
+        from .algorithms import sequence_similarity
+
+        shared = []
+
+        code_segments_1 = [s for s in sub1['normalized'] if s.segment_type == 'code']
+        code_segments_2 = [s for s in sub2['normalized'] if s.segment_type == 'code']
+
+        for seg1 in code_segments_1:
+            for seg2 in code_segments_2:
+                sim = sequence_similarity(seg1.cleaned, seg2.cleaned)
+
+                if sim >= 85:  # 代码相似度阈值
+                    shared.append({
+                        'content': seg1.content[:50] + '...',
+                        'similarity': sim,
+                        'type': 'code'
+                    })
+                    break
+
+        return shared
+
+    def _compute_structure_similarity(
+        self,
+        sub1: Dict,
+        sub2: Dict
+    ) -> float:
+        """计算结构相似度（章节顺序）"""
+        headings1 = [s for s in sub1['segments'] if s.segment_type == 'heading']
+        headings2 = [s for s in sub2['segments'] if s.segment_type == 'heading']
+
+        if not headings1 or not headings2:
+            return 50.0  # 默认中等相似度
+
+        # 简单计算：检查标题的顺序相似度
+        matches = 0
+        min_len = min(len(headings1), len(headings2))
+
+        for i in range(min_len):
+            h1_clean = self.preprocessor.clean_text(headings1[i].content)
+            h2_clean = self.preprocessor.clean_text(headings2[i].content)
+
+            if h1_clean == h2_clean or h1_clean in h2_clean or h2_clean in h1_clean:
+                matches += 1
+
+        return (matches / max(len(headings1), len(headings2))) * 100
+
+    def _is_cross_group(self, id1: str, id2: str) -> bool:
+        """判断是否跨组"""
+        group1 = self.group_info.get(id1)
+        group2 = self.group_info.get(id2)
+
+        # 如果都未知，不标记为跨组
+        if group1 is None or group2 is None:
+            return False
+
+        return group1 != group2
+
+    def detect_groups(
+        self,
+        suspicious_results: List[SimilarityResult]
+    ) -> List[Dict]:
+        """
+        检测抄袭团伙（多人互相高度相似）
+
+        Args:
+            suspicious_results: 可疑结果列表
+
+        Returns:
+            抄袭团伙列表
+        """
+        # 构建相似图
+        graph = defaultdict(set)
+
+        for result in suspicious_results:
+            graph[result.student_id].add(result.similar_to)
+            graph[result.similar_to].add(result.student_id)
+
+        # 找连通分量（团伙）
+        groups = []
+        visited = set()
+
+        for student_id in graph:
+            if student_id in visited:
+                continue
+
+            # BFS 找连通分量
+            group = set()
+            queue = [student_id]
+
+            while queue:
+                current = queue.pop(0)
+                if current in visited:
+                    continue
+
+                visited.add(current)
+                group.add(current)
+                queue.extend(graph[current] - visited)
+
+            if len(group) >= 2:
+                groups.append({
+                    'members': list(group),
+                    'size': len(group)
+                })
+
+        # 按团伙大小排序
+        groups.sort(key=lambda x: x['size'], reverse=True)
+
+        return groups

@@ -1,0 +1,2283 @@
+[
+  {
+    "student_id": "23071140201",
+    "name": "董雨航",
+    "scores": {
+      "team_collaboration": 4,
+      "attitude": 10,
+      "principle_understanding": 9,
+      "completion": 29,
+      "code_quality": 25,
+      "report_quality": 10
+    },
+    "feedback": {
+      "team_collaboration": [
+        "成员基本信息完整(-1分)",
+        "个人分工明确合理",
+        "协作过程记录详细"
+      ],
+      "attitude": [
+        "全勤，认真完成实验: 需教师手工评定"
+      ],
+      "principle_understanding": [
+        "实验目的清晰完整(-1分)",
+        "实验原理阐述准确",
+        "汽车电子应用场景说明"
+      ],
+      "completion": [
+        "硬件连接图正确清晰（三）(-3分)",
+        "引脚配置说明完整（三）",
+        "ISP烧录电路说明（三）",
+        "实验现象记录完整（五）(-3分)",
+        "结果照片或截图清晰（五）",
+        "结果对比分析透彻（五）"
+      ],
+      "code_quality": [
+        "代码流程图清晰(-2分)",
+        "关键代码完整规范",
+        "代码注释详尽(-3分)",
+        "中断服务程序说明详细",
+        "代码模块划分合理"
+      ],
+      "report_quality": [
+        "调试问题记录真实（六）",
+        "团队协作解决过程（六）",
+        "个人心得独立且深刻（六）",
+        "思考题回答完整正确（七）"
+      ]
+    },
+    "total_score": 87,
+    "grade": "B",
+    "grade_label": "良",
+    "quality_info": {
+      "overall_quality": 85.2,
+      "content_depth": 10,
+      "writing_quality": 13,
+      "technical_accuracy": 25,
+      "completeness": 21,
+      "issues": [],
+      "strengths": [
+        "技术要点正确:PE4下降沿触发",
+        "技术要点正确:LED引脚配置",
+        "技术要点正确:状态机逻辑",
+        "技术要点正确:DWT消抖实现",
+        "技术要点正确:HAL/中断使用"
+      ],
+      "quality_grade": "优秀"
+    }
+  },
+  {
+    "student_id": "23071140202",
+    "name": "第2组-陈乐莹",
+    "scores": {
+      "team_collaboration": 4,
+      "attitude": 10,
+      "principle_understanding": 10,
+      "completion": 32,
+      "code_quality": 25,
+      "report_quality": 10
+    },
+    "feedback": {
+      "team_collaboration": [
+        "成员基本信息完整(-1分)",
+        "个人分工明确合理",
+        "协作过程记录详细"
+      ],
+      "attitude": [
+        "全勤，认真完成实验: 需教师手工评定"
+      ],
+      "principle_understanding": [
+        "实验目的清晰完整",
+        "实验原理阐述准确",
+        "汽车电子应用场景说明"
+      ],
+      "completion": [
+        "硬件连接图正确清晰（三）(-3分)",
+        "引脚配置说明完整（三）",
+        "ISP烧录电路说明（三）",
+        "实验现象记录完整（五）",
+        "结果照片或截图清晰（五）",
+        "结果对比分析透彻（五）"
+      ],
+      "code_quality": [
+        "代码流程图清晰(-2分)",
+        "关键代码完整规范",
+        "代码注释详尽(-3分)",
+        "中断服务程序说明详细",
+        "代码模块划分合理"
+      ],
+      "report_quality": [
+        "调试问题记录真实（六）",
+        "团队协作解决过程（六）",
+        "个人心得独立且深刻（六）",
+        "思考题回答完整正确（七）"
+      ]
+    },
+    "total_score": 91,
+    "grade": "A",
+    "grade_label": "优",
+    "quality_info": {
+      "overall_quality": 85.2,
+      "content_depth": 15,
+      "writing_quality": 13,
+      "technical_accuracy": 20,
+      "completeness": 21,
+      "issues": [],
+      "strengths": [
+        "技术要点正确:PE4下降沿触发",
+        "技术要点正确:状态机逻辑",
+        "技术要点正确:DWT消抖实现",
+        "技术要点正确:HAL/中断使用"
+      ],
+      "quality_grade": "优秀"
+    }
+  },
+  {
+    "student_id": "23071140203",
+    "name": "第二组-高雅梅(1)",
+    "scores": {
+      "team_collaboration": 4,
+      "attitude": 10,
+      "principle_understanding": 10,
+      "completion": 29,
+      "code_quality": 25,
+      "report_quality": 10
+    },
+    "feedback": {
+      "team_collaboration": [
+        "成员基本信息完整(-1分)",
+        "个人分工明确合理",
+        "协作过程记录详细"
+      ],
+      "attitude": [
+        "全勤，认真完成实验: 需教师手工评定"
+      ],
+      "principle_understanding": [
+        "实验目的清晰完整",
+        "实验原理阐述准确",
+        "汽车电子应用场景说明"
+      ],
+      "completion": [
+        "硬件连接图正确清晰（三）(-3分)",
+        "引脚配置说明完整（三）",
+        "ISP烧录电路说明（三）",
+        "实验现象记录完整（五）(-3分)",
+        "结果照片或截图清晰（五）",
+        "结果对比分析透彻（五）"
+      ],
+      "code_quality": [
+        "代码流程图清晰(-2分)",
+        "关键代码完整规范",
+        "代码注释详尽(-3分)",
+        "中断服务程序说明详细",
+        "代码模块划分合理"
+      ],
+      "report_quality": [
+        "调试问题记录真实（六）",
+        "团队协作解决过程（六）",
+        "个人心得独立且深刻（六）",
+        "思考题回答完整正确（七）"
+      ]
+    },
+    "total_score": 88,
+    "grade": "B",
+    "grade_label": "良",
+    "quality_info": {
+      "overall_quality": 79.0,
+      "content_depth": 10,
+      "writing_quality": 13,
+      "technical_accuracy": 20,
+      "completeness": 21,
+      "issues": [],
+      "strengths": [
+        "技术要点正确:PE4下降沿触发",
+        "技术要点正确:状态机逻辑",
+        "技术要点正确:DWT消抖实现",
+        "技术要点正确:HAL/中断使用"
+      ],
+      "quality_grade": "良好"
+    }
+  },
+  {
+    "student_id": "23071140204",
+    "name": "第一组-王舒乐",
+    "scores": {
+      "team_collaboration": 4,
+      "attitude": 10,
+      "principle_understanding": 8,
+      "completion": 31,
+      "code_quality": 25,
+      "report_quality": 9
+    },
+    "feedback": {
+      "team_collaboration": [
+        "成员基本信息完整(-1分)",
+        "个人分工明确合理",
+        "协作过程记录详细"
+      ],
+      "attitude": [
+        "全勤，认真完成实验: 需教师手工评定"
+      ],
+      "principle_understanding": [
+        "实验目的清晰完整(-1分)",
+        "实验原理阐述准确",
+        "汽车电子应用场景说明(-1分)"
+      ],
+      "completion": [
+        "硬件连接图正确清晰（三）(-3分)",
+        "引脚配置说明完整（三）(-1分)",
+        "ISP烧录电路说明（三）",
+        "实验现象记录完整（五）",
+        "结果照片或截图清晰（五）",
+        "结果对比分析透彻（五）"
+      ],
+      "code_quality": [
+        "代码流程图清晰(-2分)",
+        "关键代码完整规范",
+        "代码注释详尽(-3分)",
+        "中断服务程序说明详细",
+        "代码模块划分合理"
+      ],
+      "report_quality": [
+        "调试问题记录真实（六）",
+        "团队协作解决过程（六）",
+        "个人心得独立且深刻（六）(-1分)",
+        "思考题回答完整正确（七）"
+      ]
+    },
+    "total_score": 87,
+    "grade": "B",
+    "grade_label": "良",
+    "quality_info": {
+      "overall_quality": 72.8,
+      "content_depth": 10,
+      "writing_quality": 13,
+      "technical_accuracy": 15,
+      "completeness": 21,
+      "issues": [],
+      "strengths": [
+        "技术要点正确:状态机逻辑",
+        "技术要点正确:DWT消抖实现",
+        "技术要点正确:HAL/中断使用"
+      ],
+      "quality_grade": "良好"
+    }
+  },
+  {
+    "student_id": "23071140206",
+    "name": "第六组王晨露",
+    "scores": {
+      "team_collaboration": 4,
+      "attitude": 10,
+      "principle_understanding": 10,
+      "completion": 32,
+      "code_quality": 28,
+      "report_quality": 10
+    },
+    "feedback": {
+      "team_collaboration": [
+        "成员基本信息完整",
+        "个人分工明确合理(-1分)",
+        "协作过程记录详细"
+      ],
+      "attitude": [
+        "全勤，认真完成实验: 需教师手工评定"
+      ],
+      "principle_understanding": [
+        "实验目的清晰完整",
+        "实验原理阐述准确",
+        "汽车电子应用场景说明"
+      ],
+      "completion": [
+        "硬件连接图正确清晰（三）(-3分)",
+        "引脚配置说明完整（三）",
+        "ISP烧录电路说明（三）",
+        "实验现象记录完整（五）",
+        "结果照片或截图清晰（五）",
+        "结果对比分析透彻（五）"
+      ],
+      "code_quality": [
+        "代码流程图清晰(-2分)",
+        "关键代码完整规范",
+        "代码注释详尽",
+        "中断服务程序说明详细",
+        "代码模块划分合理"
+      ],
+      "report_quality": [
+        "调试问题记录真实（六）",
+        "团队协作解决过程（六）",
+        "个人心得独立且深刻（六）",
+        "思考题回答完整正确（七）"
+      ]
+    },
+    "total_score": 94,
+    "grade": "A",
+    "grade_label": "优",
+    "quality_info": {
+      "overall_quality": 85.2,
+      "content_depth": 10,
+      "writing_quality": 13,
+      "technical_accuracy": 25,
+      "completeness": 21,
+      "issues": [],
+      "strengths": [
+        "技术要点正确:PE4下降沿触发",
+        "技术要点正确:LED引脚配置",
+        "技术要点正确:状态机逻辑",
+        "技术要点正确:DWT消抖实现",
+        "技术要点正确:HAL/中断使用"
+      ],
+      "quality_grade": "优秀"
+    }
+  },
+  {
+    "student_id": "23071140208",
+    "name": "第1组-刘潇霞",
+    "scores": {
+      "team_collaboration": 4,
+      "attitude": 10,
+      "principle_understanding": 8,
+      "completion": 30,
+      "code_quality": 25,
+      "report_quality": 9
+    },
+    "feedback": {
+      "team_collaboration": [
+        "成员基本信息完整(-1分)",
+        "个人分工明确合理",
+        "协作过程记录详细"
+      ],
+      "attitude": [
+        "全勤，认真完成实验: 需教师手工评定"
+      ],
+      "principle_understanding": [
+        "实验目的清晰完整(-1分)",
+        "实验原理阐述准确",
+        "汽车电子应用场景说明(-1分)"
+      ],
+      "completion": [
+        "硬件连接图正确清晰（三）(-3分)",
+        "引脚配置说明完整（三）(-1分)",
+        "ISP烧录电路说明（三）(-1分)",
+        "实验现象记录完整（五）",
+        "结果照片或截图清晰（五）",
+        "结果对比分析透彻（五）"
+      ],
+      "code_quality": [
+        "代码流程图清晰(-2分)",
+        "关键代码完整规范",
+        "代码注释详尽(-3分)",
+        "中断服务程序说明详细",
+        "代码模块划分合理"
+      ],
+      "report_quality": [
+        "调试问题记录真实（六）",
+        "团队协作解决过程（六）",
+        "个人心得独立且深刻（六）(-1分)",
+        "思考题回答完整正确（七）"
+      ]
+    },
+    "total_score": 86,
+    "grade": "B",
+    "grade_label": "良",
+    "quality_info": {
+      "overall_quality": 66.7,
+      "content_depth": 5,
+      "writing_quality": 13,
+      "technical_accuracy": 15,
+      "completeness": 21,
+      "issues": [],
+      "strengths": [
+        "技术要点正确:状态机逻辑",
+        "技术要点正确:DWT消抖实现",
+        "技术要点正确:HAL/中断使用"
+      ],
+      "quality_grade": "及格"
+    }
+  },
+  {
+    "student_id": "23071140210",
+    "name": "实验报告-王倩倩",
+    "scores": {
+      "team_collaboration": 5,
+      "attitude": 10,
+      "principle_understanding": 10,
+      "completion": 32,
+      "code_quality": 25,
+      "report_quality": 10
+    },
+    "feedback": {
+      "team_collaboration": [
+        "成员基本信息完整",
+        "个人分工明确合理",
+        "协作过程记录详细"
+      ],
+      "attitude": [
+        "全勤，认真完成实验: 需教师手工评定"
+      ],
+      "principle_understanding": [
+        "实验目的清晰完整",
+        "实验原理阐述准确",
+        "汽车电子应用场景说明"
+      ],
+      "completion": [
+        "硬件连接图正确清晰（三）(-3分)",
+        "引脚配置说明完整（三）",
+        "ISP烧录电路说明（三）",
+        "实验现象记录完整（五）",
+        "结果照片或截图清晰（五）",
+        "结果对比分析透彻（五）"
+      ],
+      "code_quality": [
+        "代码流程图清晰(-2分)",
+        "关键代码完整规范",
+        "代码注释详尽(-3分)",
+        "中断服务程序说明详细",
+        "代码模块划分合理"
+      ],
+      "report_quality": [
+        "调试问题记录真实（六）",
+        "团队协作解决过程（六）",
+        "个人心得独立且深刻（六）",
+        "思考题回答完整正确（七）"
+      ]
+    },
+    "total_score": 92,
+    "grade": "A",
+    "grade_label": "优",
+    "quality_info": {
+      "overall_quality": 85.2,
+      "content_depth": 10,
+      "writing_quality": 13,
+      "technical_accuracy": 25,
+      "completeness": 21,
+      "issues": [],
+      "strengths": [
+        "技术要点正确:PE4下降沿触发",
+        "技术要点正确:LED引脚配置",
+        "技术要点正确:状态机逻辑",
+        "技术要点正确:DWT消抖实现",
+        "技术要点正确:HAL/中断使用"
+      ],
+      "quality_grade": "优秀"
+    }
+  },
+  {
+    "student_id": "23071140211",
+    "name": "第6组-安晓童",
+    "scores": {
+      "team_collaboration": 5,
+      "attitude": 10,
+      "principle_understanding": 10,
+      "completion": 32,
+      "code_quality": 25,
+      "report_quality": 10
+    },
+    "feedback": {
+      "team_collaboration": [
+        "成员基本信息完整",
+        "个人分工明确合理",
+        "协作过程记录详细"
+      ],
+      "attitude": [
+        "全勤，认真完成实验: 需教师手工评定"
+      ],
+      "principle_understanding": [
+        "实验目的清晰完整",
+        "实验原理阐述准确",
+        "汽车电子应用场景说明"
+      ],
+      "completion": [
+        "硬件连接图正确清晰（三）(-3分)",
+        "引脚配置说明完整（三）",
+        "ISP烧录电路说明（三）",
+        "实验现象记录完整（五）",
+        "结果照片或截图清晰（五）",
+        "结果对比分析透彻（五）"
+      ],
+      "code_quality": [
+        "代码流程图清晰(-2分)",
+        "关键代码完整规范",
+        "代码注释详尽(-3分)",
+        "中断服务程序说明详细",
+        "代码模块划分合理"
+      ],
+      "report_quality": [
+        "调试问题记录真实（六）",
+        "团队协作解决过程（六）",
+        "个人心得独立且深刻（六）",
+        "思考题回答完整正确（七）"
+      ]
+    },
+    "total_score": 92,
+    "grade": "A",
+    "grade_label": "优",
+    "quality_info": {
+      "overall_quality": 85.2,
+      "content_depth": 10,
+      "writing_quality": 13,
+      "technical_accuracy": 25,
+      "completeness": 21,
+      "issues": [],
+      "strengths": [
+        "技术要点正确:PE4下降沿触发",
+        "技术要点正确:LED引脚配置",
+        "技术要点正确:状态机逻辑",
+        "技术要点正确:DWT消抖实现",
+        "技术要点正确:HAL/中断使用"
+      ],
+      "quality_grade": "优秀"
+    }
+  },
+  {
+    "student_id": "23071140213",
+    "name": "第七组——吴延洁",
+    "scores": {
+      "team_collaboration": 5,
+      "attitude": 10,
+      "principle_understanding": 9,
+      "completion": 32,
+      "code_quality": 25,
+      "report_quality": 10
+    },
+    "feedback": {
+      "team_collaboration": [
+        "成员基本信息完整",
+        "个人分工明确合理",
+        "协作过程记录详细"
+      ],
+      "attitude": [
+        "全勤，认真完成实验: 需教师手工评定"
+      ],
+      "principle_understanding": [
+        "实验目的清晰完整(-1分)",
+        "实验原理阐述准确",
+        "汽车电子应用场景说明"
+      ],
+      "completion": [
+        "硬件连接图正确清晰（三）(-3分)",
+        "引脚配置说明完整（三）",
+        "ISP烧录电路说明（三）",
+        "实验现象记录完整（五）",
+        "结果照片或截图清晰（五）",
+        "结果对比分析透彻（五）"
+      ],
+      "code_quality": [
+        "代码流程图清晰(-2分)",
+        "关键代码完整规范",
+        "代码注释详尽(-3分)",
+        "中断服务程序说明详细",
+        "代码模块划分合理"
+      ],
+      "report_quality": [
+        "调试问题记录真实（六）",
+        "团队协作解决过程（六）",
+        "个人心得独立且深刻（六）",
+        "思考题回答完整正确（七）"
+      ]
+    },
+    "total_score": 91,
+    "grade": "A",
+    "grade_label": "优",
+    "quality_info": {
+      "overall_quality": 85.2,
+      "content_depth": 10,
+      "writing_quality": 13,
+      "technical_accuracy": 25,
+      "completeness": 21,
+      "issues": [],
+      "strengths": [
+        "技术要点正确:PE4下降沿触发",
+        "技术要点正确:LED引脚配置",
+        "技术要点正确:状态机逻辑",
+        "技术要点正确:DWT消抖实现",
+        "技术要点正确:HAL/中断使用"
+      ],
+      "quality_grade": "优秀"
+    }
+  },
+  {
+    "student_id": "23071140214",
+    "name": "第十组——陈星彤",
+    "scores": {
+      "team_collaboration": 5,
+      "attitude": 10,
+      "principle_understanding": 10,
+      "completion": 32,
+      "code_quality": 25,
+      "report_quality": 10
+    },
+    "feedback": {
+      "team_collaboration": [
+        "成员基本信息完整",
+        "个人分工明确合理",
+        "协作过程记录详细"
+      ],
+      "attitude": [
+        "全勤，认真完成实验: 需教师手工评定"
+      ],
+      "principle_understanding": [
+        "实验目的清晰完整",
+        "实验原理阐述准确",
+        "汽车电子应用场景说明"
+      ],
+      "completion": [
+        "硬件连接图正确清晰（三）(-3分)",
+        "引脚配置说明完整（三）",
+        "ISP烧录电路说明（三）",
+        "实验现象记录完整（五）",
+        "结果照片或截图清晰（五）",
+        "结果对比分析透彻（五）"
+      ],
+      "code_quality": [
+        "代码流程图清晰(-2分)",
+        "关键代码完整规范",
+        "代码注释详尽(-3分)",
+        "中断服务程序说明详细",
+        "代码模块划分合理"
+      ],
+      "report_quality": [
+        "调试问题记录真实（六）",
+        "团队协作解决过程（六）",
+        "个人心得独立且深刻（六）",
+        "思考题回答完整正确（七）"
+      ]
+    },
+    "total_score": 92,
+    "grade": "A",
+    "grade_label": "优",
+    "quality_info": {
+      "overall_quality": 85.2,
+      "content_depth": 10,
+      "writing_quality": 13,
+      "technical_accuracy": 25,
+      "completeness": 21,
+      "issues": [],
+      "strengths": [
+        "技术要点正确:PE4下降沿触发",
+        "技术要点正确:LED引脚配置",
+        "技术要点正确:状态机逻辑",
+        "技术要点正确:DWT消抖实现",
+        "技术要点正确:HAL/中断使用"
+      ],
+      "quality_grade": "优秀"
+    }
+  },
+  {
+    "student_id": "23071140215",
+    "name": "第十组——侯鸿宾",
+    "scores": {
+      "team_collaboration": 5,
+      "attitude": 10,
+      "principle_understanding": 10,
+      "completion": 32,
+      "code_quality": 25,
+      "report_quality": 10
+    },
+    "feedback": {
+      "team_collaboration": [
+        "成员基本信息完整",
+        "个人分工明确合理",
+        "协作过程记录详细"
+      ],
+      "attitude": [
+        "全勤，认真完成实验: 需教师手工评定"
+      ],
+      "principle_understanding": [
+        "实验目的清晰完整",
+        "实验原理阐述准确",
+        "汽车电子应用场景说明"
+      ],
+      "completion": [
+        "硬件连接图正确清晰（三）(-3分)",
+        "引脚配置说明完整（三）",
+        "ISP烧录电路说明（三）",
+        "实验现象记录完整（五）",
+        "结果照片或截图清晰（五）",
+        "结果对比分析透彻（五）"
+      ],
+      "code_quality": [
+        "代码流程图清晰(-2分)",
+        "关键代码完整规范",
+        "代码注释详尽(-3分)",
+        "中断服务程序说明详细",
+        "代码模块划分合理"
+      ],
+      "report_quality": [
+        "调试问题记录真实（六）",
+        "团队协作解决过程（六）",
+        "个人心得独立且深刻（六）",
+        "思考题回答完整正确（七）"
+      ]
+    },
+    "total_score": 92,
+    "grade": "A",
+    "grade_label": "优",
+    "quality_info": {
+      "overall_quality": 85.2,
+      "content_depth": 10,
+      "writing_quality": 13,
+      "technical_accuracy": 25,
+      "completeness": 21,
+      "issues": [],
+      "strengths": [
+        "技术要点正确:PE4下降沿触发",
+        "技术要点正确:LED引脚配置",
+        "技术要点正确:状态机逻辑",
+        "技术要点正确:DWT消抖实现",
+        "技术要点正确:HAL/中断使用"
+      ],
+      "quality_grade": "优秀"
+    }
+  },
+  {
+    "student_id": "23071140216",
+    "name": "汽服2302B班-武晓楠.docx",
+    "scores": {
+      "team_collaboration": 5,
+      "attitude": 10,
+      "principle_understanding": 10,
+      "completion": 28,
+      "code_quality": 25,
+      "report_quality": 10
+    },
+    "feedback": {
+      "team_collaboration": [
+        "成员基本信息完整",
+        "个人分工明确合理",
+        "协作过程记录详细"
+      ],
+      "attitude": [
+        "全勤，认真完成实验: 需教师手工评定"
+      ],
+      "principle_understanding": [
+        "实验目的清晰完整",
+        "实验原理阐述准确",
+        "汽车电子应用场景说明"
+      ],
+      "completion": [
+        "硬件连接图正确清晰（三）(-3分)",
+        "引脚配置说明完整（三）(-1分)",
+        "ISP烧录电路说明（三）",
+        "实验现象记录完整（五）(-3分)",
+        "结果照片或截图清晰（五）",
+        "结果对比分析透彻（五）"
+      ],
+      "code_quality": [
+        "代码流程图清晰(-2分)",
+        "关键代码完整规范",
+        "代码注释详尽(-3分)",
+        "中断服务程序说明详细",
+        "代码模块划分合理"
+      ],
+      "report_quality": [
+        "调试问题记录真实（六）",
+        "团队协作解决过程（六）",
+        "个人心得独立且深刻（六）",
+        "思考题回答完整正确（七）"
+      ]
+    },
+    "total_score": 88,
+    "grade": "B",
+    "grade_label": "良",
+    "quality_info": {
+      "overall_quality": 60.5,
+      "content_depth": 10,
+      "writing_quality": 13,
+      "technical_accuracy": 5,
+      "completeness": 21,
+      "issues": [],
+      "strengths": [
+        "技术要点正确:HAL/中断使用"
+      ],
+      "quality_grade": "及格"
+    }
+  },
+  {
+    "student_id": "23071140217",
+    "name": "与个人心得体会与思考题",
+    "scores": {
+      "team_collaboration": 2,
+      "attitude": 10,
+      "principle_understanding": 6,
+      "completion": 16,
+      "code_quality": 12,
+      "report_quality": 9
+    },
+    "feedback": {
+      "team_collaboration": [
+        "成员基本信息完整(-1分)",
+        "个人分工明确合理(-1分)",
+        "协作过程记录详细(-1分)"
+      ],
+      "attitude": [
+        "全勤，认真完成实验: 需教师手工评定"
+      ],
+      "principle_understanding": [
+        "实验目的清晰完整(-3分)",
+        "实验原理阐述准确",
+        "汽车电子应用场景说明(-1分)"
+      ],
+      "completion": [
+        "硬件连接图正确清晰（三）(-3分)",
+        "引脚配置说明完整（三）(-1分)",
+        "ISP烧录电路说明（三）(-2分)",
+        "实验现象记录完整（五）(-3分)",
+        "结果照片或截图清晰（五）(-2分)",
+        "结果对比分析透彻（五）(-8分)"
+      ],
+      "code_quality": [
+        "代码流程图清晰(-6分)",
+        "关键代码完整规范",
+        "代码注释详尽(-8分)",
+        "中断服务程序说明详细(-2分)",
+        "代码模块划分合理(-2分)"
+      ],
+      "report_quality": [
+        "调试问题记录真实（六）",
+        "团队协作解决过程（六）(-1分)",
+        "个人心得独立且深刻（六）",
+        "思考题回答完整正确（七）"
+      ]
+    },
+    "total_score": 55,
+    "grade": "F",
+    "grade_label": "不及格",
+    "quality_info": {
+      "overall_quality": 63.0,
+      "content_depth": 15,
+      "writing_quality": 11,
+      "technical_accuracy": 10,
+      "completeness": 15,
+      "issues": [
+        "缺少完整实验目的",
+        "缺少完整问题讨论"
+      ],
+      "strengths": [
+        "技术要点正确:状态机逻辑",
+        "技术要点正确:DWT消抖实现"
+      ],
+      "quality_grade": "及格"
+    }
+  },
+  {
+    "student_id": "23071140219",
+    "name": "第八组——许佳琦",
+    "scores": {
+      "team_collaboration": 5,
+      "attitude": 10,
+      "principle_understanding": 9,
+      "completion": 32,
+      "code_quality": 25,
+      "report_quality": 10
+    },
+    "feedback": {
+      "team_collaboration": [
+        "成员基本信息完整",
+        "个人分工明确合理",
+        "协作过程记录详细"
+      ],
+      "attitude": [
+        "全勤，认真完成实验: 需教师手工评定"
+      ],
+      "principle_understanding": [
+        "实验目的清晰完整(-1分)",
+        "实验原理阐述准确",
+        "汽车电子应用场景说明"
+      ],
+      "completion": [
+        "硬件连接图正确清晰（三）(-3分)",
+        "引脚配置说明完整（三）",
+        "ISP烧录电路说明（三）",
+        "实验现象记录完整（五）",
+        "结果照片或截图清晰（五）",
+        "结果对比分析透彻（五）"
+      ],
+      "code_quality": [
+        "代码流程图清晰(-2分)",
+        "关键代码完整规范",
+        "代码注释详尽(-3分)",
+        "中断服务程序说明详细",
+        "代码模块划分合理"
+      ],
+      "report_quality": [
+        "调试问题记录真实（六）",
+        "团队协作解决过程（六）",
+        "个人心得独立且深刻（六）",
+        "思考题回答完整正确（七）"
+      ]
+    },
+    "total_score": 91,
+    "grade": "A",
+    "grade_label": "优",
+    "quality_info": {
+      "overall_quality": 85.2,
+      "content_depth": 10,
+      "writing_quality": 13,
+      "technical_accuracy": 25,
+      "completeness": 21,
+      "issues": [],
+      "strengths": [
+        "技术要点正确:PE4下降沿触发",
+        "技术要点正确:LED引脚配置",
+        "技术要点正确:状态机逻辑",
+        "技术要点正确:DWT消抖实现",
+        "技术要点正确:HAL/中断使用"
+      ],
+      "quality_grade": "优秀"
+    }
+  },
+  {
+    "student_id": "23071140220",
+    "name": "梁永宁实验报告模板(1)",
+    "scores": {
+      "team_collaboration": 5,
+      "attitude": 10,
+      "principle_understanding": 10,
+      "completion": 32,
+      "code_quality": 25,
+      "report_quality": 10
+    },
+    "feedback": {
+      "team_collaboration": [
+        "成员基本信息完整",
+        "个人分工明确合理",
+        "协作过程记录详细"
+      ],
+      "attitude": [
+        "全勤，认真完成实验: 需教师手工评定"
+      ],
+      "principle_understanding": [
+        "实验目的清晰完整",
+        "实验原理阐述准确",
+        "汽车电子应用场景说明"
+      ],
+      "completion": [
+        "硬件连接图正确清晰（三）(-3分)",
+        "引脚配置说明完整（三）",
+        "ISP烧录电路说明（三）",
+        "实验现象记录完整（五）",
+        "结果照片或截图清晰（五）",
+        "结果对比分析透彻（五）"
+      ],
+      "code_quality": [
+        "代码流程图清晰(-2分)",
+        "关键代码完整规范",
+        "代码注释详尽(-3分)",
+        "中断服务程序说明详细",
+        "代码模块划分合理"
+      ],
+      "report_quality": [
+        "调试问题记录真实（六）",
+        "团队协作解决过程（六）",
+        "个人心得独立且深刻（六）",
+        "思考题回答完整正确（七）"
+      ]
+    },
+    "total_score": 92,
+    "grade": "A",
+    "grade_label": "优",
+    "quality_info": {
+      "overall_quality": 85.2,
+      "content_depth": 10,
+      "writing_quality": 13,
+      "technical_accuracy": 25,
+      "completeness": 21,
+      "issues": [],
+      "strengths": [
+        "技术要点正确:PE4下降沿触发",
+        "技术要点正确:LED引脚配置",
+        "技术要点正确:状态机逻辑",
+        "技术要点正确:DWT消抖实现",
+        "技术要点正确:HAL/中断使用"
+      ],
+      "quality_grade": "优秀"
+    }
+  },
+  {
+    "student_id": "23071140221",
+    "name": "实验报告模板（郝卓瞳）",
+    "scores": {
+      "team_collaboration": 5,
+      "attitude": 10,
+      "principle_understanding": 10,
+      "completion": 32,
+      "code_quality": 25,
+      "report_quality": 10
+    },
+    "feedback": {
+      "team_collaboration": [
+        "成员基本信息完整",
+        "个人分工明确合理",
+        "协作过程记录详细"
+      ],
+      "attitude": [
+        "全勤，认真完成实验: 需教师手工评定"
+      ],
+      "principle_understanding": [
+        "实验目的清晰完整",
+        "实验原理阐述准确",
+        "汽车电子应用场景说明"
+      ],
+      "completion": [
+        "硬件连接图正确清晰（三）(-3分)",
+        "引脚配置说明完整（三）",
+        "ISP烧录电路说明（三）",
+        "实验现象记录完整（五）",
+        "结果照片或截图清晰（五）",
+        "结果对比分析透彻（五）"
+      ],
+      "code_quality": [
+        "代码流程图清晰(-2分)",
+        "关键代码完整规范",
+        "代码注释详尽(-3分)",
+        "中断服务程序说明详细",
+        "代码模块划分合理"
+      ],
+      "report_quality": [
+        "调试问题记录真实（六）",
+        "团队协作解决过程（六）",
+        "个人心得独立且深刻（六）",
+        "思考题回答完整正确（七）"
+      ]
+    },
+    "total_score": 92,
+    "grade": "A",
+    "grade_label": "优",
+    "quality_info": {
+      "overall_quality": 91.4,
+      "content_depth": 15,
+      "writing_quality": 13,
+      "technical_accuracy": 25,
+      "completeness": 21,
+      "issues": [],
+      "strengths": [
+        "技术要点正确:PE4下降沿触发",
+        "技术要点正确:LED引脚配置",
+        "技术要点正确:状态机逻辑",
+        "技术要点正确:DWT消抖实现",
+        "技术要点正确:HAL/中断使用"
+      ],
+      "quality_grade": "优秀"
+    }
+  },
+  {
+    "student_id": "23071140222",
+    "name": "汽车挡位模拟设计",
+    "scores": {
+      "team_collaboration": 2,
+      "attitude": 10,
+      "principle_understanding": 9,
+      "completion": 18,
+      "code_quality": 19,
+      "report_quality": 8
+    },
+    "feedback": {
+      "team_collaboration": [
+        "成员基本信息完整(-1分)",
+        "个人分工明确合理(-1分)",
+        "协作过程记录详细(-1分)"
+      ],
+      "attitude": [
+        "全勤，认真完成实验: 需教师手工评定"
+      ],
+      "principle_understanding": [
+        "实验目的清晰完整(-1分)",
+        "实验原理阐述准确",
+        "汽车电子应用场景说明"
+      ],
+      "completion": [
+        "硬件连接图正确清晰（三）(-10分)",
+        "引脚配置说明完整（三）",
+        "ISP烧录电路说明（三）",
+        "实验现象记录完整（五）",
+        "结果照片或截图清晰（五）(-4分)",
+        "结果对比分析透彻（五）(-3分)"
+      ],
+      "code_quality": [
+        "代码流程图清晰(-6分)",
+        "关键代码完整规范",
+        "代码注释详尽(-3分)",
+        "中断服务程序说明详细",
+        "代码模块划分合理(-2分)"
+      ],
+      "report_quality": [
+        "调试问题记录真实（六）",
+        "团队协作解决过程（六）(-1分)",
+        "个人心得独立且深刻（六）(-1分)",
+        "思考题回答完整正确（七）"
+      ]
+    },
+    "total_score": 66,
+    "grade": "D",
+    "grade_label": "及格",
+    "quality_info": {
+      "overall_quality": 87.7,
+      "content_depth": 15,
+      "writing_quality": 13,
+      "technical_accuracy": 25,
+      "completeness": 18,
+      "issues": [
+        "缺少完整问题讨论"
+      ],
+      "strengths": [
+        "技术要点正确:PE4下降沿触发",
+        "技术要点正确:LED引脚配置",
+        "技术要点正确:状态机逻辑",
+        "技术要点正确:DWT消抖实现",
+        "技术要点正确:HAL/中断使用"
+      ],
+      "quality_grade": "优秀"
+    }
+  },
+  {
+    "student_id": "23071140223",
+    "name": "汽服2302B班李林鑫",
+    "scores": {
+      "team_collaboration": 5,
+      "attitude": 10,
+      "principle_understanding": 8,
+      "completion": 28,
+      "code_quality": 25,
+      "report_quality": 10
+    },
+    "feedback": {
+      "team_collaboration": [
+        "成员基本信息完整",
+        "个人分工明确合理",
+        "协作过程记录详细"
+      ],
+      "attitude": [
+        "全勤，认真完成实验: 需教师手工评定"
+      ],
+      "principle_understanding": [
+        "实验目的清晰完整",
+        "实验原理阐述准确(-2分)",
+        "汽车电子应用场景说明"
+      ],
+      "completion": [
+        "硬件连接图正确清晰（三）(-3分)",
+        "引脚配置说明完整（三）(-1分)",
+        "ISP烧录电路说明（三）",
+        "实验现象记录完整（五）(-3分)",
+        "结果照片或截图清晰（五）",
+        "结果对比分析透彻（五）"
+      ],
+      "code_quality": [
+        "代码流程图清晰(-2分)",
+        "关键代码完整规范",
+        "代码注释详尽(-3分)",
+        "中断服务程序说明详细",
+        "代码模块划分合理"
+      ],
+      "report_quality": [
+        "调试问题记录真实（六）",
+        "团队协作解决过程（六）",
+        "个人心得独立且深刻（六）",
+        "思考题回答完整正确（七）"
+      ]
+    },
+    "total_score": 86,
+    "grade": "B",
+    "grade_label": "良",
+    "quality_info": {
+      "overall_quality": 60.5,
+      "content_depth": 10,
+      "writing_quality": 13,
+      "technical_accuracy": 5,
+      "completeness": 21,
+      "issues": [],
+      "strengths": [
+        "技术要点正确:HAL/中断使用"
+      ],
+      "quality_grade": "及格"
+    }
+  },
+  {
+    "student_id": "23071140224",
+    "name": "汽服2302B班刘涛23071140224",
+    "scores": {
+      "team_collaboration": 4,
+      "attitude": 10,
+      "principle_understanding": 9,
+      "completion": 18,
+      "code_quality": 19,
+      "report_quality": 10
+    },
+    "feedback": {
+      "team_collaboration": [
+        "成员基本信息完整",
+        "个人分工明确合理(-1分)",
+        "协作过程记录详细"
+      ],
+      "attitude": [
+        "全勤，认真完成实验: 需教师手工评定"
+      ],
+      "principle_understanding": [
+        "实验目的清晰完整(-1分)",
+        "实验原理阐述准确",
+        "汽车电子应用场景说明"
+      ],
+      "completion": [
+        "硬件连接图正确清晰（三）(-10分)",
+        "引脚配置说明完整（三）",
+        "ISP烧录电路说明（三）",
+        "实验现象记录完整（五）",
+        "结果照片或截图清晰（五）(-4分)",
+        "结果对比分析透彻（五）(-3分)"
+      ],
+      "code_quality": [
+        "代码流程图清晰(-6分)",
+        "关键代码完整规范",
+        "代码注释详尽(-3分)",
+        "中断服务程序说明详细",
+        "代码模块划分合理(-2分)"
+      ],
+      "report_quality": [
+        "调试问题记录真实（六）",
+        "团队协作解决过程（六）",
+        "个人心得独立且深刻（六）",
+        "思考题回答完整正确（七）"
+      ]
+    },
+    "total_score": 70,
+    "grade": "C",
+    "grade_label": "中",
+    "quality_info": {
+      "overall_quality": 81.5,
+      "content_depth": 10,
+      "writing_quality": 13,
+      "technical_accuracy": 25,
+      "completeness": 18,
+      "issues": [
+        "缺少完整问题讨论"
+      ],
+      "strengths": [
+        "技术要点正确:PE4下降沿触发",
+        "技术要点正确:LED引脚配置",
+        "技术要点正确:状态机逻辑",
+        "技术要点正确:DWT消抖实现",
+        "技术要点正确:HAL/中断使用"
+      ],
+      "quality_grade": "良好"
+    }
+  },
+  {
+    "student_id": "23071140226",
+    "name": "第七组——辛康琳",
+    "scores": {
+      "team_collaboration": 5,
+      "attitude": 10,
+      "principle_understanding": 10,
+      "completion": 32,
+      "code_quality": 25,
+      "report_quality": 10
+    },
+    "feedback": {
+      "team_collaboration": [
+        "成员基本信息完整",
+        "个人分工明确合理",
+        "协作过程记录详细"
+      ],
+      "attitude": [
+        "全勤，认真完成实验: 需教师手工评定"
+      ],
+      "principle_understanding": [
+        "实验目的清晰完整",
+        "实验原理阐述准确",
+        "汽车电子应用场景说明"
+      ],
+      "completion": [
+        "硬件连接图正确清晰（三）(-3分)",
+        "引脚配置说明完整（三）",
+        "ISP烧录电路说明（三）",
+        "实验现象记录完整（五）",
+        "结果照片或截图清晰（五）",
+        "结果对比分析透彻（五）"
+      ],
+      "code_quality": [
+        "代码流程图清晰(-2分)",
+        "关键代码完整规范",
+        "代码注释详尽(-3分)",
+        "中断服务程序说明详细",
+        "代码模块划分合理"
+      ],
+      "report_quality": [
+        "调试问题记录真实（六）",
+        "团队协作解决过程（六）",
+        "个人心得独立且深刻（六）",
+        "思考题回答完整正确（七）"
+      ]
+    },
+    "total_score": 92,
+    "grade": "A",
+    "grade_label": "优",
+    "quality_info": {
+      "overall_quality": 91.4,
+      "content_depth": 15,
+      "writing_quality": 13,
+      "technical_accuracy": 25,
+      "completeness": 21,
+      "issues": [],
+      "strengths": [
+        "技术要点正确:PE4下降沿触发",
+        "技术要点正确:LED引脚配置",
+        "技术要点正确:状态机逻辑",
+        "技术要点正确:DWT消抖实现",
+        "技术要点正确:HAL/中断使用"
+      ],
+      "quality_grade": "优秀"
+    }
+  },
+  {
+    "student_id": "23071140227",
+    "name": "第4组-郜炫彤",
+    "scores": {
+      "team_collaboration": 4,
+      "attitude": 10,
+      "principle_understanding": 10,
+      "completion": 32,
+      "code_quality": 25,
+      "report_quality": 10
+    },
+    "feedback": {
+      "team_collaboration": [
+        "成员基本信息完整(-1分)",
+        "个人分工明确合理",
+        "协作过程记录详细"
+      ],
+      "attitude": [
+        "全勤，认真完成实验: 需教师手工评定"
+      ],
+      "principle_understanding": [
+        "实验目的清晰完整",
+        "实验原理阐述准确",
+        "汽车电子应用场景说明"
+      ],
+      "completion": [
+        "硬件连接图正确清晰（三）(-3分)",
+        "引脚配置说明完整（三）",
+        "ISP烧录电路说明（三）",
+        "实验现象记录完整（五）",
+        "结果照片或截图清晰（五）",
+        "结果对比分析透彻（五）"
+      ],
+      "code_quality": [
+        "代码流程图清晰(-2分)",
+        "关键代码完整规范",
+        "代码注释详尽(-3分)",
+        "中断服务程序说明详细",
+        "代码模块划分合理"
+      ],
+      "report_quality": [
+        "调试问题记录真实（六）",
+        "团队协作解决过程（六）",
+        "个人心得独立且深刻（六）",
+        "思考题回答完整正确（七）"
+      ]
+    },
+    "total_score": 91,
+    "grade": "A",
+    "grade_label": "优",
+    "quality_info": {
+      "overall_quality": 87.7,
+      "content_depth": 10,
+      "writing_quality": 15,
+      "technical_accuracy": 25,
+      "completeness": 21,
+      "issues": [],
+      "strengths": [
+        "技术要点正确:PE4下降沿触发",
+        "技术要点正确:LED引脚配置",
+        "技术要点正确:状态机逻辑",
+        "技术要点正确:DWT消抖实现",
+        "技术要点正确:HAL/中断使用"
+      ],
+      "quality_grade": "优秀"
+    }
+  },
+  {
+    "student_id": "23071140228",
+    "name": "第十组——尚祥",
+    "scores": {
+      "team_collaboration": 5,
+      "attitude": 10,
+      "principle_understanding": 10,
+      "completion": 32,
+      "code_quality": 25,
+      "report_quality": 10
+    },
+    "feedback": {
+      "team_collaboration": [
+        "成员基本信息完整",
+        "个人分工明确合理",
+        "协作过程记录详细"
+      ],
+      "attitude": [
+        "全勤，认真完成实验: 需教师手工评定"
+      ],
+      "principle_understanding": [
+        "实验目的清晰完整",
+        "实验原理阐述准确",
+        "汽车电子应用场景说明"
+      ],
+      "completion": [
+        "硬件连接图正确清晰（三）(-3分)",
+        "引脚配置说明完整（三）",
+        "ISP烧录电路说明（三）",
+        "实验现象记录完整（五）",
+        "结果照片或截图清晰（五）",
+        "结果对比分析透彻（五）"
+      ],
+      "code_quality": [
+        "代码流程图清晰(-2分)",
+        "关键代码完整规范",
+        "代码注释详尽(-3分)",
+        "中断服务程序说明详细",
+        "代码模块划分合理"
+      ],
+      "report_quality": [
+        "调试问题记录真实（六）",
+        "团队协作解决过程（六）",
+        "个人心得独立且深刻（六）",
+        "思考题回答完整正确（七）"
+      ]
+    },
+    "total_score": 92,
+    "grade": "A",
+    "grade_label": "优",
+    "quality_info": {
+      "overall_quality": 85.2,
+      "content_depth": 10,
+      "writing_quality": 13,
+      "technical_accuracy": 25,
+      "completeness": 21,
+      "issues": [],
+      "strengths": [
+        "技术要点正确:PE4下降沿触发",
+        "技术要点正确:LED引脚配置",
+        "技术要点正确:状态机逻辑",
+        "技术要点正确:DWT消抖实现",
+        "技术要点正确:HAL/中断使用"
+      ],
+      "quality_grade": "优秀"
+    }
+  },
+  {
+    "student_id": "23071140230",
+    "name": "第七组-冀虹鑫",
+    "scores": {
+      "team_collaboration": 5,
+      "attitude": 10,
+      "principle_understanding": 10,
+      "completion": 32,
+      "code_quality": 25,
+      "report_quality": 10
+    },
+    "feedback": {
+      "team_collaboration": [
+        "成员基本信息完整",
+        "个人分工明确合理",
+        "协作过程记录详细"
+      ],
+      "attitude": [
+        "全勤，认真完成实验: 需教师手工评定"
+      ],
+      "principle_understanding": [
+        "实验目的清晰完整",
+        "实验原理阐述准确",
+        "汽车电子应用场景说明"
+      ],
+      "completion": [
+        "硬件连接图正确清晰（三）(-3分)",
+        "引脚配置说明完整（三）",
+        "ISP烧录电路说明（三）",
+        "实验现象记录完整（五）",
+        "结果照片或截图清晰（五）",
+        "结果对比分析透彻（五）"
+      ],
+      "code_quality": [
+        "代码流程图清晰(-2分)",
+        "关键代码完整规范",
+        "代码注释详尽(-3分)",
+        "中断服务程序说明详细",
+        "代码模块划分合理"
+      ],
+      "report_quality": [
+        "调试问题记录真实（六）",
+        "团队协作解决过程（六）",
+        "个人心得独立且深刻（六）",
+        "思考题回答完整正确（七）"
+      ]
+    },
+    "total_score": 92,
+    "grade": "A",
+    "grade_label": "优",
+    "quality_info": {
+      "overall_quality": 85.2,
+      "content_depth": 10,
+      "writing_quality": 13,
+      "technical_accuracy": 25,
+      "completeness": 21,
+      "issues": [],
+      "strengths": [
+        "技术要点正确:PE4下降沿触发",
+        "技术要点正确:LED引脚配置",
+        "技术要点正确:状态机逻辑",
+        "技术要点正确:DWT消抖实现",
+        "技术要点正确:HAL/中断使用"
+      ],
+      "quality_grade": "优秀"
+    }
+  },
+  {
+    "student_id": "23071140231",
+    "name": "第7组-赵新宇",
+    "scores": {
+      "team_collaboration": 5,
+      "attitude": 10,
+      "principle_understanding": 10,
+      "completion": 32,
+      "code_quality": 25,
+      "report_quality": 10
+    },
+    "feedback": {
+      "team_collaboration": [
+        "成员基本信息完整",
+        "个人分工明确合理",
+        "协作过程记录详细"
+      ],
+      "attitude": [
+        "全勤，认真完成实验: 需教师手工评定"
+      ],
+      "principle_understanding": [
+        "实验目的清晰完整",
+        "实验原理阐述准确",
+        "汽车电子应用场景说明"
+      ],
+      "completion": [
+        "硬件连接图正确清晰（三）(-3分)",
+        "引脚配置说明完整（三）",
+        "ISP烧录电路说明（三）",
+        "实验现象记录完整（五）",
+        "结果照片或截图清晰（五）",
+        "结果对比分析透彻（五）"
+      ],
+      "code_quality": [
+        "代码流程图清晰(-2分)",
+        "关键代码完整规范",
+        "代码注释详尽(-3分)",
+        "中断服务程序说明详细",
+        "代码模块划分合理"
+      ],
+      "report_quality": [
+        "调试问题记录真实（六）",
+        "团队协作解决过程（六）",
+        "个人心得独立且深刻（六）",
+        "思考题回答完整正确（七）"
+      ]
+    },
+    "total_score": 92,
+    "grade": "A",
+    "grade_label": "优",
+    "quality_info": {
+      "overall_quality": 85.2,
+      "content_depth": 10,
+      "writing_quality": 13,
+      "technical_accuracy": 25,
+      "completeness": 21,
+      "issues": [],
+      "strengths": [
+        "技术要点正确:PE4下降沿触发",
+        "技术要点正确:LED引脚配置",
+        "技术要点正确:状态机逻辑",
+        "技术要点正确:DWT消抖实现",
+        "技术要点正确:HAL/中断使用"
+      ],
+      "quality_grade": "优秀"
+    }
+  },
+  {
+    "student_id": "23071140232",
+    "name": "Doc1",
+    "scores": {
+      "team_collaboration": 2,
+      "attitude": 10,
+      "principle_understanding": 9,
+      "completion": 20,
+      "code_quality": 19,
+      "report_quality": 9
+    },
+    "feedback": {
+      "team_collaboration": [
+        "成员基本信息完整(-1分)",
+        "个人分工明确合理(-1分)",
+        "协作过程记录详细(-1分)"
+      ],
+      "attitude": [
+        "全勤，认真完成实验: 需教师手工评定"
+      ],
+      "principle_understanding": [
+        "实验目的清晰完整(-1分)",
+        "实验原理阐述准确",
+        "汽车电子应用场景说明"
+      ],
+      "completion": [
+        "硬件连接图正确清晰（三）(-10分)",
+        "引脚配置说明完整（三）",
+        "ISP烧录电路说明（三）",
+        "实验现象记录完整（五）",
+        "结果照片或截图清晰（五）(-2分)",
+        "结果对比分析透彻（五）(-3分)"
+      ],
+      "code_quality": [
+        "代码流程图清晰(-6分)",
+        "关键代码完整规范",
+        "代码注释详尽(-3分)",
+        "中断服务程序说明详细",
+        "代码模块划分合理(-2分)"
+      ],
+      "report_quality": [
+        "调试问题记录真实（六）",
+        "团队协作解决过程（六）(-1分)",
+        "个人心得独立且深刻（六）",
+        "思考题回答完整正确（七）"
+      ]
+    },
+    "total_score": 69,
+    "grade": "D",
+    "grade_label": "及格",
+    "quality_info": {
+      "overall_quality": 87.7,
+      "content_depth": 15,
+      "writing_quality": 13,
+      "technical_accuracy": 25,
+      "completeness": 18,
+      "issues": [
+        "缺少完整问题讨论"
+      ],
+      "strengths": [
+        "技术要点正确:PE4下降沿触发",
+        "技术要点正确:LED引脚配置",
+        "技术要点正确:状态机逻辑",
+        "技术要点正确:DWT消抖实现",
+        "技术要点正确:HAL/中断使用"
+      ],
+      "quality_grade": "优秀"
+    }
+  },
+  {
+    "student_id": "23071140233",
+    "name": "祁玉龙实验报告模板",
+    "scores": {
+      "team_collaboration": 5,
+      "attitude": 10,
+      "principle_understanding": 10,
+      "completion": 32,
+      "code_quality": 25,
+      "report_quality": 10
+    },
+    "feedback": {
+      "team_collaboration": [
+        "成员基本信息完整",
+        "个人分工明确合理",
+        "协作过程记录详细"
+      ],
+      "attitude": [
+        "全勤，认真完成实验: 需教师手工评定"
+      ],
+      "principle_understanding": [
+        "实验目的清晰完整",
+        "实验原理阐述准确",
+        "汽车电子应用场景说明"
+      ],
+      "completion": [
+        "硬件连接图正确清晰（三）(-3分)",
+        "引脚配置说明完整（三）",
+        "ISP烧录电路说明（三）",
+        "实验现象记录完整（五）",
+        "结果照片或截图清晰（五）",
+        "结果对比分析透彻（五）"
+      ],
+      "code_quality": [
+        "代码流程图清晰(-2分)",
+        "关键代码完整规范",
+        "代码注释详尽(-3分)",
+        "中断服务程序说明详细",
+        "代码模块划分合理"
+      ],
+      "report_quality": [
+        "调试问题记录真实（六）",
+        "团队协作解决过程（六）",
+        "个人心得独立且深刻（六）",
+        "思考题回答完整正确（七）"
+      ]
+    },
+    "total_score": 92,
+    "grade": "A",
+    "grade_label": "优",
+    "quality_info": {
+      "overall_quality": 85.2,
+      "content_depth": 10,
+      "writing_quality": 13,
+      "technical_accuracy": 25,
+      "completeness": 21,
+      "issues": [],
+      "strengths": [
+        "技术要点正确:PE4下降沿触发",
+        "技术要点正确:LED引脚配置",
+        "技术要点正确:状态机逻辑",
+        "技术要点正确:DWT消抖实现",
+        "技术要点正确:HAL/中断使用"
+      ],
+      "quality_grade": "优秀"
+    }
+  },
+  {
+    "student_id": "23071140236",
+    "name": "徐文静",
+    "scores": {
+      "team_collaboration": 5,
+      "attitude": 10,
+      "principle_understanding": 10,
+      "completion": 32,
+      "code_quality": 25,
+      "report_quality": 10
+    },
+    "feedback": {
+      "team_collaboration": [
+        "成员基本信息完整",
+        "个人分工明确合理",
+        "协作过程记录详细"
+      ],
+      "attitude": [
+        "全勤，认真完成实验: 需教师手工评定"
+      ],
+      "principle_understanding": [
+        "实验目的清晰完整",
+        "实验原理阐述准确",
+        "汽车电子应用场景说明"
+      ],
+      "completion": [
+        "硬件连接图正确清晰（三）(-3分)",
+        "引脚配置说明完整（三）",
+        "ISP烧录电路说明（三）",
+        "实验现象记录完整（五）",
+        "结果照片或截图清晰（五）",
+        "结果对比分析透彻（五）"
+      ],
+      "code_quality": [
+        "代码流程图清晰(-2分)",
+        "关键代码完整规范",
+        "代码注释详尽(-3分)",
+        "中断服务程序说明详细",
+        "代码模块划分合理"
+      ],
+      "report_quality": [
+        "调试问题记录真实（六）",
+        "团队协作解决过程（六）",
+        "个人心得独立且深刻（六）",
+        "思考题回答完整正确（七）"
+      ]
+    },
+    "total_score": 92,
+    "grade": "A",
+    "grade_label": "优",
+    "quality_info": {
+      "overall_quality": 91.4,
+      "content_depth": 15,
+      "writing_quality": 13,
+      "technical_accuracy": 25,
+      "completeness": 21,
+      "issues": [],
+      "strengths": [
+        "技术要点正确:PE4下降沿触发",
+        "技术要点正确:LED引脚配置",
+        "技术要点正确:状态机逻辑",
+        "技术要点正确:DWT消抖实现",
+        "技术要点正确:HAL/中断使用"
+      ],
+      "quality_grade": "优秀"
+    }
+  },
+  {
+    "student_id": "23071140237",
+    "name": "第六组-刘烊宏",
+    "scores": {
+      "team_collaboration": 5,
+      "attitude": 10,
+      "principle_understanding": 9,
+      "completion": 32,
+      "code_quality": 25,
+      "report_quality": 9
+    },
+    "feedback": {
+      "team_collaboration": [
+        "成员基本信息完整",
+        "个人分工明确合理",
+        "协作过程记录详细"
+      ],
+      "attitude": [
+        "全勤，认真完成实验: 需教师手工评定"
+      ],
+      "principle_understanding": [
+        "实验目的清晰完整(-1分)",
+        "实验原理阐述准确",
+        "汽车电子应用场景说明"
+      ],
+      "completion": [
+        "硬件连接图正确清晰（三）(-3分)",
+        "引脚配置说明完整（三）",
+        "ISP烧录电路说明（三）",
+        "实验现象记录完整（五）",
+        "结果照片或截图清晰（五）",
+        "结果对比分析透彻（五）"
+      ],
+      "code_quality": [
+        "代码流程图清晰(-2分)",
+        "关键代码完整规范",
+        "代码注释详尽(-3分)",
+        "中断服务程序说明详细",
+        "代码模块划分合理"
+      ],
+      "report_quality": [
+        "调试问题记录真实（六）",
+        "团队协作解决过程（六）",
+        "个人心得独立且深刻（六）(-1分)",
+        "思考题回答完整正确（七）"
+      ]
+    },
+    "total_score": 90,
+    "grade": "A",
+    "grade_label": "优",
+    "quality_info": {
+      "overall_quality": 85.2,
+      "content_depth": 10,
+      "writing_quality": 13,
+      "technical_accuracy": 25,
+      "completeness": 21,
+      "issues": [],
+      "strengths": [
+        "技术要点正确:PE4下降沿触发",
+        "技术要点正确:LED引脚配置",
+        "技术要点正确:状态机逻辑",
+        "技术要点正确:DWT消抖实现",
+        "技术要点正确:HAL/中断使用"
+      ],
+      "quality_grade": "优秀"
+    }
+  },
+  {
+    "student_id": "23071140238",
+    "name": "第4组-孟祥祖",
+    "scores": {
+      "team_collaboration": 4,
+      "attitude": 10,
+      "principle_understanding": 10,
+      "completion": 32,
+      "code_quality": 25,
+      "report_quality": 9
+    },
+    "feedback": {
+      "team_collaboration": [
+        "成员基本信息完整(-1分)",
+        "个人分工明确合理",
+        "协作过程记录详细"
+      ],
+      "attitude": [
+        "全勤，认真完成实验: 需教师手工评定"
+      ],
+      "principle_understanding": [
+        "实验目的清晰完整",
+        "实验原理阐述准确",
+        "汽车电子应用场景说明"
+      ],
+      "completion": [
+        "硬件连接图正确清晰（三）(-3分)",
+        "引脚配置说明完整（三）",
+        "ISP烧录电路说明（三）",
+        "实验现象记录完整（五）",
+        "结果照片或截图清晰（五）",
+        "结果对比分析透彻（五）"
+      ],
+      "code_quality": [
+        "代码流程图清晰(-2分)",
+        "关键代码完整规范",
+        "代码注释详尽(-3分)",
+        "中断服务程序说明详细",
+        "代码模块划分合理"
+      ],
+      "report_quality": [
+        "调试问题记录真实（六）",
+        "团队协作解决过程（六）",
+        "个人心得独立且深刻（六）(-1分)",
+        "思考题回答完整正确（七）"
+      ]
+    },
+    "total_score": 90,
+    "grade": "A",
+    "grade_label": "优",
+    "quality_info": {
+      "overall_quality": 81.5,
+      "content_depth": 5,
+      "writing_quality": 15,
+      "technical_accuracy": 25,
+      "completeness": 21,
+      "issues": [],
+      "strengths": [
+        "技术要点正确:PE4下降沿触发",
+        "技术要点正确:LED引脚配置",
+        "技术要点正确:状态机逻辑",
+        "技术要点正确:DWT消抖实现",
+        "技术要点正确:HAL/中断使用"
+      ],
+      "quality_grade": "良好"
+    }
+  },
+  {
+    "student_id": "23071140239",
+    "name": "第4组-牛煜哲",
+    "scores": {
+      "team_collaboration": 4,
+      "attitude": 10,
+      "principle_understanding": 10,
+      "completion": 32,
+      "code_quality": 25,
+      "report_quality": 10
+    },
+    "feedback": {
+      "team_collaboration": [
+        "成员基本信息完整(-1分)",
+        "个人分工明确合理",
+        "协作过程记录详细"
+      ],
+      "attitude": [
+        "全勤，认真完成实验: 需教师手工评定"
+      ],
+      "principle_understanding": [
+        "实验目的清晰完整",
+        "实验原理阐述准确",
+        "汽车电子应用场景说明"
+      ],
+      "completion": [
+        "硬件连接图正确清晰（三）(-3分)",
+        "引脚配置说明完整（三）",
+        "ISP烧录电路说明（三）",
+        "实验现象记录完整（五）",
+        "结果照片或截图清晰（五）",
+        "结果对比分析透彻（五）"
+      ],
+      "code_quality": [
+        "代码流程图清晰(-2分)",
+        "关键代码完整规范",
+        "代码注释详尽(-3分)",
+        "中断服务程序说明详细",
+        "代码模块划分合理"
+      ],
+      "report_quality": [
+        "调试问题记录真实（六）",
+        "团队协作解决过程（六）",
+        "个人心得独立且深刻（六）",
+        "思考题回答完整正确（七）"
+      ]
+    },
+    "total_score": 91,
+    "grade": "A",
+    "grade_label": "优",
+    "quality_info": {
+      "overall_quality": 81.5,
+      "content_depth": 5,
+      "writing_quality": 15,
+      "technical_accuracy": 25,
+      "completeness": 21,
+      "issues": [],
+      "strengths": [
+        "技术要点正确:PE4下降沿触发",
+        "技术要点正确:LED引脚配置",
+        "技术要点正确:状态机逻辑",
+        "技术要点正确:DWT消抖实现",
+        "技术要点正确:HAL/中断使用"
+      ],
+      "quality_grade": "良好"
+    }
+  },
+  {
+    "student_id": "23071140240",
+    "name": "张攀博",
+    "scores": {
+      "team_collaboration": 4,
+      "attitude": 10,
+      "principle_understanding": 9,
+      "completion": 29,
+      "code_quality": 25,
+      "report_quality": 10
+    },
+    "feedback": {
+      "team_collaboration": [
+        "成员基本信息完整(-1分)",
+        "个人分工明确合理",
+        "协作过程记录详细"
+      ],
+      "attitude": [
+        "全勤，认真完成实验: 需教师手工评定"
+      ],
+      "principle_understanding": [
+        "实验目的清晰完整(-1分)",
+        "实验原理阐述准确",
+        "汽车电子应用场景说明"
+      ],
+      "completion": [
+        "硬件连接图正确清晰（三）(-3分)",
+        "引脚配置说明完整（三）",
+        "ISP烧录电路说明（三）",
+        "实验现象记录完整（五）(-3分)",
+        "结果照片或截图清晰（五）",
+        "结果对比分析透彻（五）"
+      ],
+      "code_quality": [
+        "代码流程图清晰(-2分)",
+        "关键代码完整规范",
+        "代码注释详尽(-3分)",
+        "中断服务程序说明详细",
+        "代码模块划分合理"
+      ],
+      "report_quality": [
+        "调试问题记录真实（六）",
+        "团队协作解决过程（六）",
+        "个人心得独立且深刻（六）",
+        "思考题回答完整正确（七）"
+      ]
+    },
+    "total_score": 87,
+    "grade": "B",
+    "grade_label": "良",
+    "quality_info": {
+      "overall_quality": 85.2,
+      "content_depth": 10,
+      "writing_quality": 13,
+      "technical_accuracy": 25,
+      "completeness": 21,
+      "issues": [],
+      "strengths": [
+        "技术要点正确:PE4下降沿触发",
+        "技术要点正确:LED引脚配置",
+        "技术要点正确:状态机逻辑",
+        "技术要点正确:DWT消抖实现",
+        "技术要点正确:HAL/中断使用"
+      ],
+      "quality_grade": "优秀"
+    }
+  },
+  {
+    "student_id": "23071140241",
+    "name": "陈子默",
+    "scores": {
+      "team_collaboration": 4,
+      "attitude": 10,
+      "principle_understanding": 9,
+      "completion": 29,
+      "code_quality": 25,
+      "report_quality": 9
+    },
+    "feedback": {
+      "team_collaboration": [
+        "成员基本信息完整(-1分)",
+        "个人分工明确合理",
+        "协作过程记录详细"
+      ],
+      "attitude": [
+        "全勤，认真完成实验: 需教师手工评定"
+      ],
+      "principle_understanding": [
+        "实验目的清晰完整(-1分)",
+        "实验原理阐述准确",
+        "汽车电子应用场景说明"
+      ],
+      "completion": [
+        "硬件连接图正确清晰（三）(-3分)",
+        "引脚配置说明完整（三）",
+        "ISP烧录电路说明（三）",
+        "实验现象记录完整（五）(-3分)",
+        "结果照片或截图清晰（五）",
+        "结果对比分析透彻（五）"
+      ],
+      "code_quality": [
+        "代码流程图清晰(-2分)",
+        "关键代码完整规范",
+        "代码注释详尽(-3分)",
+        "中断服务程序说明详细",
+        "代码模块划分合理"
+      ],
+      "report_quality": [
+        "调试问题记录真实（六）",
+        "团队协作解决过程（六）",
+        "个人心得独立且深刻（六）(-1分)",
+        "思考题回答完整正确（七）"
+      ]
+    },
+    "total_score": 86,
+    "grade": "B",
+    "grade_label": "良",
+    "quality_info": {
+      "overall_quality": 79.0,
+      "content_depth": 5,
+      "writing_quality": 13,
+      "technical_accuracy": 25,
+      "completeness": 21,
+      "issues": [],
+      "strengths": [
+        "技术要点正确:PE4下降沿触发",
+        "技术要点正确:LED引脚配置",
+        "技术要点正确:状态机逻辑",
+        "技术要点正确:DWT消抖实现",
+        "技术要点正确:HAL/中断使用"
+      ],
+      "quality_grade": "良好"
+    }
+  },
+  {
+    "student_id": "23071140205",
+    "name": "",
+    "scores": {
+      "team_collaboration": 0,
+      "attitude": 0,
+      "completion": 0,
+      "code_quality": 0,
+      "report_quality": 0
+    },
+    "feedback": {
+      "overall": [
+        "未提交实验报告"
+      ]
+    },
+    "total_score": 0,
+    "grade": "F",
+    "grade_label": "不及格",
+    "quality_info": {
+      "overall_quality": 0,
+      "content_depth": 0,
+      "writing_quality": 0,
+      "technical_accuracy": 0,
+      "completeness": 0,
+      "issues": [
+        "未提交报告"
+      ]
+    }
+  },
+  {
+    "student_id": "23071140209",
+    "name": "",
+    "scores": {
+      "team_collaboration": 0,
+      "attitude": 0,
+      "completion": 0,
+      "code_quality": 0,
+      "report_quality": 0
+    },
+    "feedback": {
+      "overall": [
+        "未提交实验报告"
+      ]
+    },
+    "total_score": 0,
+    "grade": "F",
+    "grade_label": "不及格",
+    "quality_info": {
+      "overall_quality": 0,
+      "content_depth": 0,
+      "writing_quality": 0,
+      "technical_accuracy": 0,
+      "completeness": 0,
+      "issues": [
+        "未提交报告"
+      ]
+    }
+  },
+  {
+    "student_id": "23071140229",
+    "name": "",
+    "scores": {
+      "team_collaboration": 0,
+      "attitude": 0,
+      "completion": 0,
+      "code_quality": 0,
+      "report_quality": 0
+    },
+    "feedback": {
+      "overall": [
+        "未提交实验报告"
+      ]
+    },
+    "total_score": 0,
+    "grade": "F",
+    "grade_label": "不及格",
+    "quality_info": {
+      "overall_quality": 0,
+      "content_depth": 0,
+      "writing_quality": 0,
+      "technical_accuracy": 0,
+      "completeness": 0,
+      "issues": [
+        "未提交报告"
+      ]
+    }
+  },
+  {
+    "student_id": "23071140234",
+    "name": "",
+    "scores": {
+      "team_collaboration": 0,
+      "attitude": 0,
+      "completion": 0,
+      "code_quality": 0,
+      "report_quality": 0
+    },
+    "feedback": {
+      "overall": [
+        "未提交实验报告"
+      ]
+    },
+    "total_score": 0,
+    "grade": "F",
+    "grade_label": "不及格",
+    "quality_info": {
+      "overall_quality": 0,
+      "content_depth": 0,
+      "writing_quality": 0,
+      "technical_accuracy": 0,
+      "completeness": 0,
+      "issues": [
+        "未提交报告"
+      ]
+    }
+  },
+  {
+    "student_id": "23071140235",
+    "name": "",
+    "scores": {
+      "team_collaboration": 0,
+      "attitude": 0,
+      "completion": 0,
+      "code_quality": 0,
+      "report_quality": 0
+    },
+    "feedback": {
+      "overall": [
+        "未提交实验报告"
+      ]
+    },
+    "total_score": 0,
+    "grade": "F",
+    "grade_label": "不及格",
+    "quality_info": {
+      "overall_quality": 0,
+      "content_depth": 0,
+      "writing_quality": 0,
+      "technical_accuracy": 0,
+      "completeness": 0,
+      "issues": [
+        "未提交报告"
+      ]
+    }
+  }
+]

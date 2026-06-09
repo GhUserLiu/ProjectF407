@@ -35,6 +35,90 @@
             "command": "${command:eide.project.clean}",
             "group": "build",
             "problemMatcher": []
+        },
+        {
+            "label": "make help",
+            "type": "shell",
+            "command": "make",
+            "args": ["help"],
+            "group": "build",
+            "problemMatcher": []
+        },
+        {
+            "label": "make size",
+            "type": "shell",
+            "command": "make",
+            "args": ["size"],
+            "group": "build",
+            "problemMatcher": []
+        },
+        {
+            "label": "new project",
+            "type": "shell",
+            "command": "bash",
+            "args": [
+                "${workspaceFolder}/tools/scripts/new_project.sh",
+                "${input:projectNumber}",
+                "${input:projectName}"
+            ],
+            "group": "build",
+            "problemMatcher": []
+        },
+        {
+            "label": "switch project",
+            "type": "shell",
+            "command": "bash",
+            "args": [
+                "${workspaceFolder}/tools/scripts/switch_project.sh",
+                "${input:switchProject}"
+            ],
+            "group": "build",
+            "problemMatcher": []
+        },
+        {
+            "label": "check syntax",
+            "type": "shell",
+            "command": "bash",
+            "args": [
+                "${workspaceFolder}/tools/scripts/check_syntax.sh",
+                "${input:syntaxCheckProject}"
+            ],
+            "group": "test",
+            "problemMatcher": ["$gcc"]
+        }
+    ],
+    "inputs": [
+        {
+            "id": "projectNumber",
+            "type": "promptString",
+            "description": "Enter project number (e.g., 02)",
+            "default": "02"
+        },
+        {
+            "id": "projectName",
+            "type": "promptString",
+            "description": "Enter project name (e.g., led-blink)",
+            "default": "my-project"
+        },
+        {
+            "id": "switchProject",
+            "type": "pickString",
+            "description": "Select project to switch to",
+            "options": [
+                "01-turn-signal",
+                "07-car-gear"
+            ],
+            "default": "01-turn-signal"
+        },
+        {
+            "id": "syntaxCheckProject",
+            "type": "pickString",
+            "description": "Select project to check",
+            "options": [
+                "01-turn-signal",
+                "07-car-gear"
+            ],
+            "default": "01-turn-signal"
         }
     ]
 }
