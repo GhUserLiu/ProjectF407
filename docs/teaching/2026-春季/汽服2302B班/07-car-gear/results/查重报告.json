@@ -1,0 +1,386 @@
+{
+  "meta": {
+    "experiment_name": "档位实验实验",
+    "class_name": "汽服2302B班",
+    "threshold": 60.0,
+    "generated_at": "2026-06-11T15:38:43.045841"
+  },
+  "summary": {
+    "total_students": 30,
+    "suspicious_pairs": 36,
+    "suspicious_students": 30,
+    "plagiarism_groups": 10
+  },
+  "suspicious_details": [
+    {
+      "student1": "23071140216",
+      "student2": "23071140217",
+      "overall_similarity": 95.0,
+      "is_cross_group": false,
+      "shared_paragraphs": 29,
+      "shared_code_blocks": 57
+    },
+    {
+      "student1": "23071140220",
+      "student2": "23071140233",
+      "overall_similarity": 94.88172976850494,
+      "is_cross_group": false,
+      "shared_paragraphs": 21,
+      "shared_code_blocks": 40
+    },
+    {
+      "student1": "23071140214",
+      "student2": "23071140228",
+      "overall_similarity": 94.8377725614554,
+      "is_cross_group": false,
+      "shared_paragraphs": 26,
+      "shared_code_blocks": 33
+    },
+    {
+      "student1": "23071140216",
+      "student2": "23071140223",
+      "overall_similarity": 93.79756657943128,
+      "is_cross_group": false,
+      "shared_paragraphs": 29,
+      "shared_code_blocks": 57
+    },
+    {
+      "student1": "23071140217",
+      "student2": "23071140223",
+      "overall_similarity": 93.79756657943128,
+      "is_cross_group": false,
+      "shared_paragraphs": 29,
+      "shared_code_blocks": 57
+    },
+    {
+      "student1": "23071140227",
+      "student2": "23071140238",
+      "overall_similarity": 93.73254116560967,
+      "is_cross_group": false,
+      "shared_paragraphs": 23,
+      "shared_code_blocks": 31
+    },
+    {
+      "student1": "23071140215",
+      "student2": "23071140228",
+      "overall_similarity": 93.6365211851364,
+      "is_cross_group": false,
+      "shared_paragraphs": 25,
+      "shared_code_blocks": 33
+    },
+    {
+      "student1": "23071140214",
+      "student2": "23071140215",
+      "overall_similarity": 93.62586510302114,
+      "is_cross_group": false,
+      "shared_paragraphs": 25,
+      "shared_code_blocks": 33
+    },
+    {
+      "student1": "23071140238",
+      "student2": "23071140239",
+      "overall_similarity": 93.49653629689806,
+      "is_cross_group": false,
+      "shared_paragraphs": 23,
+      "shared_code_blocks": 31
+    },
+    {
+      "student1": "23071140213",
+      "student2": "23071140219",
+      "overall_similarity": 93.39645997216057,
+      "is_cross_group": false,
+      "shared_paragraphs": 18,
+      "shared_code_blocks": 26
+    },
+    {
+      "student1": "23071140227",
+      "student2": "23071140239",
+      "overall_similarity": 93.36681226261207,
+      "is_cross_group": false,
+      "shared_paragraphs": 23,
+      "shared_code_blocks": 31
+    },
+    {
+      "student1": "23071140210",
+      "student2": "23071140221",
+      "overall_similarity": 93.3110362580648,
+      "is_cross_group": false,
+      "shared_paragraphs": 14,
+      "shared_code_blocks": 23
+    },
+    {
+      "student1": "23071140204",
+      "student2": "23071140208",
+      "overall_similarity": 92.60813997765982,
+      "is_cross_group": false,
+      "shared_paragraphs": 16,
+      "shared_code_blocks": 23
+    },
+    {
+      "student1": "23071140226",
+      "student2": "23071140230",
+      "overall_similarity": 92.26487421132347,
+      "is_cross_group": false,
+      "shared_paragraphs": 25,
+      "shared_code_blocks": 33
+    },
+    {
+      "student1": "23071140240",
+      "student2": "23071140241",
+      "overall_similarity": 92.15018984617285,
+      "is_cross_group": false,
+      "shared_paragraphs": 16,
+      "shared_code_blocks": 22
+    },
+    {
+      "student1": "23071140201",
+      "student2": "23071140240",
+      "overall_similarity": 92.08465337881007,
+      "is_cross_group": false,
+      "shared_paragraphs": 16,
+      "shared_code_blocks": 22
+    },
+    {
+      "student1": "23071140230",
+      "student2": "23071140231",
+      "overall_similarity": 92.00462504923819,
+      "is_cross_group": false,
+      "shared_paragraphs": 25,
+      "shared_code_blocks": 32
+    },
+    {
+      "student1": "23071140211",
+      "student2": "23071140237",
+      "overall_similarity": 91.83193329866258,
+      "is_cross_group": false,
+      "shared_paragraphs": 13,
+      "shared_code_blocks": 23
+    },
+    {
+      "student1": "23071140226",
+      "student2": "23071140228",
+      "overall_similarity": 91.44484115790445,
+      "is_cross_group": false,
+      "shared_paragraphs": 26,
+      "shared_code_blocks": 33
+    },
+    {
+      "student1": "23071140214",
+      "student2": "23071140226",
+      "overall_similarity": 91.44371673130941,
+      "is_cross_group": false,
+      "shared_paragraphs": 26,
+      "shared_code_blocks": 33
+    },
+    {
+      "student1": "23071140226",
+      "student2": "23071140231",
+      "overall_similarity": 91.30826350187358,
+      "is_cross_group": false,
+      "shared_paragraphs": 23,
+      "shared_code_blocks": 33
+    },
+    {
+      "student1": "23071140201",
+      "student2": "23071140241",
+      "overall_similarity": 91.19619769860668,
+      "is_cross_group": false,
+      "shared_paragraphs": 16,
+      "shared_code_blocks": 22
+    },
+    {
+      "student1": "23071140222",
+      "student2": "23071140224",
+      "overall_similarity": 91.09606927121506,
+      "is_cross_group": false,
+      "shared_paragraphs": 13,
+      "shared_code_blocks": 24
+    },
+    {
+      "student1": "23071140221",
+      "student2": "23071140236",
+      "overall_similarity": 91.01446934202635,
+      "is_cross_group": false,
+      "shared_paragraphs": 13,
+      "shared_code_blocks": 23
+    },
+    {
+      "student1": "23071140215",
+      "student2": "23071140226",
+      "overall_similarity": 90.88884177050458,
+      "is_cross_group": false,
+      "shared_paragraphs": 25,
+      "shared_code_blocks": 33
+    },
+    {
+      "student1": "23071140210",
+      "student2": "23071140236",
+      "overall_similarity": 90.87904638493193,
+      "is_cross_group": false,
+      "shared_paragraphs": 13,
+      "shared_code_blocks": 23
+    },
+    {
+      "student1": "23071140222",
+      "student2": "23071140232",
+      "overall_similarity": 90.36817970898024,
+      "is_cross_group": false,
+      "shared_paragraphs": 13,
+      "shared_code_blocks": 24
+    },
+    {
+      "student1": "23071140228",
+      "student2": "23071140230",
+      "overall_similarity": 90.3559166201874,
+      "is_cross_group": false,
+      "shared_paragraphs": 25,
+      "shared_code_blocks": 33
+    },
+    {
+      "student1": "23071140214",
+      "student2": "23071140230",
+      "overall_similarity": 90.3547413392643,
+      "is_cross_group": false,
+      "shared_paragraphs": 25,
+      "shared_code_blocks": 33
+    },
+    {
+      "student1": "23071140228",
+      "student2": "23071140231",
+      "overall_similarity": 89.85546131628212,
+      "is_cross_group": false,
+      "shared_paragraphs": 24,
+      "shared_code_blocks": 33
+    },
+    {
+      "student1": "23071140214",
+      "student2": "23071140231",
+      "overall_similarity": 89.85431538308384,
+      "is_cross_group": false,
+      "shared_paragraphs": 24,
+      "shared_code_blocks": 33
+    },
+    {
+      "student1": "23071140215",
+      "student2": "23071140230",
+      "overall_similarity": 89.79816694740622,
+      "is_cross_group": false,
+      "shared_paragraphs": 24,
+      "shared_code_blocks": 33
+    },
+    {
+      "student1": "23071140215",
+      "student2": "23071140231",
+      "overall_similarity": 89.31832291096146,
+      "is_cross_group": false,
+      "shared_paragraphs": 23,
+      "shared_code_blocks": 33
+    },
+    {
+      "student1": "23071140224",
+      "student2": "23071140232",
+      "overall_similarity": 89.01921631740305,
+      "is_cross_group": false,
+      "shared_paragraphs": 13,
+      "shared_code_blocks": 24
+    },
+    {
+      "student1": "23071140206",
+      "student2": "23071140211",
+      "overall_similarity": 78.75476711257134,
+      "is_cross_group": false,
+      "shared_paragraphs": 11,
+      "shared_code_blocks": 23
+    },
+    {
+      "student1": "23071140206",
+      "student2": "23071140237",
+      "overall_similarity": 78.53017718160692,
+      "is_cross_group": false,
+      "shared_paragraphs": 11,
+      "shared_code_blocks": 23
+    }
+  ],
+  "groups": [
+    {
+      "members": [
+        "23071140214",
+        "23071140231",
+        "23071140226",
+        "23071140230",
+        "23071140228",
+        "23071140215"
+      ],
+      "size": 6
+    },
+    {
+      "members": [
+        "23071140240",
+        "23071140201",
+        "23071140241"
+      ],
+      "size": 3
+    },
+    {
+      "members": [
+        "23071140206",
+        "23071140237",
+        "23071140211"
+      ],
+      "size": 3
+    },
+    {
+      "members": [
+        "23071140236",
+        "23071140210",
+        "23071140221"
+      ],
+      "size": 3
+    },
+    {
+      "members": [
+        "23071140216",
+        "23071140217",
+        "23071140223"
+      ],
+      "size": 3
+    },
+    {
+      "members": [
+        "23071140222",
+        "23071140224",
+        "23071140232"
+      ],
+      "size": 3
+    },
+    {
+      "members": [
+        "23071140239",
+        "23071140227",
+        "23071140238"
+      ],
+      "size": 3
+    },
+    {
+      "members": [
+        "23071140208",
+        "23071140204"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "23071140219",
+        "23071140213"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "23071140220",
+        "23071140233"
+      ],
+      "size": 2
+    }
+  ]
+}

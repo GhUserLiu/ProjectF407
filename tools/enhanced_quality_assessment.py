@@ -275,7 +275,7 @@ class EnhancedQualityAssessmentSystem:
         # 输出结果
         stats = validation_report.statistics
         print(f"\n校验结果:")
-        print(f"  状态: {'✅ 通过' if validation_report.validation_passed else '❌ 未通过'}")
+        print(f"  状态: {'[OK] 通过' if validation_report.validation_passed else '[FAIL] 未通过'}")
         print(f"  平均分: {stats['average_score']:.1f}")
         print(f"  问题数: {stats['total_issues']} (严重: {stats['critical_issues']}, 错误: {stats['error_issues']})")
 
@@ -284,6 +284,62 @@ class EnhancedQualityAssessmentSystem:
             for rec in validation_report.recommendations[:3]:
                 print(f"  - {rec}")
 
+    def save_grading_results(self):
+        """保存详细评分结果到JSON"""
+        print("\n保存详细评分结果...")
+
+        output = []
+        for grading_result in self.grading_results:
+            student_id = grading_result.student_id
+
+            # 获取技术检查结果
+            tech_result = self.technical_results.get(student_id, (0, [], [], []))
+
+            result_dict = {
+                'student_id': student_id,
+                'name': grading_result.name,
+                'total_score': grading_result.total_score,
+                'total_possible': grading_result.total_possible,
+                'percentage': grading_result.percentage,
+                'grade': grading_result.grade,
+                'category_scores': {
+                    cat_id: {
+                        'name': score.name,
+                        'earned': score.points_earned,
+                        'possible': score.points_possible,
+                        'percentage': score.percentage,
+                        'feedback': score.feedback
+                    }
+                    for cat_id, score in grading_result.category_scores.items()
+                },
+                'technical_check': {
+                    'score': tech_result[0],
+                    'strengths': tech_result[2],
+                    'weaknesses': tech_result[3]
+                },
+                'strengths': grading_result.strengths,
+                'weaknesses': grading_result.weaknesses,
+                'recommendations': grading_result.recommendations,
+                'auto_confidence': grading_result.auto_confidence
+            }
+
+            # 添加代码分析结果
+            if student_id in self.code_analysis_results:
+                code_result = self.code_analysis_results[student_id]
+                result_dict['code_analysis'] = {
+                    'total_score': code_result.total_score,
+                    'issues_count': len(code_result.issues)
+                }
+
+            output.append(result_dict)
+
+        output_path = self.output_dir / 'grading_results.json'
+        with open(output_path, 'w', encoding='utf-8') as f:
+            json.dump(output, f, ensure_ascii=False, indent=2)
+
+        print(f"详细评分结果: {output_path}")
+        return output_path
+
     def run_full_analysis(self):
         """运行完整分析流程"""
         print("\n" + "=" * 60)
@@ -291,10 +347,10 @@ class EnhancedQualityAssessmentSystem:
         print(f"实验类型: {self.experiment_type}")
         print(f"班级: {self.class_name}")
         print(f"功能配置:")
-        print(f"  - 代码深度分析: {'✓' if self.enable_code_analysis else '✗'}")
-        print(f"  - 智能反馈建议: {'✓' if self.enable_smart_feedback else '✗'}")
-        print(f"  - 图像质量检测: {'✓' if self.enable_image_check else '✗'}")
-        print(f"  - 评分一致性校验: {'✓' if self.enable_validation else '✗'}")
+        print(f"  - 代码深度分析: {'[Y]' if self.enable_code_analysis else '[N]'}")
+        print(f"  - 智能反馈建议: {'[Y]' if self.enable_smart_feedback else '[N]'}")
+        print(f"  - 图像质量检测: {'[Y]' if self.enable_image_check else '[N]'}")
+        print(f"  - 评分一致性校验: {'[Y]' if self.enable_validation else '[N]'}")
         print("=" * 60)
 
         start_time = datetime.now()
@@ -316,15 +372,18 @@ class EnhancedQualityAssessmentSystem:
         # 5. 生成智能反馈
         self.run_smart_feedback_generation()
 
-        # 6. 评分一致性校验
+        # 6. 保存评分结果
+        self.save_grading_results()
+
+        # 7. 评分一致性校验
         self.run_validation()
 
         end_time = datetime.now()
         duration = (end_time - start_time).total_seconds()
 
         print("\n" + "=" * 60)
-        print(f"✅ 分析完成! 耗时: {duration:.1f} 秒")
-        print(f"📁 结果目录: {self.output_dir}")
+        print(f"[OK] 分析完成! 耗时: {duration:.1f} 秒")
+        print(f"[DIR] 结果目录: {self.output_dir}")
         print(f"   - grading_validation_report.md/json (评分校验报告)")
         print(f"   - smart_feedback/ (智能反馈建议)")
         print("=" * 60)

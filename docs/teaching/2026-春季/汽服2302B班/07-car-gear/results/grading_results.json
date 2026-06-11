@@ -2,9 +2,9 @@
   {
     "student_id": "23071140201",
     "name": "董雨航",
-    "total_score": 63.6,
+    "total_score": 69.6,
     "total_possible": 100,
-    "percentage": 63.6,
+    "percentage": 69.6,
     "grade": "D",
     "category_scores": {
       "team_collaboration": {
@@ -20,13 +20,14 @@
       },
       "attitude": {
         "name": "实验态度",
-        "earned": 0.0,
+        "earned": 6,
         "possible": 10,
-        "percentage": 0.0,
+        "percentage": 60.0,
         "feedback": [
-          "✗ 全勤，认真完成实验",
-          "✗ 缺勤1次",
-          "✓ 缺勤2次及以上"
+          "📝 教师评定（默认6分，可手动调整）",
+          "  - 全勤：10分",
+          "  - 缺勤1次：5分",
+          "  - 缺勤2次及以上：0分"
         ]
       },
       "principle_understanding": {
@@ -109,18 +110,34 @@
       "实验报告质量: △ 思考题回答完整正确（七） (部分)"
     ],
     "weaknesses": [],
-    "recommendations": [
-      "【实验态度】需要加强，请补充相关内容"
-    ],
+    "recommendations": [],
     "auto_confidence": 0.9,
-    "plagiarism_risk": 0.0
+    "plagiarism_risk": 0.9208465337881008,
+    "similarity_info": [
+      {
+        "similar_to": "23071140240",
+        "similarity": 92.08465337881007,
+        "is_cross_group": false,
+        "shared_paragraphs": 16,
+        "shared_code_blocks": 22
+      },
+      {
+        "similar_to": "23071140241",
+        "similarity": 91.19619769860668,
+        "is_cross_group": false,
+        "shared_paragraphs": 16,
+        "shared_code_blocks": 22
+      }
+    ],
+    "max_similarity": 92.08465337881007,
+    "similarity_risk": "high"
   },
   {
     "student_id": "23071140202",
     "name": "陈乐莹",
-    "total_score": 70.4,
+    "total_score": 79.0,
     "total_possible": 100,
-    "percentage": 70.4,
+    "percentage": 79.0,
     "grade": "C",
     "category_scores": {
       "team_collaboration": {
@@ -136,13 +153,14 @@
       },
       "attitude": {
         "name": "实验态度",
-        "earned": 0.0,
+        "earned": 6,
         "possible": 10,
-        "percentage": 0.0,
+        "percentage": 60.0,
         "feedback": [
-          "✗ 全勤，认真完成实验",
-          "✗ 缺勤1次",
-          "✓ 缺勤2次及以上"
+          "📝 教师评定（默认6分，可手动调整）",
+          "  - 全勤：10分",
+          "  - 缺勤1次：5分",
+          "  - 缺勤2次及以上：0分"
         ]
       },
       "principle_understanding": {
@@ -158,13 +176,13 @@
       },
       "completion": {
         "name": "实验完成度",
-        "earned": 25.6,
+        "earned": 26.4,
         "possible": 35,
-        "percentage": 73.1,
+        "percentage": 75.4,
         "feedback": [
           "△ 硬件连接图正确清晰（三） (部分)",
           "✓ 引脚配置说明完整（三）",
-          "△ ISP烧录电路说明（三） (部分)",
+          "✓ ISP烧录电路说明（三）",
           "✓ 实验现象记录完整（五）",
           "△ 结果照片或截图清晰（五） (部分)",
           "✓ 结果对比分析透彻（五）"
@@ -172,9 +190,9 @@
       },
       "code_quality": {
         "name": "代码质量",
-        "earned": 22.6,
+        "earned": 24.4,
         "possible": 30,
-        "percentage": 75.3,
+        "percentage": 81.3,
         "feedback": [
           "△ 代码流程图清晰 (部分)",
           "✓ 关键代码完整规范",
@@ -225,18 +243,16 @@
       "实验报告质量: △ 思考题回答完整正确（七） (部分)"
     ],
     "weaknesses": [],
-    "recommendations": [
-      "【实验态度】需要加强，请补充相关内容"
-    ],
+    "recommendations": [],
     "auto_confidence": 0.9,
     "plagiarism_risk": 0.0
   },
   {
     "student_id": "23071140203",
     "name": "高雅梅",
-    "total_score": 72.2,
+    "total_score": 78.2,
     "total_possible": 100,
-    "percentage": 72.2,
+    "percentage": 78.2,
     "grade": "C",
     "category_scores": {
       "team_collaboration": {
@@ -252,13 +268,14 @@
       },
       "attitude": {
         "name": "实验态度",
-        "earned": 0.0,
+        "earned": 6,
         "possible": 10,
-        "percentage": 0.0,
+        "percentage": 60.0,
         "feedback": [
-          "✗ 全勤，认真完成实验",
-          "✗ 缺勤1次",
-          "✓ 缺勤2次及以上"
+          "📝 教师评定（默认6分，可手动调整）",
+          "  - 全勤：10分",
+          "  - 缺勤1次：5分",
+          "  - 缺勤2次及以上：0分"
         ]
       },
       "principle_understanding": {
@@ -341,19 +358,17 @@
       "实验报告质量: △ 思考题回答完整正确（七） (部分)"
     ],
     "weaknesses": [],
-    "recommendations": [
-      "【实验态度】需要加强，请补充相关内容"
-    ],
+    "recommendations": [],
     "auto_confidence": 0.9,
     "plagiarism_risk": 0.0
   },
   {
     "student_id": "23071140204",
     "name": "王舒乐",
-    "total_score": 67.2,
+    "total_score": 75.2,
     "total_possible": 100,
-    "percentage": 67.2,
-    "grade": "D",
+    "percentage": 75.2,
+    "grade": "C",
     "category_scores": {
       "team_collaboration": {
         "name": "团队协作",
@@ -368,35 +383,36 @@
       },
       "attitude": {
         "name": "实验态度",
-        "earned": 0.0,
+        "earned": 6,
         "possible": 10,
-        "percentage": 0.0,
+        "percentage": 60.0,
         "feedback": [
-          "✗ 全勤，认真完成实验",
-          "✗ 缺勤1次",
-          "✓ 缺勤2次及以上"
+          "📝 教师评定（默认6分，可手动调整）",
+          "  - 全勤：10分",
+          "  - 缺勤1次：5分",
+          "  - 缺勤2次及以上：0分"
         ]
       },
       "principle_understanding": {
         "name": "实验原理与认知",
-        "earned": 7.6,
+        "earned": 8.8,
         "possible": 10,
-        "percentage": 76.0,
+        "percentage": 88.0,
         "feedback": [
           "△ 实验目的清晰完整 (部分)",
           "✓ 实验原理阐述准确",
-          "△ 汽车电子应用场景说明 (部分)"
+          "✓ 汽车电子应用场景说明"
         ]
       },
       "completion": {
         "name": "实验完成度",
-        "earned": 25.6,
+        "earned": 26.4,
         "possible": 35,
-        "percentage": 73.1,
+        "percentage": 75.4,
         "feedback": [
           "△ 硬件连接图正确清晰（三） (部分)",
           "✓ 引脚配置说明完整（三）",
-          "△ ISP烧录电路说明（三） (部分)",
+          "✓ ISP烧录电路说明（三）",
           "✓ 实验现象记录完整（五）",
           "△ 结果照片或截图清晰（五） (部分)",
           "✓ 结果对比分析透彻（五）"
@@ -457,19 +473,28 @@
       "实验报告质量: △ 思考题回答完整正确（七） (部分)"
     ],
     "weaknesses": [],
-    "recommendations": [
-      "【实验态度】需要加强，请补充相关内容"
-    ],
+    "recommendations": [],
     "auto_confidence": 0.9,
-    "plagiarism_risk": 0.0
+    "plagiarism_risk": 0.9260813997765982,
+    "similarity_info": [
+      {
+        "similar_to": "23071140208",
+        "similarity": 92.60813997765982,
+        "is_cross_group": false,
+        "shared_paragraphs": 16,
+        "shared_code_blocks": 23
+      }
+    ],
+    "max_similarity": 92.60813997765982,
+    "similarity_risk": "high"
   },
   {
     "student_id": "23071140206",
     "name": "王晨露",
-    "total_score": 67.0,
+    "total_score": 73.0,
     "total_possible": 100,
-    "percentage": 67.0,
-    "grade": "D",
+    "percentage": 73.0,
+    "grade": "C",
     "category_scores": {
       "team_collaboration": {
         "name": "团队协作",
@@ -484,13 +509,14 @@
       },
       "attitude": {
         "name": "实验态度",
-        "earned": 0.0,
+        "earned": 6,
         "possible": 10,
-        "percentage": 0.0,
+        "percentage": 60.0,
         "feedback": [
-          "✗ 全勤，认真完成实验",
-          "✗ 缺勤1次",
-          "✓ 缺勤2次及以上"
+          "📝 教师评定（默认6分，可手动调整）",
+          "  - 全勤：10分",
+          "  - 缺勤1次：5分",
+          "  - 缺勤2次及以上：0分"
         ]
       },
       "principle_understanding": {
@@ -573,19 +599,35 @@
       "实验报告质量: △ 思考题回答完整正确（七） (部分)"
     ],
     "weaknesses": [],
-    "recommendations": [
-      "【实验态度】需要加强，请补充相关内容"
-    ],
+    "recommendations": [],
     "auto_confidence": 0.9,
-    "plagiarism_risk": 0.0
+    "plagiarism_risk": 0.7875476711257134,
+    "similarity_info": [
+      {
+        "similar_to": "23071140211",
+        "similarity": 78.75476711257134,
+        "is_cross_group": false,
+        "shared_paragraphs": 11,
+        "shared_code_blocks": 23
+      },
+      {
+        "similar_to": "23071140237",
+        "similarity": 78.53017718160692,
+        "is_cross_group": false,
+        "shared_paragraphs": 11,
+        "shared_code_blocks": 23
+      }
+    ],
+    "max_similarity": 78.75476711257134,
+    "similarity_risk": "medium"
   },
   {
     "student_id": "23071140208",
     "name": "刘潇霞",
-    "total_score": 67.2,
+    "total_score": 74.4,
     "total_possible": 100,
-    "percentage": 67.2,
-    "grade": "D",
+    "percentage": 74.4,
+    "grade": "C",
     "category_scores": {
       "team_collaboration": {
         "name": "团队协作",
@@ -600,24 +642,25 @@
       },
       "attitude": {
         "name": "实验态度",
-        "earned": 0.0,
+        "earned": 6,
         "possible": 10,
-        "percentage": 0.0,
+        "percentage": 60.0,
         "feedback": [
-          "✗ 全勤，认真完成实验",
-          "✗ 缺勤1次",
-          "✓ 缺勤2次及以上"
+          "📝 教师评定（默认6分，可手动调整）",
+          "  - 全勤：10分",
+          "  - 缺勤1次：5分",
+          "  - 缺勤2次及以上：0分"
         ]
       },
       "principle_understanding": {
         "name": "实验原理与认知",
-        "earned": 7.6,
+        "earned": 8.8,
         "possible": 10,
-        "percentage": 76.0,
+        "percentage": 88.0,
         "feedback": [
           "△ 实验目的清晰完整 (部分)",
           "✓ 实验原理阐述准确",
-          "△ 汽车电子应用场景说明 (部分)"
+          "✓ 汽车电子应用场景说明"
         ]
       },
       "completion": {
@@ -689,18 +732,27 @@
       "实验报告质量: △ 思考题回答完整正确（七） (部分)"
     ],
     "weaknesses": [],
-    "recommendations": [
-      "【实验态度】需要加强，请补充相关内容"
-    ],
+    "recommendations": [],
     "auto_confidence": 0.9,
-    "plagiarism_risk": 0.0
+    "plagiarism_risk": 0.9260813997765982,
+    "similarity_info": [
+      {
+        "similar_to": "23071140204",
+        "similarity": 92.60813997765982,
+        "is_cross_group": false,
+        "shared_paragraphs": 16,
+        "shared_code_blocks": 23
+      }
+    ],
+    "max_similarity": 92.60813997765982,
+    "similarity_risk": "high"
   },
   {
     "student_id": "23071140210",
     "name": "王倩倩",
-    "total_score": 70.0,
+    "total_score": 77.8,
     "total_possible": 100,
-    "percentage": 70.0,
+    "percentage": 77.8,
     "grade": "C",
     "category_scores": {
       "team_collaboration": {
@@ -716,13 +768,14 @@
       },
       "attitude": {
         "name": "实验态度",
-        "earned": 0.0,
+        "earned": 6,
         "possible": 10,
-        "percentage": 0.0,
+        "percentage": 60.0,
         "feedback": [
-          "✗ 全勤，认真完成实验",
-          "✗ 缺勤1次",
-          "✓ 缺勤2次及以上"
+          "📝 教师评定（默认6分，可手动调整）",
+          "  - 全勤：10分",
+          "  - 缺勤1次：5分",
+          "  - 缺勤2次及以上：0分"
         ]
       },
       "principle_understanding": {
@@ -752,9 +805,9 @@
       },
       "code_quality": {
         "name": "代码质量",
-        "earned": 22.6,
+        "earned": 24.4,
         "possible": 30,
-        "percentage": 75.3,
+        "percentage": 81.3,
         "feedback": [
           "△ 代码流程图清晰 (部分)",
           "✓ 关键代码完整规范",
@@ -805,19 +858,35 @@
       "实验报告质量: △ 思考题回答完整正确（七） (部分)"
     ],
     "weaknesses": [],
-    "recommendations": [
-      "【实验态度】需要加强，请补充相关内容"
-    ],
+    "recommendations": [],
     "auto_confidence": 0.9,
-    "plagiarism_risk": 0.0
+    "plagiarism_risk": 0.9331103625806481,
+    "similarity_info": [
+      {
+        "similar_to": "23071140221",
+        "similarity": 93.3110362580648,
+        "is_cross_group": false,
+        "shared_paragraphs": 14,
+        "shared_code_blocks": 23
+      },
+      {
+        "similar_to": "23071140236",
+        "similarity": 90.87904638493193,
+        "is_cross_group": false,
+        "shared_paragraphs": 13,
+        "shared_code_blocks": 23
+      }
+    ],
+    "max_similarity": 93.3110362580648,
+    "similarity_risk": "high"
   },
   {
     "student_id": "23071140211",
     "name": "安晓童",
-    "total_score": 68.4,
+    "total_score": 74.4,
     "total_possible": 100,
-    "percentage": 68.4,
-    "grade": "D",
+    "percentage": 74.4,
+    "grade": "C",
     "category_scores": {
       "team_collaboration": {
         "name": "团队协作",
@@ -832,13 +901,14 @@
       },
       "attitude": {
         "name": "实验态度",
-        "earned": 0.0,
+        "earned": 6,
         "possible": 10,
-        "percentage": 0.0,
+        "percentage": 60.0,
         "feedback": [
-          "✗ 全勤，认真完成实验",
-          "✗ 缺勤1次",
-          "✓ 缺勤2次及以上"
+          "📝 教师评定（默认6分，可手动调整）",
+          "  - 全勤：10分",
+          "  - 缺勤1次：5分",
+          "  - 缺勤2次及以上：0分"
         ]
       },
       "principle_understanding": {
@@ -921,19 +991,35 @@
       "实验报告质量: △ 思考题回答完整正确（七） (部分)"
     ],
     "weaknesses": [],
-    "recommendations": [
-      "【实验态度】需要加强，请补充相关内容"
-    ],
+    "recommendations": [],
     "auto_confidence": 0.9,
-    "plagiarism_risk": 0.0
+    "plagiarism_risk": 0.9183193329866257,
+    "similarity_info": [
+      {
+        "similar_to": "23071140237",
+        "similarity": 91.83193329866258,
+        "is_cross_group": false,
+        "shared_paragraphs": 13,
+        "shared_code_blocks": 23
+      },
+      {
+        "similar_to": "23071140206",
+        "similarity": 78.75476711257134,
+        "is_cross_group": false,
+        "shared_paragraphs": 11,
+        "shared_code_blocks": 23
+      }
+    ],
+    "max_similarity": 91.83193329866258,
+    "similarity_risk": "high"
   },
   {
     "student_id": "23071140213",
     "name": "吴延洁",
-    "total_score": 69.2,
+    "total_score": 75.2,
     "total_possible": 100,
-    "percentage": 69.2,
-    "grade": "F",
+    "percentage": 75.2,
+    "grade": "C",
     "category_scores": {
       "team_collaboration": {
         "name": "团队协作",
@@ -948,13 +1034,14 @@
       },
       "attitude": {
         "name": "实验态度",
-        "earned": 0.0,
+        "earned": 6,
         "possible": 10,
-        "percentage": 0.0,
+        "percentage": 60.0,
         "feedback": [
-          "✗ 全勤，认真完成实验",
-          "✗ 缺勤1次",
-          "✓ 缺勤2次及以上"
+          "📝 教师评定（默认6分，可手动调整）",
+          "  - 全勤：10分",
+          "  - 缺勤1次：5分",
+          "  - 缺勤2次及以上：0分"
         ]
       },
       "principle_understanding": {
@@ -1037,18 +1124,27 @@
       "实验报告质量: △ 思考题回答完整正确（七） (部分)"
     ],
     "weaknesses": [],
-    "recommendations": [
-      "【实验态度】需要加强，请补充相关内容"
-    ],
+    "recommendations": [],
     "auto_confidence": 0.9,
-    "plagiarism_risk": 0.0
+    "plagiarism_risk": 0.9339645997216057,
+    "similarity_info": [
+      {
+        "similar_to": "23071140219",
+        "similarity": 93.39645997216057,
+        "is_cross_group": false,
+        "shared_paragraphs": 18,
+        "shared_code_blocks": 26
+      }
+    ],
+    "max_similarity": 93.39645997216057,
+    "similarity_risk": "high"
   },
   {
     "student_id": "23071140214",
     "name": "陈星彤",
-    "total_score": 71.2,
+    "total_score": 79.0,
     "total_possible": 100,
-    "percentage": 71.2,
+    "percentage": 79.0,
     "grade": "C",
     "category_scores": {
       "team_collaboration": {
@@ -1064,13 +1160,14 @@
       },
       "attitude": {
         "name": "实验态度",
-        "earned": 0.0,
+        "earned": 6,
         "possible": 10,
-        "percentage": 0.0,
+        "percentage": 60.0,
         "feedback": [
-          "✗ 全勤，认真完成实验",
-          "✗ 缺勤1次",
-          "✓ 缺勤2次及以上"
+          "📝 教师评定（默认6分，可手动调整）",
+          "  - 全勤：10分",
+          "  - 缺勤1次：5分",
+          "  - 缺勤2次及以上：0分"
         ]
       },
       "principle_understanding": {
@@ -1100,9 +1197,9 @@
       },
       "code_quality": {
         "name": "代码质量",
-        "earned": 22.6,
+        "earned": 24.4,
         "possible": 30,
-        "percentage": 75.3,
+        "percentage": 81.3,
         "feedback": [
           "△ 代码流程图清晰 (部分)",
           "✓ 关键代码完整规范",
@@ -1152,18 +1249,55 @@
       "实验报告质量: △ 思考题回答完整正确（七） (部分)"
     ],
     "weaknesses": [],
-    "recommendations": [
-      "【实验态度】需要加强，请补充相关内容"
-    ],
+    "recommendations": [],
     "auto_confidence": 0.9,
-    "plagiarism_risk": 0.0
+    "plagiarism_risk": 0.9483777256145539,
+    "similarity_info": [
+      {
+        "similar_to": "23071140228",
+        "similarity": 94.8377725614554,
+        "is_cross_group": false,
+        "shared_paragraphs": 26,
+        "shared_code_blocks": 33
+      },
+      {
+        "similar_to": "23071140215",
+        "similarity": 93.62586510302114,
+        "is_cross_group": false,
+        "shared_paragraphs": 25,
+        "shared_code_blocks": 33
+      },
+      {
+        "similar_to": "23071140226",
+        "similarity": 91.44371673130941,
+        "is_cross_group": false,
+        "shared_paragraphs": 26,
+        "shared_code_blocks": 33
+      },
+      {
+        "similar_to": "23071140230",
+        "similarity": 90.3547413392643,
+        "is_cross_group": false,
+        "shared_paragraphs": 25,
+        "shared_code_blocks": 33
+      },
+      {
+        "similar_to": "23071140231",
+        "similarity": 89.85431538308384,
+        "is_cross_group": false,
+        "shared_paragraphs": 24,
+        "shared_code_blocks": 33
+      }
+    ],
+    "max_similarity": 94.8377725614554,
+    "similarity_risk": "high"
   },
   {
     "student_id": "23071140215",
     "name": "侯鸿宾",
-    "total_score": 72.0,
+    "total_score": 79.8,
     "total_possible": 100,
-    "percentage": 72.0,
+    "percentage": 79.8,
     "grade": "C",
     "category_scores": {
       "team_collaboration": {
@@ -1179,13 +1313,14 @@
       },
       "attitude": {
         "name": "实验态度",
-        "earned": 0.0,
+        "earned": 6,
         "possible": 10,
-        "percentage": 0.0,
+        "percentage": 60.0,
         "feedback": [
-          "✗ 全勤，认真完成实验",
-          "✗ 缺勤1次",
-          "✓ 缺勤2次及以上"
+          "📝 教师评定（默认6分，可手动调整）",
+          "  - 全勤：10分",
+          "  - 缺勤1次：5分",
+          "  - 缺勤2次及以上：0分"
         ]
       },
       "principle_understanding": {
@@ -1215,9 +1350,9 @@
       },
       "code_quality": {
         "name": "代码质量",
-        "earned": 22.6,
+        "earned": 24.4,
         "possible": 30,
-        "percentage": 75.3,
+        "percentage": 81.3,
         "feedback": [
           "△ 代码流程图清晰 (部分)",
           "✓ 关键代码完整规范",
@@ -1267,18 +1402,55 @@
       "实验报告质量: △ 思考题回答完整正确（七） (部分)"
     ],
     "weaknesses": [],
-    "recommendations": [
-      "【实验态度】需要加强，请补充相关内容"
-    ],
+    "recommendations": [],
     "auto_confidence": 0.9,
-    "plagiarism_risk": 0.0
+    "plagiarism_risk": 0.936365211851364,
+    "similarity_info": [
+      {
+        "similar_to": "23071140228",
+        "similarity": 93.6365211851364,
+        "is_cross_group": false,
+        "shared_paragraphs": 25,
+        "shared_code_blocks": 33
+      },
+      {
+        "similar_to": "23071140214",
+        "similarity": 93.62586510302114,
+        "is_cross_group": false,
+        "shared_paragraphs": 25,
+        "shared_code_blocks": 33
+      },
+      {
+        "similar_to": "23071140226",
+        "similarity": 90.88884177050458,
+        "is_cross_group": false,
+        "shared_paragraphs": 25,
+        "shared_code_blocks": 33
+      },
+      {
+        "similar_to": "23071140230",
+        "similarity": 89.79816694740622,
+        "is_cross_group": false,
+        "shared_paragraphs": 24,
+        "shared_code_blocks": 33
+      },
+      {
+        "similar_to": "23071140231",
+        "similarity": 89.31832291096146,
+        "is_cross_group": false,
+        "shared_paragraphs": 23,
+        "shared_code_blocks": 33
+      }
+    ],
+    "max_similarity": 93.6365211851364,
+    "similarity_risk": "high"
   },
   {
     "student_id": "23071140216",
     "name": "武晓楠",
-    "total_score": 60.8,
+    "total_score": 69.8,
     "total_possible": 100,
-    "percentage": 60.8,
+    "percentage": 69.8,
     "grade": "D",
     "category_scores": {
       "team_collaboration": {
@@ -1294,24 +1466,25 @@
       },
       "attitude": {
         "name": "实验态度",
-        "earned": 0.0,
+        "earned": 6,
         "possible": 10,
-        "percentage": 0.0,
+        "percentage": 60.0,
         "feedback": [
-          "✗ 全勤，认真完成实验",
-          "✗ 缺勤1次",
-          "✓ 缺勤2次及以上"
+          "📝 教师评定（默认6分，可手动调整）",
+          "  - 全勤：10分",
+          "  - 缺勤1次：5分",
+          "  - 缺勤2次及以上：0分"
         ]
       },
       "principle_understanding": {
         "name": "实验原理与认知",
-        "earned": 7.2,
+        "earned": 8.4,
         "possible": 10,
-        "percentage": 72.0,
+        "percentage": 84.0,
         "feedback": [
           "✓ 实验目的清晰完整",
           "△ 实验原理阐述准确 (部分)",
-          "△ 汽车电子应用场景说明 (部分)"
+          "✓ 汽车电子应用场景说明"
         ]
       },
       "completion": {
@@ -1330,9 +1503,9 @@
       },
       "code_quality": {
         "name": "代码质量",
-        "earned": 19.4,
+        "earned": 21.2,
         "possible": 30,
-        "percentage": 64.7,
+        "percentage": 70.7,
         "feedback": [
           "△ 代码流程图清晰 (部分)",
           "△ 关键代码完整规范 (部分)",
@@ -1383,18 +1556,34 @@
       "实验报告质量: △ 思考题回答完整正确（七） (部分)"
     ],
     "weaknesses": [],
-    "recommendations": [
-      "【实验态度】需要加强，请补充相关内容"
-    ],
+    "recommendations": [],
     "auto_confidence": 0.9,
-    "plagiarism_risk": 0.0
+    "plagiarism_risk": 0.95,
+    "similarity_info": [
+      {
+        "similar_to": "23071140217",
+        "similarity": 95.0,
+        "is_cross_group": false,
+        "shared_paragraphs": 29,
+        "shared_code_blocks": 57
+      },
+      {
+        "similar_to": "23071140223",
+        "similarity": 93.79756657943128,
+        "is_cross_group": false,
+        "shared_paragraphs": 29,
+        "shared_code_blocks": 57
+      }
+    ],
+    "max_similarity": 95.0,
+    "similarity_risk": "high"
   },
   {
     "student_id": "23071140217",
     "name": "李昊达",
-    "total_score": 60.8,
+    "total_score": 69.8,
     "total_possible": 100,
-    "percentage": 60.8,
+    "percentage": 69.8,
     "grade": "D",
     "category_scores": {
       "team_collaboration": {
@@ -1410,24 +1599,25 @@
       },
       "attitude": {
         "name": "实验态度",
-        "earned": 0.0,
+        "earned": 6,
         "possible": 10,
-        "percentage": 0.0,
+        "percentage": 60.0,
         "feedback": [
-          "✗ 全勤，认真完成实验",
-          "✗ 缺勤1次",
-          "✓ 缺勤2次及以上"
+          "📝 教师评定（默认6分，可手动调整）",
+          "  - 全勤：10分",
+          "  - 缺勤1次：5分",
+          "  - 缺勤2次及以上：0分"
         ]
       },
       "principle_understanding": {
         "name": "实验原理与认知",
-        "earned": 7.2,
+        "earned": 8.4,
         "possible": 10,
-        "percentage": 72.0,
+        "percentage": 84.0,
         "feedback": [
           "✓ 实验目的清晰完整",
           "△ 实验原理阐述准确 (部分)",
-          "△ 汽车电子应用场景说明 (部分)"
+          "✓ 汽车电子应用场景说明"
         ]
       },
       "completion": {
@@ -1446,9 +1636,9 @@
       },
       "code_quality": {
         "name": "代码质量",
-        "earned": 19.4,
+        "earned": 21.2,
         "possible": 30,
-        "percentage": 64.7,
+        "percentage": 70.7,
         "feedback": [
           "△ 代码流程图清晰 (部分)",
           "△ 关键代码完整规范 (部分)",
@@ -1499,18 +1689,34 @@
       "实验报告质量: △ 思考题回答完整正确（七） (部分)"
     ],
     "weaknesses": [],
-    "recommendations": [
-      "【实验态度】需要加强，请补充相关内容"
-    ],
+    "recommendations": [],
     "auto_confidence": 0.9,
-    "plagiarism_risk": 0.0
+    "plagiarism_risk": 0.95,
+    "similarity_info": [
+      {
+        "similar_to": "23071140216",
+        "similarity": 95.0,
+        "is_cross_group": false,
+        "shared_paragraphs": 29,
+        "shared_code_blocks": 57
+      },
+      {
+        "similar_to": "23071140223",
+        "similarity": 93.79756657943128,
+        "is_cross_group": false,
+        "shared_paragraphs": 29,
+        "shared_code_blocks": 57
+      }
+    ],
+    "max_similarity": 95.0,
+    "similarity_risk": "high"
   },
   {
     "student_id": "23071140219",
     "name": "许佳琦",
-    "total_score": 70.0,
+    "total_score": 76.0,
     "total_possible": 100,
-    "percentage": 70.0,
+    "percentage": 76.0,
     "grade": "C",
     "category_scores": {
       "team_collaboration": {
@@ -1526,13 +1732,14 @@
       },
       "attitude": {
         "name": "实验态度",
-        "earned": 0.0,
+        "earned": 6,
         "possible": 10,
-        "percentage": 0.0,
+        "percentage": 60.0,
         "feedback": [
-          "✗ 全勤，认真完成实验",
-          "✗ 缺勤1次",
-          "✓ 缺勤2次及以上"
+          "📝 教师评定（默认6分，可手动调整）",
+          "  - 全勤：10分",
+          "  - 缺勤1次：5分",
+          "  - 缺勤2次及以上：0分"
         ]
       },
       "principle_understanding": {
@@ -1615,19 +1822,28 @@
       "实验报告质量: △ 思考题回答完整正确（七） (部分)"
     ],
     "weaknesses": [],
-    "recommendations": [
-      "【实验态度】需要加强，请补充相关内容"
-    ],
+    "recommendations": [],
     "auto_confidence": 0.9,
-    "plagiarism_risk": 0.0
+    "plagiarism_risk": 0.9339645997216057,
+    "similarity_info": [
+      {
+        "similar_to": "23071140213",
+        "similarity": 93.39645997216057,
+        "is_cross_group": false,
+        "shared_paragraphs": 18,
+        "shared_code_blocks": 26
+      }
+    ],
+    "max_similarity": 93.39645997216057,
+    "similarity_risk": "high"
   },
   {
     "student_id": "23071140220",
     "name": "梁永宁",
-    "total_score": 62.0,
+    "total_score": 71.2,
     "total_possible": 100,
-    "percentage": 62.0,
-    "grade": "D",
+    "percentage": 71.2,
+    "grade": "C",
     "category_scores": {
       "team_collaboration": {
         "name": "团队协作",
@@ -1642,13 +1858,14 @@
       },
       "attitude": {
         "name": "实验态度",
-        "earned": 0.0,
+        "earned": 6,
         "possible": 10,
-        "percentage": 0.0,
+        "percentage": 60.0,
         "feedback": [
-          "✗ 全勤，认真完成实验",
-          "✗ 缺勤1次",
-          "✓ 缺勤2次及以上"
+          "📝 教师评定（默认6分，可手动调整）",
+          "  - 全勤：10分",
+          "  - 缺勤1次：5分",
+          "  - 缺勤2次及以上：0分"
         ]
       },
       "principle_understanding": {
@@ -1664,14 +1881,14 @@
       },
       "completion": {
         "name": "实验完成度",
-        "earned": 23.2,
+        "earned": 26.4,
         "possible": 35,
-        "percentage": 66.3,
+        "percentage": 75.4,
         "feedback": [
           "△ 硬件连接图正确清晰（三） (部分)",
           "✓ 引脚配置说明完整（三）",
           "✓ ISP烧录电路说明（三）",
-          "△ 实验现象记录完整（五） (部分)",
+          "✓ 实验现象记录完整（五）",
           "△ 结果照片或截图清晰（五） (部分)",
           "✓ 结果对比分析透彻（五）"
         ]
@@ -1724,25 +1941,35 @@
       "实验原理与认知: △ 实验目的清晰完整 (部分)",
       "实验完成度: △ 硬件连接图正确清晰（三） (部分)",
       "实验完成度: ✓ 引脚配置说明完整（三）",
-      "实验完成度: △ 实验现象记录完整（五） (部分)",
+      "实验完成度: ✓ 实验现象记录完整（五）",
       "代码质量: △ 关键代码完整规范 (部分)",
       "代码质量: ✓ 中断服务程序说明详细",
       "实验报告质量: △ 思考题回答完整正确（七） (部分)"
     ],
     "weaknesses": [],
     "recommendations": [
-      "【实验态度】需要加强，请补充相关内容",
       "【代码质量】需要加强，请补充相关内容"
     ],
     "auto_confidence": 0.9,
-    "plagiarism_risk": 0.0
+    "plagiarism_risk": 0.9488172976850494,
+    "similarity_info": [
+      {
+        "similar_to": "23071140233",
+        "similarity": 94.88172976850494,
+        "is_cross_group": false,
+        "shared_paragraphs": 21,
+        "shared_code_blocks": 40
+      }
+    ],
+    "max_similarity": 94.88172976850494,
+    "similarity_risk": "high"
   },
   {
     "student_id": "23071140221",
     "name": "郝卓瞳",
-    "total_score": 70.0,
+    "total_score": 77.8,
     "total_possible": 100,
-    "percentage": 70.0,
+    "percentage": 77.8,
     "grade": "C",
     "category_scores": {
       "team_collaboration": {
@@ -1758,13 +1985,14 @@
       },
       "attitude": {
         "name": "实验态度",
-        "earned": 0.0,
+        "earned": 6,
         "possible": 10,
-        "percentage": 0.0,
+        "percentage": 60.0,
         "feedback": [
-          "✗ 全勤，认真完成实验",
-          "✗ 缺勤1次",
-          "✓ 缺勤2次及以上"
+          "📝 教师评定（默认6分，可手动调整）",
+          "  - 全勤：10分",
+          "  - 缺勤1次：5分",
+          "  - 缺勤2次及以上：0分"
         ]
       },
       "principle_understanding": {
@@ -1794,9 +2022,9 @@
       },
       "code_quality": {
         "name": "代码质量",
-        "earned": 22.6,
+        "earned": 24.4,
         "possible": 30,
-        "percentage": 75.3,
+        "percentage": 81.3,
         "feedback": [
           "△ 代码流程图清晰 (部分)",
           "✓ 关键代码完整规范",
@@ -1847,18 +2075,34 @@
       "实验报告质量: △ 思考题回答完整正确（七） (部分)"
     ],
     "weaknesses": [],
-    "recommendations": [
-      "【实验态度】需要加强，请补充相关内容"
-    ],
+    "recommendations": [],
     "auto_confidence": 0.9,
-    "plagiarism_risk": 0.0
+    "plagiarism_risk": 0.9331103625806481,
+    "similarity_info": [
+      {
+        "similar_to": "23071140210",
+        "similarity": 93.3110362580648,
+        "is_cross_group": false,
+        "shared_paragraphs": 14,
+        "shared_code_blocks": 23
+      },
+      {
+        "similar_to": "23071140236",
+        "similarity": 91.01446934202635,
+        "is_cross_group": false,
+        "shared_paragraphs": 13,
+        "shared_code_blocks": 23
+      }
+    ],
+    "max_similarity": 93.3110362580648,
+    "similarity_risk": "high"
   },
   {
     "student_id": "23071140222",
     "name": "赵增宇",
-    "total_score": 45.5,
+    "total_score": 51.5,
     "total_possible": 100,
-    "percentage": 45.5,
+    "percentage": 51.5,
     "grade": "F",
     "category_scores": {
       "team_collaboration": {
@@ -1874,13 +2118,14 @@
       },
       "attitude": {
         "name": "实验态度",
-        "earned": 0.0,
+        "earned": 6,
         "possible": 10,
-        "percentage": 0.0,
+        "percentage": 60.0,
         "feedback": [
-          "✗ 全勤，认真完成实验",
-          "✗ 缺勤1次",
-          "✓ 缺勤2次及以上"
+          "📝 教师评定（默认6分，可手动调整）",
+          "  - 全勤：10分",
+          "  - 缺勤1次：5分",
+          "  - 缺勤2次及以上：0分"
         ]
       },
       "principle_understanding": {
@@ -1964,20 +2209,37 @@
     "weaknesses": [],
     "recommendations": [
       "【团队协作】需要加强，请补充相关内容",
-      "【实验态度】需要加强，请补充相关内容",
       "【实验完成度】需要加强，请补充相关内容",
       "【代码质量】需要加强，请补充相关内容",
       "建议添加图表或截图来说明实验结果"
     ],
     "auto_confidence": 0.9,
-    "plagiarism_risk": 0.0
+    "plagiarism_risk": 0.9109606927121505,
+    "similarity_info": [
+      {
+        "similar_to": "23071140224",
+        "similarity": 91.09606927121506,
+        "is_cross_group": false,
+        "shared_paragraphs": 13,
+        "shared_code_blocks": 24
+      },
+      {
+        "similar_to": "23071140232",
+        "similarity": 90.36817970898024,
+        "is_cross_group": false,
+        "shared_paragraphs": 13,
+        "shared_code_blocks": 24
+      }
+    ],
+    "max_similarity": 91.09606927121506,
+    "similarity_risk": "high"
   },
   {
     "student_id": "23071140223",
     "name": "李林鑫",
-    "total_score": 60.8,
+    "total_score": 69.8,
     "total_possible": 100,
-    "percentage": 60.8,
+    "percentage": 69.8,
     "grade": "D",
     "category_scores": {
       "team_collaboration": {
@@ -1993,24 +2255,25 @@
       },
       "attitude": {
         "name": "实验态度",
-        "earned": 0.0,
+        "earned": 6,
         "possible": 10,
-        "percentage": 0.0,
+        "percentage": 60.0,
         "feedback": [
-          "✗ 全勤，认真完成实验",
-          "✗ 缺勤1次",
-          "✓ 缺勤2次及以上"
+          "📝 教师评定（默认6分，可手动调整）",
+          "  - 全勤：10分",
+          "  - 缺勤1次：5分",
+          "  - 缺勤2次及以上：0分"
         ]
       },
       "principle_understanding": {
         "name": "实验原理与认知",
-        "earned": 7.2,
+        "earned": 8.4,
         "possible": 10,
-        "percentage": 72.0,
+        "percentage": 84.0,
         "feedback": [
           "✓ 实验目的清晰完整",
           "△ 实验原理阐述准确 (部分)",
-          "△ 汽车电子应用场景说明 (部分)"
+          "✓ 汽车电子应用场景说明"
         ]
       },
       "completion": {
@@ -2029,9 +2292,9 @@
       },
       "code_quality": {
         "name": "代码质量",
-        "earned": 19.4,
+        "earned": 21.2,
         "possible": 30,
-        "percentage": 64.7,
+        "percentage": 70.7,
         "feedback": [
           "△ 代码流程图清晰 (部分)",
           "△ 关键代码完整规范 (部分)",
@@ -2082,18 +2345,34 @@
       "实验报告质量: △ 思考题回答完整正确（七） (部分)"
     ],
     "weaknesses": [],
-    "recommendations": [
-      "【实验态度】需要加强，请补充相关内容"
-    ],
+    "recommendations": [],
     "auto_confidence": 0.9,
-    "plagiarism_risk": 0.0
+    "plagiarism_risk": 0.9379756657943128,
+    "similarity_info": [
+      {
+        "similar_to": "23071140216",
+        "similarity": 93.79756657943128,
+        "is_cross_group": false,
+        "shared_paragraphs": 29,
+        "shared_code_blocks": 57
+      },
+      {
+        "similar_to": "23071140217",
+        "similarity": 93.79756657943128,
+        "is_cross_group": false,
+        "shared_paragraphs": 29,
+        "shared_code_blocks": 57
+      }
+    ],
+    "max_similarity": 93.79756657943128,
+    "similarity_risk": "high"
   },
   {
     "student_id": "23071140224",
     "name": "刘涛",
-    "total_score": 45.4,
+    "total_score": 51.4,
     "total_possible": 100,
-    "percentage": 45.4,
+    "percentage": 51.4,
     "grade": "F",
     "category_scores": {
       "team_collaboration": {
@@ -2109,13 +2388,14 @@
       },
       "attitude": {
         "name": "实验态度",
-        "earned": 0.0,
+        "earned": 6,
         "possible": 10,
-        "percentage": 0.0,
+        "percentage": 60.0,
         "feedback": [
-          "✗ 全勤，认真完成实验",
-          "✗ 缺勤1次",
-          "✓ 缺勤2次及以上"
+          "📝 教师评定（默认6分，可手动调整）",
+          "  - 全勤：10分",
+          "  - 缺勤1次：5分",
+          "  - 缺勤2次及以上：0分"
         ]
       },
       "principle_understanding": {
@@ -2199,20 +2479,37 @@
     "weaknesses": [],
     "recommendations": [
       "【团队协作】需要加强，请补充相关内容",
-      "【实验态度】需要加强，请补充相关内容",
       "【实验完成度】需要加强，请补充相关内容",
       "【代码质量】需要加强，请补充相关内容",
       "建议添加图表或截图来说明实验结果"
     ],
     "auto_confidence": 0.9,
-    "plagiarism_risk": 0.0
+    "plagiarism_risk": 0.9109606927121505,
+    "similarity_info": [
+      {
+        "similar_to": "23071140222",
+        "similarity": 91.09606927121506,
+        "is_cross_group": false,
+        "shared_paragraphs": 13,
+        "shared_code_blocks": 24
+      },
+      {
+        "similar_to": "23071140232",
+        "similarity": 89.01921631740305,
+        "is_cross_group": false,
+        "shared_paragraphs": 13,
+        "shared_code_blocks": 24
+      }
+    ],
+    "max_similarity": 91.09606927121506,
+    "similarity_risk": "high"
   },
   {
     "student_id": "23071140226",
     "name": "辛康琳",
-    "total_score": 72.0,
+    "total_score": 79.8,
     "total_possible": 100,
-    "percentage": 72.0,
+    "percentage": 79.8,
     "grade": "C",
     "category_scores": {
       "team_collaboration": {
@@ -2228,13 +2525,14 @@
       },
       "attitude": {
         "name": "实验态度",
-        "earned": 0.0,
+        "earned": 6,
         "possible": 10,
-        "percentage": 0.0,
+        "percentage": 60.0,
         "feedback": [
-          "✗ 全勤，认真完成实验",
-          "✗ 缺勤1次",
-          "✓ 缺勤2次及以上"
+          "📝 教师评定（默认6分，可手动调整）",
+          "  - 全勤：10分",
+          "  - 缺勤1次：5分",
+          "  - 缺勤2次及以上：0分"
         ]
       },
       "principle_understanding": {
@@ -2264,9 +2562,9 @@
       },
       "code_quality": {
         "name": "代码质量",
-        "earned": 22.6,
+        "earned": 24.4,
         "possible": 30,
-        "percentage": 75.3,
+        "percentage": 81.3,
         "feedback": [
           "△ 代码流程图清晰 (部分)",
           "✓ 关键代码完整规范",
@@ -2316,18 +2614,55 @@
       "实验报告质量: △ 思考题回答完整正确（七） (部分)"
     ],
     "weaknesses": [],
-    "recommendations": [
-      "【实验态度】需要加强，请补充相关内容"
-    ],
+    "recommendations": [],
     "auto_confidence": 0.9,
-    "plagiarism_risk": 0.0
+    "plagiarism_risk": 0.9226487421132348,
+    "similarity_info": [
+      {
+        "similar_to": "23071140230",
+        "similarity": 92.26487421132347,
+        "is_cross_group": false,
+        "shared_paragraphs": 25,
+        "shared_code_blocks": 33
+      },
+      {
+        "similar_to": "23071140228",
+        "similarity": 91.44484115790445,
+        "is_cross_group": false,
+        "shared_paragraphs": 26,
+        "shared_code_blocks": 33
+      },
+      {
+        "similar_to": "23071140214",
+        "similarity": 91.44371673130941,
+        "is_cross_group": false,
+        "shared_paragraphs": 26,
+        "shared_code_blocks": 33
+      },
+      {
+        "similar_to": "23071140231",
+        "similarity": 91.30826350187358,
+        "is_cross_group": false,
+        "shared_paragraphs": 23,
+        "shared_code_blocks": 33
+      },
+      {
+        "similar_to": "23071140215",
+        "similarity": 90.88884177050458,
+        "is_cross_group": false,
+        "shared_paragraphs": 25,
+        "shared_code_blocks": 33
+      }
+    ],
+    "max_similarity": 92.26487421132347,
+    "similarity_risk": "high"
   },
   {
     "student_id": "23071140227",
     "name": "郜炫彤",
-    "total_score": 70.0,
+    "total_score": 76.8,
     "total_possible": 100,
-    "percentage": 70.0,
+    "percentage": 76.8,
     "grade": "C",
     "category_scores": {
       "team_collaboration": {
@@ -2343,13 +2678,14 @@
       },
       "attitude": {
         "name": "实验态度",
-        "earned": 0.0,
+        "earned": 6,
         "possible": 10,
-        "percentage": 0.0,
+        "percentage": 60.0,
         "feedback": [
-          "✗ 全勤，认真完成实验",
-          "✗ 缺勤1次",
-          "✓ 缺勤2次及以上"
+          "📝 教师评定（默认6分，可手动调整）",
+          "  - 全勤：10分",
+          "  - 缺勤1次：5分",
+          "  - 缺勤2次及以上：0分"
         ]
       },
       "principle_understanding": {
@@ -2365,13 +2701,13 @@
       },
       "completion": {
         "name": "实验完成度",
-        "earned": 25.6,
+        "earned": 26.4,
         "possible": 35,
-        "percentage": 73.1,
+        "percentage": 75.4,
         "feedback": [
           "△ 硬件连接图正确清晰（三） (部分)",
           "✓ 引脚配置说明完整（三）",
-          "△ ISP烧录电路说明（三） (部分)",
+          "✓ ISP烧录电路说明（三）",
           "✓ 实验现象记录完整（五）",
           "△ 结果照片或截图清晰（五） (部分)",
           "✓ 结果对比分析透彻（五）"
@@ -2432,18 +2768,34 @@
       "实验报告质量: △ 思考题回答完整正确（七） (部分)"
     ],
     "weaknesses": [],
-    "recommendations": [
-      "【实验态度】需要加强，请补充相关内容"
-    ],
+    "recommendations": [],
     "auto_confidence": 0.9,
-    "plagiarism_risk": 0.0
+    "plagiarism_risk": 0.9373254116560967,
+    "similarity_info": [
+      {
+        "similar_to": "23071140238",
+        "similarity": 93.73254116560967,
+        "is_cross_group": false,
+        "shared_paragraphs": 23,
+        "shared_code_blocks": 31
+      },
+      {
+        "similar_to": "23071140239",
+        "similarity": 93.36681226261207,
+        "is_cross_group": false,
+        "shared_paragraphs": 23,
+        "shared_code_blocks": 31
+      }
+    ],
+    "max_similarity": 93.73254116560967,
+    "similarity_risk": "high"
   },
   {
     "student_id": "23071140228",
     "name": "尚祥",
-    "total_score": 71.2,
+    "total_score": 79.0,
     "total_possible": 100,
-    "percentage": 71.2,
+    "percentage": 79.0,
     "grade": "C",
     "category_scores": {
       "team_collaboration": {
@@ -2459,13 +2811,14 @@
       },
       "attitude": {
         "name": "实验态度",
-        "earned": 0.0,
+        "earned": 6,
         "possible": 10,
-        "percentage": 0.0,
+        "percentage": 60.0,
         "feedback": [
-          "✗ 全勤，认真完成实验",
-          "✗ 缺勤1次",
-          "✓ 缺勤2次及以上"
+          "📝 教师评定（默认6分，可手动调整）",
+          "  - 全勤：10分",
+          "  - 缺勤1次：5分",
+          "  - 缺勤2次及以上：0分"
         ]
       },
       "principle_understanding": {
@@ -2495,9 +2848,9 @@
       },
       "code_quality": {
         "name": "代码质量",
-        "earned": 22.6,
+        "earned": 24.4,
         "possible": 30,
-        "percentage": 75.3,
+        "percentage": 81.3,
         "feedback": [
           "△ 代码流程图清晰 (部分)",
           "✓ 关键代码完整规范",
@@ -2547,18 +2900,55 @@
       "实验报告质量: △ 思考题回答完整正确（七） (部分)"
     ],
     "weaknesses": [],
-    "recommendations": [
-      "【实验态度】需要加强，请补充相关内容"
-    ],
+    "recommendations": [],
     "auto_confidence": 0.9,
-    "plagiarism_risk": 0.0
+    "plagiarism_risk": 0.9483777256145539,
+    "similarity_info": [
+      {
+        "similar_to": "23071140214",
+        "similarity": 94.8377725614554,
+        "is_cross_group": false,
+        "shared_paragraphs": 26,
+        "shared_code_blocks": 33
+      },
+      {
+        "similar_to": "23071140215",
+        "similarity": 93.6365211851364,
+        "is_cross_group": false,
+        "shared_paragraphs": 25,
+        "shared_code_blocks": 33
+      },
+      {
+        "similar_to": "23071140226",
+        "similarity": 91.44484115790445,
+        "is_cross_group": false,
+        "shared_paragraphs": 26,
+        "shared_code_blocks": 33
+      },
+      {
+        "similar_to": "23071140230",
+        "similarity": 90.3559166201874,
+        "is_cross_group": false,
+        "shared_paragraphs": 25,
+        "shared_code_blocks": 33
+      },
+      {
+        "similar_to": "23071140231",
+        "similarity": 89.85546131628212,
+        "is_cross_group": false,
+        "shared_paragraphs": 24,
+        "shared_code_blocks": 33
+      }
+    ],
+    "max_similarity": 94.8377725614554,
+    "similarity_risk": "high"
   },
   {
     "student_id": "23071140230",
     "name": "冀虹鑫",
-    "total_score": 71.2,
+    "total_score": 79.0,
     "total_possible": 100,
-    "percentage": 71.2,
+    "percentage": 79.0,
     "grade": "C",
     "category_scores": {
       "team_collaboration": {
@@ -2574,13 +2964,14 @@
       },
       "attitude": {
         "name": "实验态度",
-        "earned": 0.0,
+        "earned": 6,
         "possible": 10,
-        "percentage": 0.0,
+        "percentage": 60.0,
         "feedback": [
-          "✗ 全勤，认真完成实验",
-          "✗ 缺勤1次",
-          "✓ 缺勤2次及以上"
+          "📝 教师评定（默认6分，可手动调整）",
+          "  - 全勤：10分",
+          "  - 缺勤1次：5分",
+          "  - 缺勤2次及以上：0分"
         ]
       },
       "principle_understanding": {
@@ -2610,9 +3001,9 @@
       },
       "code_quality": {
         "name": "代码质量",
-        "earned": 22.6,
+        "earned": 24.4,
         "possible": 30,
-        "percentage": 75.3,
+        "percentage": 81.3,
         "feedback": [
           "△ 代码流程图清晰 (部分)",
           "✓ 关键代码完整规范",
@@ -2662,18 +3053,55 @@
       "实验报告质量: △ 思考题回答完整正确（七） (部分)"
     ],
     "weaknesses": [],
-    "recommendations": [
-      "【实验态度】需要加强，请补充相关内容"
-    ],
+    "recommendations": [],
     "auto_confidence": 0.9,
-    "plagiarism_risk": 0.0
+    "plagiarism_risk": 0.9226487421132348,
+    "similarity_info": [
+      {
+        "similar_to": "23071140226",
+        "similarity": 92.26487421132347,
+        "is_cross_group": false,
+        "shared_paragraphs": 25,
+        "shared_code_blocks": 33
+      },
+      {
+        "similar_to": "23071140231",
+        "similarity": 92.00462504923819,
+        "is_cross_group": false,
+        "shared_paragraphs": 25,
+        "shared_code_blocks": 32
+      },
+      {
+        "similar_to": "23071140228",
+        "similarity": 90.3559166201874,
+        "is_cross_group": false,
+        "shared_paragraphs": 25,
+        "shared_code_blocks": 33
+      },
+      {
+        "similar_to": "23071140214",
+        "similarity": 90.3547413392643,
+        "is_cross_group": false,
+        "shared_paragraphs": 25,
+        "shared_code_blocks": 33
+      },
+      {
+        "similar_to": "23071140215",
+        "similarity": 89.79816694740622,
+        "is_cross_group": false,
+        "shared_paragraphs": 24,
+        "shared_code_blocks": 33
+      }
+    ],
+    "max_similarity": 92.26487421132347,
+    "similarity_risk": "high"
   },
   {
     "student_id": "23071140231",
     "name": "赵新宇",
-    "total_score": 71.2,
+    "total_score": 79.0,
     "total_possible": 100,
-    "percentage": 71.2,
+    "percentage": 79.0,
     "grade": "C",
     "category_scores": {
       "team_collaboration": {
@@ -2689,13 +3117,14 @@
       },
       "attitude": {
         "name": "实验态度",
-        "earned": 0.0,
+        "earned": 6,
         "possible": 10,
-        "percentage": 0.0,
+        "percentage": 60.0,
         "feedback": [
-          "✗ 全勤，认真完成实验",
-          "✗ 缺勤1次",
-          "✓ 缺勤2次及以上"
+          "📝 教师评定（默认6分，可手动调整）",
+          "  - 全勤：10分",
+          "  - 缺勤1次：5分",
+          "  - 缺勤2次及以上：0分"
         ]
       },
       "principle_understanding": {
@@ -2725,9 +3154,9 @@
       },
       "code_quality": {
         "name": "代码质量",
-        "earned": 22.6,
+        "earned": 24.4,
         "possible": 30,
-        "percentage": 75.3,
+        "percentage": 81.3,
         "feedback": [
           "△ 代码流程图清晰 (部分)",
           "✓ 关键代码完整规范",
@@ -2777,18 +3206,55 @@
       "实验报告质量: △ 思考题回答完整正确（七） (部分)"
     ],
     "weaknesses": [],
-    "recommendations": [
-      "【实验态度】需要加强，请补充相关内容"
-    ],
+    "recommendations": [],
     "auto_confidence": 0.9,
-    "plagiarism_risk": 0.0
+    "plagiarism_risk": 0.9200462504923819,
+    "similarity_info": [
+      {
+        "similar_to": "23071140230",
+        "similarity": 92.00462504923819,
+        "is_cross_group": false,
+        "shared_paragraphs": 25,
+        "shared_code_blocks": 32
+      },
+      {
+        "similar_to": "23071140226",
+        "similarity": 91.30826350187358,
+        "is_cross_group": false,
+        "shared_paragraphs": 23,
+        "shared_code_blocks": 33
+      },
+      {
+        "similar_to": "23071140228",
+        "similarity": 89.85546131628212,
+        "is_cross_group": false,
+        "shared_paragraphs": 24,
+        "shared_code_blocks": 33
+      },
+      {
+        "similar_to": "23071140214",
+        "similarity": 89.85431538308384,
+        "is_cross_group": false,
+        "shared_paragraphs": 24,
+        "shared_code_blocks": 33
+      },
+      {
+        "similar_to": "23071140215",
+        "similarity": 89.31832291096146,
+        "is_cross_group": false,
+        "shared_paragraphs": 23,
+        "shared_code_blocks": 33
+      }
+    ],
+    "max_similarity": 92.00462504923819,
+    "similarity_risk": "high"
   },
   {
     "student_id": "23071140232",
     "name": "王浩炜",
-    "total_score": 49.1,
+    "total_score": 55.1,
     "total_possible": 100,
-    "percentage": 49.1,
+    "percentage": 55.1,
     "grade": "F",
     "category_scores": {
       "team_collaboration": {
@@ -2804,13 +3270,14 @@
       },
       "attitude": {
         "name": "实验态度",
-        "earned": 0.0,
+        "earned": 6,
         "possible": 10,
-        "percentage": 0.0,
+        "percentage": 60.0,
         "feedback": [
-          "✗ 全勤，认真完成实验",
-          "✗ 缺勤1次",
-          "✓ 缺勤2次及以上"
+          "📝 教师评定（默认6分，可手动调整）",
+          "  - 全勤：10分",
+          "  - 缺勤1次：5分",
+          "  - 缺勤2次及以上：0分"
         ]
       },
       "principle_understanding": {
@@ -2894,20 +3361,37 @@
     "weaknesses": [],
     "recommendations": [
       "【团队协作】需要加强，请补充相关内容",
-      "【实验态度】需要加强，请补充相关内容",
       "【实验完成度】需要加强，请补充相关内容",
       "【代码质量】需要加强，请补充相关内容"
     ],
     "auto_confidence": 0.9,
-    "plagiarism_risk": 0.0
+    "plagiarism_risk": 0.9036817970898023,
+    "similarity_info": [
+      {
+        "similar_to": "23071140222",
+        "similarity": 90.36817970898024,
+        "is_cross_group": false,
+        "shared_paragraphs": 13,
+        "shared_code_blocks": 24
+      },
+      {
+        "similar_to": "23071140224",
+        "similarity": 89.01921631740305,
+        "is_cross_group": false,
+        "shared_paragraphs": 13,
+        "shared_code_blocks": 24
+      }
+    ],
+    "max_similarity": 90.36817970898024,
+    "similarity_risk": "high"
   },
   {
     "student_id": "23071140233",
     "name": "祁玉龙",
-    "total_score": 62.0,
+    "total_score": 71.2,
     "total_possible": 100,
-    "percentage": 62.0,
-    "grade": "D",
+    "percentage": 71.2,
+    "grade": "C",
     "category_scores": {
       "team_collaboration": {
         "name": "团队协作",
@@ -2922,13 +3406,14 @@
       },
       "attitude": {
         "name": "实验态度",
-        "earned": 0.0,
+        "earned": 6,
         "possible": 10,
-        "percentage": 0.0,
+        "percentage": 60.0,
         "feedback": [
-          "✗ 全勤，认真完成实验",
-          "✗ 缺勤1次",
-          "✓ 缺勤2次及以上"
+          "📝 教师评定（默认6分，可手动调整）",
+          "  - 全勤：10分",
+          "  - 缺勤1次：5分",
+          "  - 缺勤2次及以上：0分"
         ]
       },
       "principle_understanding": {
@@ -2944,14 +3429,14 @@
       },
       "completion": {
         "name": "实验完成度",
-        "earned": 23.2,
+        "earned": 26.4,
         "possible": 35,
-        "percentage": 66.3,
+        "percentage": 75.4,
         "feedback": [
           "△ 硬件连接图正确清晰（三） (部分)",
           "✓ 引脚配置说明完整（三）",
           "✓ ISP烧录电路说明（三）",
-          "△ 实验现象记录完整（五） (部分)",
+          "✓ 实验现象记录完整（五）",
           "△ 结果照片或截图清晰（五） (部分)",
           "✓ 结果对比分析透彻（五）"
         ]
@@ -3004,25 +3489,35 @@
       "实验原理与认知: △ 实验目的清晰完整 (部分)",
       "实验完成度: △ 硬件连接图正确清晰（三） (部分)",
       "实验完成度: ✓ 引脚配置说明完整（三）",
-      "实验完成度: △ 实验现象记录完整（五） (部分)",
+      "实验完成度: ✓ 实验现象记录完整（五）",
       "代码质量: △ 关键代码完整规范 (部分)",
       "代码质量: ✓ 中断服务程序说明详细",
       "实验报告质量: △ 思考题回答完整正确（七） (部分)"
     ],
     "weaknesses": [],
     "recommendations": [
-      "【实验态度】需要加强，请补充相关内容",
       "【代码质量】需要加强，请补充相关内容"
     ],
     "auto_confidence": 0.9,
-    "plagiarism_risk": 0.0
+    "plagiarism_risk": 0.9488172976850494,
+    "similarity_info": [
+      {
+        "similar_to": "23071140220",
+        "similarity": 94.88172976850494,
+        "is_cross_group": false,
+        "shared_paragraphs": 21,
+        "shared_code_blocks": 40
+      }
+    ],
+    "max_similarity": 94.88172976850494,
+    "similarity_risk": "high"
   },
   {
     "student_id": "23071140236",
     "name": "徐文静",
-    "total_score": 70.8,
+    "total_score": 78.6,
     "total_possible": 100,
-    "percentage": 70.8,
+    "percentage": 78.6,
     "grade": "C",
     "category_scores": {
       "team_collaboration": {
@@ -3038,13 +3533,14 @@
       },
       "attitude": {
         "name": "实验态度",
-        "earned": 0.0,
+        "earned": 6,
         "possible": 10,
-        "percentage": 0.0,
+        "percentage": 60.0,
         "feedback": [
-          "✗ 全勤，认真完成实验",
-          "✗ 缺勤1次",
-          "✓ 缺勤2次及以上"
+          "📝 教师评定（默认6分，可手动调整）",
+          "  - 全勤：10分",
+          "  - 缺勤1次：5分",
+          "  - 缺勤2次及以上：0分"
         ]
       },
       "principle_understanding": {
@@ -3074,9 +3570,9 @@
       },
       "code_quality": {
         "name": "代码质量",
-        "earned": 22.6,
+        "earned": 24.4,
         "possible": 30,
-        "percentage": 75.3,
+        "percentage": 81.3,
         "feedback": [
           "△ 代码流程图清晰 (部分)",
           "✓ 关键代码完整规范",
@@ -3127,19 +3623,35 @@
       "实验报告质量: △ 思考题回答完整正确（七） (部分)"
     ],
     "weaknesses": [],
-    "recommendations": [
-      "【实验态度】需要加强，请补充相关内容"
-    ],
+    "recommendations": [],
     "auto_confidence": 0.9,
-    "plagiarism_risk": 0.0
+    "plagiarism_risk": 0.9101446934202635,
+    "similarity_info": [
+      {
+        "similar_to": "23071140221",
+        "similarity": 91.01446934202635,
+        "is_cross_group": false,
+        "shared_paragraphs": 13,
+        "shared_code_blocks": 23
+      },
+      {
+        "similar_to": "23071140210",
+        "similarity": 90.87904638493193,
+        "is_cross_group": false,
+        "shared_paragraphs": 13,
+        "shared_code_blocks": 23
+      }
+    ],
+    "max_similarity": 91.01446934202635,
+    "similarity_risk": "high"
   },
   {
     "student_id": "23071140237",
     "name": "刘烊宏",
-    "total_score": 67.6,
+    "total_score": 73.6,
     "total_possible": 100,
-    "percentage": 67.6,
-    "grade": "D",
+    "percentage": 73.6,
+    "grade": "C",
     "category_scores": {
       "team_collaboration": {
         "name": "团队协作",
@@ -3154,13 +3666,14 @@
       },
       "attitude": {
         "name": "实验态度",
-        "earned": 0.0,
+        "earned": 6,
         "possible": 10,
-        "percentage": 0.0,
+        "percentage": 60.0,
         "feedback": [
-          "✗ 全勤，认真完成实验",
-          "✗ 缺勤1次",
-          "✓ 缺勤2次及以上"
+          "📝 教师评定（默认6分，可手动调整）",
+          "  - 全勤：10分",
+          "  - 缺勤1次：5分",
+          "  - 缺勤2次及以上：0分"
         ]
       },
       "principle_understanding": {
@@ -3243,19 +3756,35 @@
       "实验报告质量: △ 思考题回答完整正确（七） (部分)"
     ],
     "weaknesses": [],
-    "recommendations": [
-      "【实验态度】需要加强，请补充相关内容"
-    ],
+    "recommendations": [],
     "auto_confidence": 0.9,
-    "plagiarism_risk": 0.0
+    "plagiarism_risk": 0.9183193329866257,
+    "similarity_info": [
+      {
+        "similar_to": "23071140211",
+        "similarity": 91.83193329866258,
+        "is_cross_group": false,
+        "shared_paragraphs": 13,
+        "shared_code_blocks": 23
+      },
+      {
+        "similar_to": "23071140206",
+        "similarity": 78.53017718160692,
+        "is_cross_group": false,
+        "shared_paragraphs": 11,
+        "shared_code_blocks": 23
+      }
+    ],
+    "max_similarity": 91.83193329866258,
+    "similarity_risk": "high"
   },
   {
     "student_id": "23071140238",
     "name": "孟祥祖",
-    "total_score": 68.4,
+    "total_score": 75.2,
     "total_possible": 100,
-    "percentage": 68.4,
-    "grade": "D",
+    "percentage": 75.2,
+    "grade": "C",
     "category_scores": {
       "team_collaboration": {
         "name": "团队协作",
@@ -3270,13 +3799,14 @@
       },
       "attitude": {
         "name": "实验态度",
-        "earned": 0.0,
+        "earned": 6,
         "possible": 10,
-        "percentage": 0.0,
+        "percentage": 60.0,
         "feedback": [
-          "✗ 全勤，认真完成实验",
-          "✗ 缺勤1次",
-          "✓ 缺勤2次及以上"
+          "📝 教师评定（默认6分，可手动调整）",
+          "  - 全勤：10分",
+          "  - 缺勤1次：5分",
+          "  - 缺勤2次及以上：0分"
         ]
       },
       "principle_understanding": {
@@ -3292,13 +3822,13 @@
       },
       "completion": {
         "name": "实验完成度",
-        "earned": 25.6,
+        "earned": 26.4,
         "possible": 35,
-        "percentage": 73.1,
+        "percentage": 75.4,
         "feedback": [
           "△ 硬件连接图正确清晰（三） (部分)",
           "✓ 引脚配置说明完整（三）",
-          "△ ISP烧录电路说明（三） (部分)",
+          "✓ ISP烧录电路说明（三）",
           "✓ 实验现象记录完整（五）",
           "△ 结果照片或截图清晰（五） (部分)",
           "✓ 结果对比分析透彻（五）"
@@ -3359,19 +3889,35 @@
       "实验报告质量: △ 思考题回答完整正确（七） (部分)"
     ],
     "weaknesses": [],
-    "recommendations": [
-      "【实验态度】需要加强，请补充相关内容"
-    ],
+    "recommendations": [],
     "auto_confidence": 0.9,
-    "plagiarism_risk": 0.0
+    "plagiarism_risk": 0.9373254116560967,
+    "similarity_info": [
+      {
+        "similar_to": "23071140227",
+        "similarity": 93.73254116560967,
+        "is_cross_group": false,
+        "shared_paragraphs": 23,
+        "shared_code_blocks": 31
+      },
+      {
+        "similar_to": "23071140239",
+        "similarity": 93.49653629689806,
+        "is_cross_group": false,
+        "shared_paragraphs": 23,
+        "shared_code_blocks": 31
+      }
+    ],
+    "max_similarity": 93.73254116560967,
+    "similarity_risk": "high"
   },
   {
     "student_id": "23071140239",
     "name": "牛煜哲",
-    "total_score": 68.4,
+    "total_score": 75.2,
     "total_possible": 100,
-    "percentage": 68.4,
-    "grade": "D",
+    "percentage": 75.2,
+    "grade": "C",
     "category_scores": {
       "team_collaboration": {
         "name": "团队协作",
@@ -3386,13 +3932,14 @@
       },
       "attitude": {
         "name": "实验态度",
-        "earned": 0.0,
+        "earned": 6,
         "possible": 10,
-        "percentage": 0.0,
+        "percentage": 60.0,
         "feedback": [
-          "✗ 全勤，认真完成实验",
-          "✗ 缺勤1次",
-          "✓ 缺勤2次及以上"
+          "📝 教师评定（默认6分，可手动调整）",
+          "  - 全勤：10分",
+          "  - 缺勤1次：5分",
+          "  - 缺勤2次及以上：0分"
         ]
       },
       "principle_understanding": {
@@ -3408,13 +3955,13 @@
       },
       "completion": {
         "name": "实验完成度",
-        "earned": 25.6,
+        "earned": 26.4,
         "possible": 35,
-        "percentage": 73.1,
+        "percentage": 75.4,
         "feedback": [
           "△ 硬件连接图正确清晰（三） (部分)",
           "✓ 引脚配置说明完整（三）",
-          "△ ISP烧录电路说明（三） (部分)",
+          "✓ ISP烧录电路说明（三）",
           "✓ 实验现象记录完整（五）",
           "△ 结果照片或截图清晰（五） (部分)",
           "✓ 结果对比分析透彻（五）"
@@ -3475,18 +4022,34 @@
       "实验报告质量: △ 思考题回答完整正确（七） (部分)"
     ],
     "weaknesses": [],
-    "recommendations": [
-      "【实验态度】需要加强，请补充相关内容"
-    ],
+    "recommendations": [],
     "auto_confidence": 0.9,
-    "plagiarism_risk": 0.0
+    "plagiarism_risk": 0.9349653629689806,
+    "similarity_info": [
+      {
+        "similar_to": "23071140238",
+        "similarity": 93.49653629689806,
+        "is_cross_group": false,
+        "shared_paragraphs": 23,
+        "shared_code_blocks": 31
+      },
+      {
+        "similar_to": "23071140227",
+        "similarity": 93.36681226261207,
+        "is_cross_group": false,
+        "shared_paragraphs": 23,
+        "shared_code_blocks": 31
+      }
+    ],
+    "max_similarity": 93.49653629689806,
+    "similarity_risk": "high"
   },
   {
     "student_id": "23071140240",
     "name": "张攀博",
-    "total_score": 63.6,
+    "total_score": 69.6,
     "total_possible": 100,
-    "percentage": 63.6,
+    "percentage": 69.6,
     "grade": "D",
     "category_scores": {
       "team_collaboration": {
@@ -3502,13 +4065,14 @@
       },
       "attitude": {
         "name": "实验态度",
-        "earned": 0.0,
+        "earned": 6,
         "possible": 10,
-        "percentage": 0.0,
+        "percentage": 60.0,
         "feedback": [
-          "✗ 全勤，认真完成实验",
-          "✗ 缺勤1次",
-          "✓ 缺勤2次及以上"
+          "📝 教师评定（默认6分，可手动调整）",
+          "  - 全勤：10分",
+          "  - 缺勤1次：5分",
+          "  - 缺勤2次及以上：0分"
         ]
       },
       "principle_understanding": {
@@ -3591,18 +4155,34 @@
       "实验报告质量: △ 思考题回答完整正确（七） (部分)"
     ],
     "weaknesses": [],
-    "recommendations": [
-      "【实验态度】需要加强，请补充相关内容"
-    ],
+    "recommendations": [],
     "auto_confidence": 0.9,
-    "plagiarism_risk": 0.0
+    "plagiarism_risk": 0.9215018984617285,
+    "similarity_info": [
+      {
+        "similar_to": "23071140241",
+        "similarity": 92.15018984617285,
+        "is_cross_group": false,
+        "shared_paragraphs": 16,
+        "shared_code_blocks": 22
+      },
+      {
+        "similar_to": "23071140201",
+        "similarity": 92.08465337881007,
+        "is_cross_group": false,
+        "shared_paragraphs": 16,
+        "shared_code_blocks": 22
+      }
+    ],
+    "max_similarity": 92.15018984617285,
+    "similarity_risk": "high"
   },
   {
     "student_id": "23071140241",
     "name": "陈子默",
-    "total_score": 63.6,
+    "total_score": 69.6,
     "total_possible": 100,
-    "percentage": 63.6,
+    "percentage": 69.6,
     "grade": "D",
     "category_scores": {
       "team_collaboration": {
@@ -3618,13 +4198,14 @@
       },
       "attitude": {
         "name": "实验态度",
-        "earned": 0.0,
+        "earned": 6,
         "possible": 10,
-        "percentage": 0.0,
+        "percentage": 60.0,
         "feedback": [
-          "✗ 全勤，认真完成实验",
-          "✗ 缺勤1次",
-          "✓ 缺勤2次及以上"
+          "📝 教师评定（默认6分，可手动调整）",
+          "  - 全勤：10分",
+          "  - 缺勤1次：5分",
+          "  - 缺勤2次及以上：0分"
         ]
       },
       "principle_understanding": {
@@ -3707,10 +4288,26 @@
       "实验报告质量: △ 思考题回答完整正确（七） (部分)"
     ],
     "weaknesses": [],
-    "recommendations": [
-      "【实验态度】需要加强，请补充相关内容"
-    ],
+    "recommendations": [],
     "auto_confidence": 0.9,
-    "plagiarism_risk": 0.0
+    "plagiarism_risk": 0.9215018984617285,
+    "similarity_info": [
+      {
+        "similar_to": "23071140240",
+        "similarity": 92.15018984617285,
+        "is_cross_group": false,
+        "shared_paragraphs": 16,
+        "shared_code_blocks": 22
+      },
+      {
+        "similar_to": "23071140201",
+        "similarity": 91.19619769860668,
+        "is_cross_group": false,
+        "shared_paragraphs": 16,
+        "shared_code_blocks": 22
+      }
+    ],
+    "max_similarity": 92.15018984617285,
+    "similarity_risk": "high"
   }
 ]

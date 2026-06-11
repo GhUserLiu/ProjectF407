@@ -55,6 +55,8 @@ class SimilarityResult:
     code_obfuscation_score: float = 0.0        # 代码混淆分数 0-100
     ai_generation_probability: float = 0.0     # AI生成概率 0-1
     image_similarities: List[Dict] = field(default_factory=list)  # 图片相似度列表
+    # 组信息不确定性标记
+    group_info_uncertain: bool = False         # 组信息是否不确定（缺失）
 
 
 @dataclass
@@ -104,19 +106,38 @@ class TextPreprocessor:
         r'^\#{1,3}\s+\w+',
     ]
 
-    def __init__(self, remove_template: bool = True, template_content: str = ''):
+    def __init__(self, remove_template: bool = True, template_content: str = '', use_nlp_filter: bool = True):
         """
         初始化预处理器
 
         Args:
             remove_template: 是否移除模板内容
             template_content: 模板内容（将被从文本中排除）
+            use_nlp_filter: 是否使用NLP增强模板过滤器
         """
         self.remove_template = remove_template
+        self.template_content = template_content
+        self.use_nlp_filter = use_nlp_filter
+
+        # 尝试导入NLP增强过滤器
+        self.advanced_filter = None
+        if use_nlp_filter and template_content:
+            try:
+                from .nlp.template_filter import AdvancedTemplateFilter
+                self.advanced_filter = AdvancedTemplateFilter(
+                    template_content=template_content,
+                    ngram_sizes=[3, 4, 5],
+                    similarity_threshold=0.7
+                )
+            except ImportError:
+                # NLP模块不可用，使用传统方法
+                pass
+
+        # 传统模式的模式列表
         self.template_patterns = self._extract_template_patterns(template_content)
 
     def _extract_template_patterns(self, template_content: str) -> List[str]:
-        """从模板内容中提取特征模式"""
+        """从模板内容中提取特征模式（传统方法，作为后备）"""
         if not template_content:
             return []
 
@@ -249,9 +270,21 @@ class TextPreprocessor:
         text = re.sub(r'\s+', '', text)
 
         # 如果需要移除模板内容
-        if self.remove_template and self.template_patterns:
-            for pattern in self.template_patterns:
-                text = re.sub(pattern, '', text)
+        if self.remove_template:
+            # 优先使用NLP增强过滤器
+            if self.advanced_filter:
+                try:
+                    from .nlp.template_filter import FilterMethod
+                    filter_result = self.advanced_filter.filter(text, FilterMethod.HYBRID)
+                    return filter_result.filtered_text
+                except Exception:
+                    # NLP过滤失败，回退到传统方法
+                    pass
+
+            # 传统方法
+            if self.template_patterns:
+                for pattern in self.template_patterns:
+                    text = re.sub(pattern, '', text)
 
         return text
 
@@ -298,7 +331,8 @@ class PlagiarismDetector:
         template_content: str = '',
         group_info: Optional[Dict[str, str]] = None,
         config: Optional['PlagiarismConfig'] = None,
-        enable_adaptive_threshold: bool = True
+        enable_adaptive_threshold: bool = True,
+        enable_nlp_enhancements: bool = True
     ):
         """
         初始化检测器
@@ -311,6 +345,7 @@ class PlagiarismDetector:
             group_info: 学生小组信息 {学号: 小组号}
             config: 完整配置对象（优先级高于单独参数）
             enable_adaptive_threshold: 是否启用自适应阈值
+            enable_nlp_enhancements: 是否启用NLP增强功能
         """
         # 如果提供了配置对象，使用配置中的值
         if config is not None:
@@ -329,7 +364,14 @@ class PlagiarismDetector:
             self.group_info = group_info or {}
 
         self.enable_adaptive_threshold = enable_adaptive_threshold
-        self.preprocessor = TextPreprocessor(self.remove_template, self.template_content)
+        self.enable_nlp_enhancements = enable_nlp_enhancements
+
+        # 初始化预处理器（支持NLP增强）
+        self.preprocessor = TextPreprocessor(
+            self.remove_template,
+            self.template_content,
+            use_nlp_filter=enable_nlp_enhancements
+        )
 
         # 初始化语义检测器（如果启用）
         self.semantic_detector = None
@@ -435,7 +477,9 @@ class PlagiarismDetector:
 
                 if result.overall_similarity >= threshold_to_use:
                     # 判断是否跨组
-                    result.is_cross_group = self._is_cross_group(s1, s2)
+                    is_cross_group, group_uncertain = self._is_cross_group(s1, s2)
+                    result.is_cross_group = is_cross_group
+                    result.group_info_uncertain = group_uncertain
 
                     # 使用风险评估
                     if enable_risk_assessment and self.adaptive_engine:
@@ -443,6 +487,7 @@ class PlagiarismDetector:
                             result.overall_similarity,
                             {
                                 'is_cross_group': result.is_cross_group,
+                                'group_info_uncertain': result.group_info_uncertain,
                                 'semantic_similarity': result.semantic_similarity,
                                 'code_similarity': result.code_similarity,
                                 'structure_similarity': result.structure_similarity,
@@ -458,7 +503,9 @@ class PlagiarismDetector:
                             'action': risk_assessment.recommended_action
                         }
                     else:
-                        result.is_suspicious = result.is_cross_group or result.overall_similarity >= 85
+                        # 基础可疑判定：跨组或组信息不确定时，降低阈值
+                        cross_group_threshold = 80 if result.group_info_uncertain else 85
+                        result.is_suspicious = result.is_cross_group or result.overall_similarity >= cross_group_threshold
 
                     all_results[s1].append(result)
                     all_results[s2].append(result)
@@ -655,16 +702,31 @@ class PlagiarismDetector:
 
         return (matches / max(len(headings1), len(headings2))) * 100
 
-    def _is_cross_group(self, id1: str, id2: str) -> bool:
-        """判断是否跨组"""
+    def _is_cross_group(self, id1: str, id2: str) -> Tuple[bool, bool]:
+        """
+        判断是否跨组（改进版）
+
+        Returns:
+            (is_cross_group, group_info_uncertain)
+            - is_cross_group: 是否跨组
+            - group_info_uncertain: 组信息是否不确定
+        """
         group1 = self.group_info.get(id1)
         group2 = self.group_info.get(id2)
 
-        # 如果都未知，不标记为跨组
-        if group1 is None or group2 is None:
-            return False
+        # 情况1: 两者组信息都缺失
+        if group1 is None and group2 is None:
+            # 标记为不确定，需要人工复核
+            return False, True
 
-        return group1 != group2
+        # 情况2: 其中一个组信息缺失
+        if group1 is None or group2 is None:
+            # 保守策略：如果相似度较高，应该视为可疑
+            # 返回 True (跨组) 因为无法确认是同组
+            return True, True
+
+        # 情况3: 两者组信息都已知
+        return group1 != group2, False
 
     def detect_groups(
         self,

@@ -67,6 +67,14 @@ class FeatureConfig:
     # AI检测配置
     ai_detection_threshold: float = 0.7       # AI生成判定阈值
 
+    # NLP增强配置
+    enable_nlp_enhancements: bool = True      # 启用NLP增强功能
+    enable_fuzzy_matching: bool = True        # 启用模糊关键词匹配
+    fuzzy_threshold: float = 0.85             # 模糊匹配阈值 (0.7-0.95)
+    enable_term_variants: bool = True         # 启用术语变体词典
+    enable_ast_analysis: bool = True          # 启用代码AST分析
+    template_filter_strictness: float = 0.7   # 模板过滤严格程度 (0.5-0.9)
+
 
 @dataclass
 class PlagiarismConfig:
@@ -136,7 +144,14 @@ class PlagiarismConfig:
                 'enable_jieba': self.features.enable_jieba,
                 'semantic_method': self.features.semantic_method,
                 'prefer_embedding': self.features.prefer_embedding,
-                'ai_detection_threshold': self.features.ai_detection_threshold
+                'ai_detection_threshold': self.features.ai_detection_threshold,
+                # NLP增强配置
+                'enable_nlp_enhancements': self.features.enable_nlp_enhancements,
+                'enable_fuzzy_matching': self.features.enable_fuzzy_matching,
+                'fuzzy_threshold': self.features.fuzzy_threshold,
+                'enable_term_variants': self.features.enable_term_variants,
+                'enable_ast_analysis': self.features.enable_ast_analysis,
+                'template_filter_strictness': self.features.template_filter_strictness
             },
             'group_info': self.group_info,
             'template_content': self.template_content

@@ -1,20 +1,21 @@
 {
   "validation_passed": true,
   "statistics": {
-    "total_students": 10,
-    "average_score": 92.2,
+    "total_students": 32,
+    "average_score": 72.95625,
     "score_range": [
-      87,
-      96
+      51.4,
+      79.8
     ],
     "grade_distribution": {
-      "A": 7,
-      "B": 3
+      "D": 6,
+      "C": 23,
+      "F": 3
     },
-    "total_issues": 9,
+    "total_issues": 6,
     "critical_issues": 0,
     "error_issues": 0,
-    "warning_issues": 5
+    "warning_issues": 4
   },
   "issues": [
     {
@@ -45,13 +46,13 @@
       }
     },
     {
-      "severity": "warning",
+      "severity": "info",
       "category": "分数分布",
-      "message": "A等比例偏高: 70.0% (期望15.0%-25.0%)",
+      "message": "A等比例偏低: 0.0% (期望15.0%-25.0%)",
       "student_id": "",
       "details": {
         "grade": "A",
-        "actual": 0.7,
+        "actual": 0.0,
         "expected_min": 0.15,
         "expected_max": 0.25
       }
@@ -59,55 +60,25 @@
     {
       "severity": "info",
       "category": "分数分布",
-      "message": "C等比例偏低: 0.0% (期望25.0%-35.0%)",
+      "message": "B等比例偏低: 0.0% (期望30.0%-45.0%)",
       "student_id": "",
       "details": {
-        "grade": "C",
+        "grade": "B",
         "actual": 0.0,
-        "expected_min": 0.25,
-        "expected_max": 0.35
-      }
-    },
-    {
-      "severity": "info",
-      "category": "分数分布",
-      "message": "D等比例偏低: 0.0% (期望10.0%-20.0%)",
-      "student_id": "",
-      "details": {
-        "grade": "D",
-        "actual": 0.0,
-        "expected_min": 0.1,
-        "expected_max": 0.2
-      }
-    },
-    {
-      "severity": "info",
-      "category": "分数分布",
-      "message": "F等比例偏低: 0.0% (期望5.0%-15.0%)",
-      "student_id": "",
-      "details": {
-        "grade": "F",
-        "actual": 0.0,
-        "expected_min": 0.05,
-        "expected_max": 0.15
-      }
-    },
-    {
-      "severity": "info",
-      "category": "分数统计",
-      "message": "班级平均分较高: 92.2分",
-      "student_id": "",
-      "details": {
-        "average": 92.2
+        "expected_min": 0.3,
+        "expected_max": 0.45
       }
     },
     {
       "severity": "warning",
-      "category": "分数统计",
-      "message": "分数标准差过小: 3.7，可能存在评分趋同",
+      "category": "分数分布",
+      "message": "C等比例偏高: 71.9% (期望25.0%-35.0%)",
       "student_id": "",
       "details": {
-        "std_dev": 3.675746333890726
+        "grade": "C",
+        "actual": 0.71875,
+        "expected_min": 0.25,
+        "expected_max": 0.35
       }
     }
   ],

@@ -6,10 +6,10 @@
   "total_points": 100,
   "grading_scale": {
     "A": {"min": 90, "max": 100, "label": "优"},
-    "B": {"min": 80, "max": 89, "label": "良"},
-    "C": {"min": 70, "max": 79, "label": "中"},
-    "D": {"min": 60, "max": 69, "label": "及格"},
-    "F": {"min": 0, "max": 59, "label": "不及格"}
+    "B": {"min": 80, "max": 89.9, "label": "良"},
+    "C": {"min": 70, "max": 79.9, "label": "中"},
+    "D": {"min": 60, "max": 69.9, "label": "及格"},
+    "F": {"min": 0, "max": 59.9, "label": "不及格"}
   },
   "categories": [
     {
@@ -42,6 +42,7 @@
       "points": 10,
       "description": "由教师根据考勤记录评定",
       "source_section": "教师评定",
+      "default_points": 6,
       "criteria": [
         {
           "description": "全勤，认真完成实验",

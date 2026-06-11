@@ -15,6 +15,7 @@ from openpyxl.styles import (
     Font, Alignment, PatternFill, Border, Side,
     GradientFill
 )
+from openpyxl.utils import get_column_letter
 try:
     from openpyxl.chart import HeatmapChart
     HEATMAP_AVAILABLE = True
@@ -110,7 +111,8 @@ class SimilarityMatrix:
 
         # 调整列宽
         for col_idx in range(len(self.student_ids) + 1):
-            ws.column_dimensions[start_col + col_idx].width = 12
+            col_letter = get_column_letter(start_col + col_idx)
+            ws.column_dimensions[col_letter].width = 12
 
 
 class PlagiarismReport:

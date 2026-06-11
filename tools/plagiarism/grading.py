@@ -96,8 +96,29 @@ class RubricLoader:
 class KeywordMatcher:
     """关键词匹配器"""
 
-    @staticmethod
-    def match_keywords(text: str, keywords: List[str]) -> Tuple[List[str], float]:
+    def __init__(self, enable_nlp: bool = True):
+        """
+        初始化匹配器
+
+        Args:
+            enable_nlp: 是否启用NLP增强匹配
+        """
+        self.enable_nlp = enable_nlp
+        self.enhanced_matcher = None
+
+        if enable_nlp:
+            try:
+                from .nlp.enhanced_matcher import EnhancedKeywordMatcher
+                self.enhanced_matcher = EnhancedKeywordMatcher(
+                    use_fuzzy=True,
+                    use_variants=True,
+                    fuzzy_threshold=0.85
+                )
+            except ImportError:
+                # NLP模块不可用，使用传统方法
+                self.enable_nlp = False
+
+    def match_keywords(self, text: str, keywords: List[str]) -> Tuple[List[str], float]:
         """
         匹配关键词
 
@@ -108,6 +129,20 @@ class KeywordMatcher:
         Returns:
             (匹配的关键词列表, 匹配比例)
         """
+        # 使用NLP增强匹配器
+        if self.enable_nlp and self.enhanced_matcher:
+            try:
+                from .nlp.enhanced_matcher import MatchMethod
+                results, ratio = self.enhanced_matcher.match_keywords(
+                    text, keywords, MatchMethod.HYBRID
+                )
+                matched = [r.keyword for r in results if r.matched]
+                return matched, ratio
+            except Exception:
+                # NLP匹配失败，回退到传统方法
+                pass
+
+        # 传统匹配方法（后备）
         text_lower = text.lower()
         matched = []
 
@@ -205,18 +240,23 @@ class SectionDetector:
 class RubricGrader:
     """基于 Rubric 的评分器"""
 
-    def __init__(self, rubric: Dict):
+    def __init__(self, rubric: Dict, enable_nlp: bool = True):
         """
         初始化评分器
 
         Args:
             rubric: 评分标准数据
+            enable_nlp: 是否启用NLP增强匹配
         """
         self.rubric = rubric
         self.experiment_name = rubric.get('experiment_name', '实验')
         self.total_points = rubric.get('total_points', 100)
         self.grading_scale = rubric.get('grading_scale', {})
         self.categories = rubric.get('categories', [])
+        self.enable_nlp = enable_nlp
+
+        # 初始化关键词匹配器
+        self.keyword_matcher = KeywordMatcher(enable_nlp=enable_nlp)
 
     def grade(self, student_id: str, name: str, text: str) -> GradingResult:
         """
@@ -323,9 +363,9 @@ class RubricGrader:
         category_earned = 0.0
         feedback = []
 
-        # 手动评分类别（如实验态度）：默认给6分
+        # 手动评分类别（如实验态度）：从配置读取默认分
         if is_manual:
-            default_score = 6.0  # 默认6分
+            default_score = category.get('default_points', 6.0)  # 从配置读取，默认6分
             category_earned = min(default_score, category_points)  # 不超过满分
             feedback.append(f"📝 教师评定（默认{default_score}分，可手动调整）")
             feedback.append(f"  - 全勤：10分")
@@ -371,11 +411,11 @@ class RubricGrader:
         keywords = criterion.get('keywords', [])
 
         # 在内容中查找关键词
-        matched, match_ratio = KeywordMatcher.match_keywords(content, keywords)
+        matched, match_ratio = self.keyword_matcher.match_keywords(content, keywords)
 
         # 如果在指定章节没找到，尝试在全文中查找
         if not matched and keywords:
-            matched, match_ratio = KeywordMatcher.match_keywords(full_text, keywords)
+            matched, match_ratio = self.keyword_matcher.match_keywords(full_text, keywords)
 
         # 根据匹配比例计算得分
         if match_ratio >= 0.8:
@@ -512,7 +552,8 @@ def load_rubric_for_experiment(
 def batch_grade(
     submissions: Dict[str, Dict],
     rubric: Dict,
-    experiment_type: str = '档位实验'
+    experiment_type: str = '档位实验',
+    enable_nlp: bool = True
 ) -> List[GradingResult]:
     """
     批量评分
@@ -521,11 +562,12 @@ def batch_grade(
         submissions: 提交内容 {学号: {name, text}}
         rubric: 评分标准
         experiment_type: 实验类型
+        enable_nlp: 是否启用NLP增强
 
     Returns:
         评分结果列表
     """
-    grader = EnhancedRubricGrader(rubric)
+    grader = EnhancedRubricGrader(rubric) if hasattr(RubricGrader, '__init__') else RubricGrader(rubric, enable_nlp=enable_nlp)
     results = []
 
     for student_id, submission in submissions.items():

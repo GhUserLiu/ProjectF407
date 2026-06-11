@@ -251,6 +251,7 @@ class AdaptiveThresholdEngine:
             similarity: 相似度 (0-100)
             context: 上下文信息 {
                 'is_cross_group': bool,
+                'group_info_uncertain': bool,  # 组信息是否不确定
                 'semantic_similarity': float,
                 'code_similarity': float,
                 'structure_similarity': float,
@@ -284,10 +285,24 @@ class AdaptiveThresholdEngine:
 
         # 调整因子
         is_cross_group = context.get('is_cross_group', False)
+        group_info_uncertain = context.get('group_info_uncertain', False)
+
+        # 跨组检测（包括组信息不确定的情况）
         if is_cross_group and similarity >= 50:
             probability += 0.15
-            key_factors.append("跨组相似")
+            if group_info_uncertain:
+                key_factors.append("组信息缺失但高度相似(需人工复核)")
+                confidence -= 0.05  # 降低置信度因为组信息不确定
+            else:
+                key_factors.append("跨组相似")
             confidence += 0.1
+
+        # 组信息不确定但相似度较高：降低可疑阈值
+        if group_info_uncertain and similarity >= 70:
+            if not is_cross_group:  # 如果未被标记为跨组，仍然需要关注
+                key_factors.append("组信息缺失，相似度较高(需确认是否跨组)")
+                probability += 0.1
+                confidence -= 0.05
 
         # 语义相似度检查（改写检测）
         semantic_sim = context.get('semantic_similarity', 0)
