@@ -186,9 +186,38 @@ make PROJECT=02-your-project
 
 ## 工具链要求
 
+### STM32 开发工具链
+
 - **编译器**: arm-none-eabi-gcc (建议 5.4+)
 - **烧录工具**: ST-Link 或 J-Link
 - **IDE**: VSCode + EIDE 插件（可选）
+
+### Python 工具链（查重系统）
+
+- **Python**: 3.8+
+- **依赖安装**: `pip install -r requirements.txt`
+
+#### 依赖项说明
+
+| 依赖项 | 用途 | 必需性 |
+|--------|------|--------|
+| python-docx | Word文档处理 | ✅ 必需 |
+| openpyxl | Excel报告生成 | ✅ 必需 |
+| jieba | 中文精确分词 | ⭐ 强烈推荐 |
+| sentence-transformers | 语义检测（改写） | ⚠️ 可选 |
+| Pillow | 图片相似度 | ⚠️ 可选 |
+
+#### 快速安装
+
+```bash
+# 安装所有依赖
+pip install -r requirements.txt
+
+# 仅安装核心依赖
+pip install python-docx openpyxl jieba
+```
+
+详细说明: [安装指南](tools/INSTALL.md)
 
 ### 安装工具链
 

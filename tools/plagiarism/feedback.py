@@ -87,15 +87,23 @@ class FeedbackGenerator:
             for rec in grading_result.recommendations:
                 lines.append(f"- {rec}")
 
-        # 5. 抄袭警告
-        if plagiarism_risk > 0.6:
+        # 5. 抄袭警告（分级显示）
+        if plagiarism_risk > 0.85:
             lines.append("\n---")
-            lines.append(f"\n⚠️ **抄袭警告**: 抄袭风险 {plagiarism_risk*100:.1f}%")
-            lines.append("\n您的报告内容与其他同学高度相似，请确认是否为原创。")
-            lines.append("\n如确属原创，请在下次提交时注意：")
+            lines.append(f"\n⛔ **抄袭警告**: 检测到抄袭 ({plagiarism_risk*100:.1f}%)")
+            lines.append("\n您的报告与其他同学高度相似，被系统检测为抄袭。")
+            lines.append("\n**请立即确认：**")
+            lines.append("- 是否为原创作品？")
+            lines.append("- 如确属抄袭，请主动联系教师说明情况")
+            lines.append("- 如确属原创，请在下次提交时注意避免过度参考他人")
+        elif plagiarism_risk > 0.60:
+            lines.append("\n---")
+            lines.append(f"\n⚠️ **相似度提醒**: 相似度 {plagiarism_risk*100:.1f}%")
+            lines.append("\n您的报告内容与其他同学相似度较高，请注意原创性。")
+            lines.append("\n建议：")
+            lines.append("- 确认是否为原创，避免过度参考同学报告")
             lines.append("- 使用自己的语言描述实验过程")
             lines.append("- 添加个人独特的思考和体会")
-            lines.append("- 详细记录调试过程和遇到的问题")
 
         # 6. 鼓励语
         lines.extend(FeedbackGenerator._generate_encouragement(grading_result))
@@ -389,19 +397,37 @@ class HTMLFeedbackGenerator:
     @staticmethod
     def _generate_warning_html(plagiarism_risk: float) -> str:
         """生成警告HTML"""
-        if plagiarism_risk <= 0.6:
+        if plagiarism_risk <= 0.60:
             return ""
+
+        # 根据相似度级别显示不同的警告
+        if plagiarism_risk > 0.85:
+            title = "⛔ 抄袭警告"
+            risk_label = "检测到抄袭"
+            suggestions = [
+                "请立即确认是否为原创作品",
+                "如确属抄袭，请主动联系教师说明情况",
+                "如确属原创，请在下次提交时注意避免过度参考他人"
+            ]
+        else:
+            title = "⚠️ 相似度提醒"
+            risk_label = "相似度较高"
+            suggestions = [
+                "确认是否为原创，避免过度参考同学报告",
+                "使用自己的语言描述实验过程",
+                "添加个人独特的思考和体会"
+            ]
+
+        suggestions_html = "\n".join(f"<li>{s}</li>" for s in suggestions)
 
         return f"""
         <div class="warning">
-            <h3>⚠️ 抄袭警告</h3>
-            <p><strong>抄袭风险:</strong> {plagiarism_risk*100:.1f}%</p>
-            <p>您的报告内容与其他同学高度相似，请确认是否为原创。</p>
+            <h3>{title}</h3>
+            <p><strong>{risk_label}:</strong> {plagiarism_risk*100:.1f}%</p>
+            <p>您的报告内容与其他同学相似度较高，请注意原创性。</p>
             <p>建议：</p>
             <ul>
-                <li>使用自己的语言描述实验过程</li>
-                <li>添加个人独特的思考和体会</li>
-                <li>详细记录调试过程和遇到的问题</li>
+                {suggestions_html}
             </ul>
         </div>"""
 
@@ -413,7 +439,9 @@ def save_student_feedback(
     technical_results,
     output_dir: Path,
     plagiarism_risk: float = 0.0,
-    format: str = "md"
+    format: str = "md",
+    enhanced: bool = False,
+    text: str = ""
 ) -> Path:
     """
     保存学生反馈文件
@@ -426,11 +454,26 @@ def save_student_feedback(
         output_dir: 输出目录
         plagiarism_risk: 抄袭风险
         format: 输出格式 (md/html)
+        enhanced: 是否生成增强反馈
+        text: 报告全文（增强反馈需要）
 
     Returns:
         输出文件路径
     """
     output_dir.mkdir(exist_ok=True)
+
+    if enhanced:
+        # 导入增强反馈生成器
+        try:
+            from .enhanced_feedback import EnhancedFeedbackGenerator, save_enhanced_feedback
+
+            generator = EnhancedFeedbackGenerator()
+            enhanced_result = generator.generate_enhanced_feedback(
+                student_id, name, text, grading_result, technical_results
+            )
+            return save_enhanced_feedback(enhanced_result, output_dir, generator)
+        except ImportError:
+            print("Warning: Enhanced feedback not available, using standard feedback")
 
     if format == "html":
         content = HTMLFeedbackGenerator.generate(

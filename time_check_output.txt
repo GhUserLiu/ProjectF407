@@ -1,6 +1,0 @@
-Files found:
-Traceback (most recent call last):
-  File "D:\4-Workspace\MCU_Research\project_test\NewProjectF407\check_submission_time.py", line 25, in <module>
-    print(f"  DOC: {os.path.basename(doc_file)}")
-    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-UnicodeEncodeError: 'gbk' codec can't encode character '\xb5' in position 7: illegal multibyte sequence

@@ -3,6 +3,7 @@
 Core Plagiarism Detection Module
 
 提供文本预处理、相似度计算和检测结果管理
+支持自适应阈值和风险评估
 """
 
 import re
@@ -13,6 +14,12 @@ from typing import List, Dict, Optional, Set, Tuple
 from collections import defaultdict
 from enum import Enum
 
+try:
+    import numpy as np
+    HAS_NUMPY = True
+except ImportError:
+    HAS_NUMPY = False
+
 
 class SimilarityMethod(Enum):
     """相似度计算方法"""
@@ -21,6 +28,10 @@ class SimilarityMethod(Enum):
     JACCARD = 'jaccard'        # Jaccard 相似度
     LEVENSHTEIN = 'levenshtein'  # 编辑距离
     HYBRID = 'hybrid'          # 混合方法
+    # 新增方法
+    SEMANTIC = 'semantic'      # 语义相似度 (基于嵌入模型)
+    SEMANTIC_HYBRID = 'semantic_hybrid'  # 语义+传统混合
+    CODE_OBFUSCATION = 'code_obfuscation'  # 代码混淆检测
 
 
 @dataclass
@@ -38,6 +49,12 @@ class SimilarityResult:
     shared_paragraphs: List[Dict] = field(default_factory=list)
     shared_code_blocks: List[Dict] = field(default_factory=list)
     metadata: Dict = field(default_factory=dict)
+    # 新增字段（保持向后兼容）
+    semantic_similarity: float = 0.0          # 语义相似度 0-100
+    is_paraphrase: bool = False                # 是否为改写
+    code_obfuscation_score: float = 0.0        # 代码混淆分数 0-100
+    ai_generation_probability: float = 0.0     # AI生成概率 0-1
+    image_similarities: List[Dict] = field(default_factory=list)  # 图片相似度列表
 
 
 @dataclass
@@ -271,7 +288,7 @@ class TextPreprocessor:
 
 
 class PlagiarismDetector:
-    """查重检测器"""
+    """查重检测器 - 支持自适应阈值和风险评估"""
 
     def __init__(
         self,
@@ -279,35 +296,93 @@ class PlagiarismDetector:
         threshold: float = 60.0,
         remove_template: bool = True,
         template_content: str = '',
-        group_info: Optional[Dict[str, str]] = None
+        group_info: Optional[Dict[str, str]] = None,
+        config: Optional['PlagiarismConfig'] = None,
+        enable_adaptive_threshold: bool = True
     ):
         """
         初始化检测器
 
         Args:
             method: 相似度计算方法
-            threshold: 可疑阈值（0-100）
+            threshold: 可疑阈值（0-100），作为基准值
             remove_template: 是否移除模板内容
             template_content: 模板内容
             group_info: 学生小组信息 {学号: 小组号}
+            config: 完整配置对象（优先级高于单独参数）
+            enable_adaptive_threshold: 是否启用自适应阈值
         """
-        self.method = method
-        self.threshold = threshold
-        self.preprocessor = TextPreprocessor(remove_template, template_content)
-        self.group_info = group_info or {}
+        # 如果提供了配置对象，使用配置中的值
+        if config is not None:
+            self.config = config
+            self.threshold = config.thresholds.suspicious
+            self.method = method  # method参数优先
+            self.remove_template = config.features.enable_template_filter
+            self.template_content = config.template_content
+            self.group_info = config.group_info
+        else:
+            self.config = None
+            self.threshold = threshold
+            self.method = method
+            self.remove_template = remove_template
+            self.template_content = template_content
+            self.group_info = group_info or {}
+
+        self.enable_adaptive_threshold = enable_adaptive_threshold
+        self.preprocessor = TextPreprocessor(self.remove_template, self.template_content)
+
+        # 初始化语义检测器（如果启用）
+        self.semantic_detector = None
+        self.enhanced_semantic_detector = None
+        if (config and config.features.enable_semantic_detection) or config is None:
+            try:
+                from .semantic import SemanticDetector, SemanticMethod, EnhancedSemanticDetector
+                use_jieba = config.features.enable_jieba if config else True
+                semantic_method = SemanticMethod.TFIDF
+                if config and config.features.prefer_embedding:
+                    semantic_method = SemanticMethod.EMBEDDING
+
+                self.semantic_detector = SemanticDetector(
+                    method=semantic_method,
+                    use_jieba=use_jieba
+                )
+
+                # 同时初始化增强的语义检测器
+                self.enhanced_semantic_detector = EnhancedSemanticDetector(
+                    method=semantic_method,
+                    use_jieba=use_jieba
+                )
+            except ImportError:
+                pass
+
+        # 初始化自适应阈值引擎
+        self.adaptive_engine = None
+        if enable_adaptive_threshold and HAS_NUMPY:
+            try:
+                from .adaptive_threshold import AdaptiveThresholdEngine, RiskLevel
+                self.adaptive_engine = AdaptiveThresholdEngine(baseline_threshold=self.threshold)
+                self.risk_level_enum = RiskLevel
+            except ImportError:
+                self.enable_adaptive_threshold = False
+
+        # 存储相似度矩阵用于自适应分析
+        self.similarity_matrix = None
+        self.student_id_map = []
 
     def detect(
         self,
-        submissions: Dict[str, Dict]
-    ) -> Tuple[Dict[str, List[SimilarityResult]], List[SimilarityResult]]:
+        submissions: Dict[str, Dict],
+        enable_risk_assessment: bool = True
+    ) -> Tuple[Dict[str, List[SimilarityResult]], List[SimilarityResult], Optional[Dict]]:
         """
         执行查重检测
 
         Args:
             submissions: 提交内容 {学号: {name, text, ...}}
+            enable_risk_assessment: 是否启用风险评估
 
         Returns:
-            (每个学生的相似度结果, 可疑结果列表)
+            (每个学生的相似度结果, 可疑结果列表, 自适应阈值报告)
         """
         # 预处理所有提交
         processed = {}
@@ -329,6 +404,12 @@ class PlagiarismDetector:
         suspicious = []
 
         student_ids = list(processed.keys())
+        self.student_id_map = student_ids
+
+        # 初始化相似度矩阵
+        n = len(student_ids)
+        if HAS_NUMPY and self.enable_adaptive_threshold:
+            self.similarity_matrix = np.zeros((n, n))
 
         for i, s1 in enumerate(student_ids):
             for j in range(i + 1, len(student_ids)):
@@ -341,10 +422,43 @@ class PlagiarismDetector:
                     s2
                 )
 
-                if result.overall_similarity >= self.threshold:
+                # 填充相似度矩阵
+                if self.similarity_matrix is not None:
+                    self.similarity_matrix[i, j] = result.overall_similarity
+                    self.similarity_matrix[j, i] = result.overall_similarity
+
+                # 使用自适应阈值或固定阈值
+                threshold_to_use = self.threshold
+                if self.adaptive_engine and self.enable_adaptive_threshold:
+                    # 先收集所有相似度，后续再计算最优阈值
+                    threshold_to_use = self.threshold
+
+                if result.overall_similarity >= threshold_to_use:
                     # 判断是否跨组
                     result.is_cross_group = self._is_cross_group(s1, s2)
-                    result.is_suspicious = result.is_cross_group or result.overall_similarity >= 85
+
+                    # 使用风险评估
+                    if enable_risk_assessment and self.adaptive_engine:
+                        risk_assessment = self.adaptive_engine.evaluate_risk_level(
+                            result.overall_similarity,
+                            {
+                                'is_cross_group': result.is_cross_group,
+                                'semantic_similarity': result.semantic_similarity,
+                                'code_similarity': result.code_similarity,
+                                'structure_similarity': result.structure_similarity,
+                                'shared_paragraphs': len(result.shared_paragraphs)
+                            }
+                        )
+                        result.is_suspicious = risk_assessment.risk_level.value in ['high', 'critical']
+                        result.metadata['risk_assessment'] = {
+                            'level': risk_assessment.risk_level.value,
+                            'confidence': risk_assessment.confidence,
+                            'probability': risk_assessment.probability,
+                            'factors': risk_assessment.key_factors,
+                            'action': risk_assessment.recommended_action
+                        }
+                    else:
+                        result.is_suspicious = result.is_cross_group or result.overall_similarity >= 85
 
                     all_results[s1].append(result)
                     all_results[s2].append(result)
@@ -352,7 +466,36 @@ class PlagiarismDetector:
                     if result.is_suspicious:
                         suspicious.append(result)
 
-        return dict(all_results), suspicious
+        # 生成自适应阈值报告
+        adaptive_report = None
+        if self.enable_adaptive_threshold and self.adaptive_engine and self.similarity_matrix is not None:
+            adaptive_report = self._generate_adaptive_report()
+
+        return dict(all_results), suspicious, adaptive_report
+
+    def _generate_adaptive_report(self) -> Dict:
+        """生成自适应阈值分析报告"""
+        if self.similarity_matrix is None or not self.adaptive_engine:
+            return None
+
+        # 分析相似度分布
+        stats = self.adaptive_engine.analyze_similarity_distribution(self.similarity_matrix)
+
+        # 推荐最优阈值
+        recommendation = self.adaptive_engine.compute_optimal_thresholds(self.similarity_matrix)
+
+        return {
+            'distribution_stats': stats,
+            'recommended_thresholds': {
+                'suspicious': recommendation.suspicious_threshold,
+                'high_risk': recommendation.high_risk_threshold,
+                'plagiarism': recommendation.plagiarism_threshold,
+                'confidence': recommendation.confidence,
+                'reasoning': recommendation.reasoning
+            },
+            'current_threshold': self.threshold,
+            'should_adjust': abs(recommendation.suspicious_threshold - self.threshold) > 5
+        }
 
     def _compare_pair(
         self,
@@ -371,17 +514,39 @@ class PlagiarismDetector:
         code1 = ' '.join([s.cleaned for s in sub1['normalized'] if s.segment_type == 'code'])
         code2 = ' '.join([s.cleaned for s in sub2['normalized'] if s.segment_type == 'code'])
 
-        # 计算相似度
+        # 计算基础相似度
         text_sim = compute_similarity(text1, text2, self.method)
         code_sim = compute_similarity(code1, code2, SimilarityMethod.SEQUENCE) if code1 and code2 else 0
-        overall_sim = text_sim * 0.6 + code_sim * 0.4
+
+        # 计算结构相似度（基于章节顺序）
+        structure_sim = self._compute_structure_similarity(sub1, sub2)
+
+        # 计算语义相似度（如果启用）
+        semantic_sim = 0.0
+        is_paraphrase = False
+        if self.semantic_detector:
+            full_text1 = sub1['full_text']
+            full_text2 = sub2['full_text']
+            semantic_result = self.semantic_detector.detect(full_text1, full_text2)
+            semantic_sim = semantic_result.similarity
+            is_paraphrase = semantic_result.is_paraphrase
+
+        # 根据配置或默认值计算总体相似度
+        if self.config and self.config.weights:
+            w = self.config.weights
+            overall_sim = (
+                text_sim * w.text +
+                code_sim * w.code +
+                structure_sim * w.structure +
+                semantic_sim * w.semantic
+            )
+        else:
+            # 默认权重：文本60% + 代码40%
+            overall_sim = text_sim * 0.6 + code_sim * 0.4
 
         # 查找共享段落
         shared_paragraphs = self._find_shared_paragraphs(sub1, sub2)
         shared_code = self._find_shared_code(sub1, sub2)
-
-        # 计算结构相似度（基于章节顺序）
-        structure_sim = self._compute_structure_similarity(sub1, sub2)
 
         return SimilarityResult(
             student_id=id1,
@@ -398,7 +563,9 @@ class PlagiarismDetector:
                 'name2': sub2['name'],
                 'group1': sub1['group'],
                 'group2': sub2['group']
-            }
+            },
+            semantic_similarity=semantic_sim,
+            is_paraphrase=is_paraphrase
         )
 
     def _find_shared_paragraphs(

@@ -12,9 +12,9 @@ from docx import Document
 from docx.shared import Pt, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 
-BASE_DIR = Path(__file__).parent.parent.parent.parent
+BASE_DIR = Path(__file__).parent.parent.parent.parent.parent  # Go up to project root
 # 默认使用最新的实验目录，可通过命令行参数覆盖
-EXPERIMENT_DIR = BASE_DIR / "assignments" / "2026-春季" / "汽服2302B班" / "07-car-gear"
+EXPERIMENT_DIR = BASE_DIR / "docs" / "teaching" / "2026-春季" / "汽服2302B班" / "07-car-gear"
 PROCESSED_DIR = EXPERIMENT_DIR / "processed"
 DATA_DIR = Path(__file__).parent.parent / "rubrics"
 OUTPUT_DIR = EXPERIMENT_DIR
@@ -24,6 +24,13 @@ STUDENT_OUTPUT = OUTPUT_DIR / "feedback"
 def create_teacher_excel(evaluations, rubric, quality_data=None):
     """Create Excel workbook for teacher"""
     print("Creating teacher Excel workbook...")
+
+    # Original plagiarism student list (from auto_score.py)
+    ORIGINAL_PLAGIARISM_STUDENTS = {
+        '23071140217', '23071140216', '23071140214', '23071140228',
+        '23071140233', '23071140220', '23071140223', '23071140213',
+        '23071140219', '23071140204', '23071140208'
+    }
 
     wb = Workbook()
 
@@ -58,16 +65,26 @@ def create_teacher_excel(evaluations, rubric, quality_data=None):
         student_id = eval['student_id']
         total_score = eval.get('total_score', 0)
         note = []
-        if total_score == 0:
+        grade_label = eval.get('grade_label', '')
+
+        # Check if plagiarist - set score to 0
+        if student_id in ORIGINAL_PLAGIARISM_STUDENTS:
+            total_score = 0
+            grade_label = '不及格'
+            note.append('抄袭')
+
+        # Check if not submitted
+        if total_score == 0 and not note:
             note.append('未提交')
+
         ws_overall.append([
             student_id,
             eval.get('name', ''),
-            total_score,
-            '',
-            total_score,
-            eval.get('grade_label', ''),
-            '; '.join(note)
+            total_score if student_id not in ORIGINAL_PLAGIARISM_STUDENTS else 0,  # 实验07-档位
+            '',  # 实验-未完成 (预留列)
+            total_score,  # 总分
+            grade_label,  # 等级
+            '; '.join(note)  # 备注
         ])
 
     for row in ws_overall.iter_rows(min_row=2):
@@ -102,6 +119,17 @@ def create_teacher_excel(evaluations, rubric, quality_data=None):
     plagiarism_results = quality_data.get('plagiarism_data', {}).get('plagiarism_results', {}) if quality_data else {}
     suggestions = quality_data.get('suggestions', {}) if quality_data else {}
 
+    # Use original plagiarism student list (from auto_score.py)
+    # These students have been confirmed as plagiarists (>80% similarity)
+    ORIGINAL_PLAGIARISM_STUDENTS = {
+        '23071140217', '23071140216', '23071140214', '23071140228',
+        '23071140233', '23071140220', '23071140223', '23071140213',
+        '23071140219', '23071140204', '23071140208'
+    }
+
+    # Extract plagiarism students from suspicious pairs (for reference)
+    suspicious_pairs = quality_data.get('plagiarism_data', {}).get('suspicious_pairs', []) if quality_data else []
+
     # Write student data
     for eval in evaluations:
         student_id = eval['student_id']
@@ -110,23 +138,52 @@ def create_teacher_excel(evaluations, rubric, quality_data=None):
 
         # Check for plagiarism
         plagiarism_warning = ""
-        if suggestion.get('plagiarism_warning'):
-            plagiarism_similar = plagiarism_results.get(student_id, {})
-            high_sim = [(sid, s['weighted']) for sid, s in plagiarism_similar.items() if s['weighted'] > 70]
-            if high_sim:
-                plagiarism_warning = f"⚠️ 与{', '.join([f'{sid}%相似' for sid, _ in high_sim[:2]])}"
+        is_plagiarist = student_id in ORIGINAL_PLAGIARISM_STUDENTS
+
+        if is_plagiarist:
+            # Find similar students for this student
+            similar_to = []
+            for pair in suspicious_pairs:
+                if pair.get('similarity', 0) > 80:
+                    if pair.get('s1') == student_id:
+                        similar_to.append((pair.get('s2', ''), pair.get('similarity', 0)))
+                    elif pair.get('s2') == student_id:
+                        similar_to.append((pair.get('s1', ''), pair.get('similarity', 0)))
+            if similar_to:
+                similar_str = ', '.join([f"{sid}({sim:.0f}%".replace('%', '') + '%)' for sid, sim in similar_to[:2]])
+                plagiarism_warning = f"⚠️ 抄袭({similar_str})"
+            else:
+                plagiarism_warning = "⚠️ 抄袭"
+
+        # For plagiarists, all scores are 0
+        if is_plagiarist:
+            team_score = 0
+            attitude_score = 0
+            completion_score = 0
+            code_score = 0
+            report_score = 0
+            total = 0
+            grade = '不及格'
+        else:
+            team_score = eval['scores']['team_collaboration']
+            attitude_score = eval['scores']['attitude']
+            completion_score = eval['scores']['completion']
+            code_score = eval['scores']['code_quality']
+            report_score = eval['scores']['report_quality']
+            total = eval['total_score']
+            grade = eval['grade_label']
 
         row = [
             student_id,
             eval.get('name', ''),
-            eval['scores']['team_collaboration'],
-            eval['scores']['attitude'],
-            eval['scores']['completion'],
-            eval['scores']['code_quality'],
-            eval['scores']['report_quality'],
-            f"{quality.get('overall_quality', 0):.0f}",
-            eval['total_score'],
-            eval['grade_label'],
+            team_score,
+            attitude_score,
+            completion_score,
+            code_score,
+            report_score,
+            f"{quality.get('overall_quality', 0):.0f}" if not is_plagiarist else 0,
+            total,
+            grade,
             plagiarism_warning
         ]
 
@@ -288,6 +345,16 @@ def create_student_feedback(evaluations, rubric, quality_data=None):
     """Create feedback documents for students"""
     print("Creating student feedback documents...")
 
+    # Original plagiarism student list
+    ORIGINAL_PLAGIARISM_STUDENTS = {
+        '23071140217', '23071140216', '23071140214', '23071140228',
+        '23071140233', '23071140220', '23071140223', '23071140213',
+        '23071140219', '23071140204', '23071140208'
+    }
+
+    # Get suspicious pairs for plagiarism details
+    suspicious_pairs = quality_data.get('plagiarism_data', {}).get('suspicious_pairs', []) if quality_data else []
+
     # Get reference answers and common issues
     ref_answers = rubric.get('reference_answers', {})
     common_issues = rubric.get('common_issues', {})
@@ -319,66 +386,224 @@ def create_student_feedback(evaluations, rubric, quality_data=None):
         doc.add_paragraph(f"实验名称: {rubric['experiment_name']}")
         doc.add_paragraph(f"学号: {student_id}")
 
-        # Plagiarism warning if applicable
-        if student_suggestions.get('plagiarism_warning'):
+        # Check for plagiarism
+        is_plagiarist = student_id in ORIGINAL_PLAGIARISM_STUDENTS
+
+        # Find similar students for this student
+        similar_students = []
+        for pair in suspicious_pairs:
+            if pair.get('similarity', 0) > 60:  # Show all similarities >60%
+                if pair.get('s1') == student_id:
+                    similar_students.append((pair.get('s2', ''), pair.get('similarity', 0)))
+                elif pair.get('s2') == student_id:
+                    similar_students.append((pair.get('s1', ''), pair.get('similarity', 0)))
+
+        # Sort by similarity descending
+        similar_students.sort(key=lambda x: -x[1])
+
+        # Plagiarism warning if plagiarist or high similarity
+        if is_plagiarist:
             warning_para = doc.add_paragraph()
-            warning_run = warning_para.add_run("⚠️ 抄袭警告: ")
+            warning_run = warning_para.add_run("⚠️ 抄袭判定: ")
             warning_run.font.color.rgb = RGBColor(255, 0, 0)
-            warning_para.add_run("你的报告内容与其他同学高度相似，请确认是否为原创。")
+            warning_run.font.bold = True
+            warning_para.add_run("你的报告被判定为抄袭，本次实验成绩为0分。")
+            doc.add_paragraph()
+        elif similar_students and similar_students[0][1] > 70:
+            # Show warning for high similarity but not plagiarist
+            warning_para = doc.add_paragraph()
+            warning_run = warning_para.add_run("⚠️ 相似度警告: ")
+            warning_run.font.color.rgb = RGBColor(255, 165, 0)
+            warning_run.font.bold = True
+            warning_para.add_run("你的报告内容与以下同学高度相似，请注意原创性。")
+            doc.add_paragraph()
+
+        # Show similar students if any
+        if similar_students:
+            doc.add_heading("相似度检测", level=2)
+            for sid, sim in similar_students[:5]:  # Show top 5
+                para = doc.add_paragraph()
+                para.add_run(f"• 学号 {sid}: ").bold = True
+                if sim >= 90:
+                    sim_status = "极高"
+                    color = RGBColor(255, 0, 0)
+                elif sim >= 80:
+                    sim_status = "很高"
+                    color = RGBColor(255, 0, 0)
+                elif sim >= 70:
+                    sim_status = "较高"
+                    color = RGBColor(255, 165, 0)
+                else:
+                    sim_status = "中等"
+                    color = RGBColor(0, 0, 255)
+                run = para.add_run(f"{sim:.1f}% ({sim_status}相似)")
+                run.font.color.rgb = color
             doc.add_paragraph()
 
         # Grade
         grade_para = doc.add_paragraph()
         grade_para.add_run("评价等级: ").font.size = Pt(14)
-        grade_run = grade_para.add_run(f"{eval['grade_label']}")
+
+        if is_plagiarist:
+            grade_text = "抄袭 (0分)"
+            grade_color = RGBColor(255, 0, 0)
+        else:
+            grade_text = f"{eval['grade_label']}"
+            grade_color = RGBColor(0, 128, 0) if eval['grade'] in ['A', 'B', 'C'] else RGBColor(255, 0, 0)
+
+        grade_run = grade_para.add_run(grade_text)
         grade_run.font.size = Pt(16)
         grade_run.font.bold = True
-        grade_run.font.color.rgb = RGBColor(0, 128, 0) if eval['grade'] in ['A', 'B', 'C'] else RGBColor(255, 0, 0)
+        grade_run.font.color.rgb = grade_color
 
         doc.add_paragraph()  # Blank line
 
-        # Only show what needs improvement (not complete reference answers)
-        improvement_areas = []
+        # Detailed score breakdown (skip for plagiarists)
+        if is_plagiarist:
+            doc.add_heading("抄袭详情", level=2)
+            doc.add_paragraph("由于报告被判定为抄袭，所有评分项目均为0分。")
+            doc.add_paragraph("如对判定有异议，请联系教师申诉。")
 
-        # Get quality-based issues
-        if quality.get('issues'):
-            improvement_areas.extend(quality['issues'])
-
-        # Get personalized suggestions
-        if student_suggestions.get('suggestions'):
-            improvement_areas.extend(student_suggestions['suggestions'])
-
-        # Only add improvement section if there are actual issues
-        if improvement_areas:
-            doc.add_heading("需要改进的地方", level=2)
-            for area in improvement_areas:
-                doc.add_paragraph(f"• {area}")
-
-            # Add specific technical guidance based on weak areas
-            scores = eval['scores']
-            technical_guidance = []
-
-            if scores['completion'] < 25:
-                technical_guidance.append("关键要点：确保GPIO配置(PE4下降沿、PF9/PF10 LED)和状态机逻辑(P→R→N→D)正确实现")
-
-            if scores['code_quality'] < 15:
-                technical_guidance.append("代码规范：增加关键代码注释，说明DWT消抖和中断回调原理")
-
-            if scores['report_quality'] < 15:
-                technical_guidance.append("报告要求：补充硬件接线图、软件流程图、测试结果记录")
-
-            if technical_guidance:
-                doc.add_paragraph("\n关键技术要点：")
-                for guidance in technical_guidance[:2]:
-                    doc.add_paragraph(f"• {guidance}")
+            # Still show similar students for plagiarists
+            if similar_students:
+                doc.add_paragraph()
+                doc.add_heading("相似同学列表", level=2)
+                for sid, sim in similar_students[:5]:
+                    para = doc.add_paragraph()
+                    para.add_run(f"• 学号 {sid}: ").bold = True
+                    run = para.add_run(f"{sim:.1f}%")
+                    run.font.color.rgb = RGBColor(255, 0, 0)
         else:
-            # For students with no issues, show positive feedback
-            doc.add_heading("评价", level=2)
-            doc.add_paragraph("你的实验报告质量很好，继续保持！")
-            if quality.get('strengths'):
-                doc.add_paragraph("亮点:")
-                for strength in quality['strengths'][:3]:
-                    doc.add_paragraph(f"  • {strength}", style='List Bullet')
+            # Show detailed scores for non-plagiarists
+            doc.add_heading("详细得分", level=2)
+            scores = eval['scores']
+            total = eval['total_score']
+
+            # Create score table
+            score_items = [
+                ("团队协作", scores['team_collaboration'], 5),
+                ("实验态度", scores['attitude'], 10),
+                ("实验原理", scores['principle_understanding'], 10),
+                ("实验完成度", scores['completion'], 35),
+                ("代码质量", scores['code_quality'], 30),
+                ("报告质量", scores['report_quality'], 10),
+            ]
+
+            for item_name, score, max_score in score_items:
+                para = doc.add_paragraph()
+                para.add_run(f"{item_name}: ").bold = True
+            percentage = (score / max_score * 100) if max_score > 0 else 0
+            if percentage >= 90:
+                status = "优秀"
+                color = RGBColor(0, 128, 0)
+            elif percentage >= 70:
+                status = "良好"
+                color = RGBColor(0, 0, 255)
+            elif percentage >= 60:
+                status = "及格"
+                color = RGBColor(255, 165, 0)
+            else:
+                status = "需改进"
+                color = RGBColor(255, 0, 0)
+            run = para.add_run(f"{score}/{max_score}分 ({status})")
+            run.font.color.rgb = color
+
+        doc.add_paragraph()
+        para = doc.add_paragraph()
+        para.add_run(f"总分: {total}/100分  等级: {eval['grade_label']}").bold = True
+
+        doc.add_paragraph()  # Blank line
+
+        # Detailed feedback for each category
+        doc.add_heading("各部分评价", level=2)
+
+        feedback = eval.get('feedback', {})
+
+        # Team collaboration
+        doc.add_heading("1. 团队协作", level=3)
+        team_feedback = feedback.get('team_collaboration', [])
+        if team_feedback:
+            for item in team_feedback:
+                doc.add_paragraph(f"• {item}")
+        else:
+            doc.add_paragraph("团队协作信息完整，分工明确。")
+
+        # Principle understanding
+        doc.add_heading("2. 实验原理与认知", level=3)
+        principle_feedback = feedback.get('principle_understanding', [])
+        if principle_feedback:
+            for item in principle_feedback:
+                doc.add_paragraph(f"• {item}")
+        else:
+            doc.add_paragraph("实验原理阐述准确，目的清晰。")
+
+        # Completion
+        doc.add_heading("3. 实验完成度", level=3)
+        completion_feedback = feedback.get('completion', [])
+        if completion_feedback:
+            for item in completion_feedback:
+                doc.add_paragraph(f"• {item}")
+        else:
+            doc.add_paragraph("实验完成度良好，结果记录完整。")
+
+        # Code quality
+        doc.add_heading("4. 代码质量", level=3)
+        code_feedback = feedback.get('code_quality', [])
+        if code_feedback:
+            for item in code_feedback:
+                doc.add_paragraph(f"• {item}")
+        else:
+            doc.add_paragraph("代码结构清晰，注释详尽。")
+
+        # Report quality
+        doc.add_heading("5. 报告质量", level=3)
+        report_feedback = feedback.get('report_quality', [])
+        if report_feedback:
+            for item in report_feedback:
+                doc.add_paragraph(f"• {item}")
+        else:
+            doc.add_paragraph("报告格式规范，内容完整。")
+
+        doc.add_paragraph()  # Blank line
+
+        # Technical guidance based on weak areas
+        weak_areas = []
+        if scores['completion'] < 28:
+            weak_areas.append(("实验完成度", "检查硬件接线图、GPIO配置说明、实验现象记录是否完整"))
+
+        if scores['code_quality'] < 24:
+            weak_areas.append(("代码质量", "增加代码注释，说明DWT消抖、中断回调、状态机实现逻辑"))
+
+        if scores['report_quality'] < 8:
+            weak_areas.append(("报告质量", "补充问题讨论、个人心得和思考题回答"))
+
+        if scores['principle_understanding'] < 8:
+            weak_areas.append(("实验原理", "详细说明外部中断、消抖方法、汽车电子应用场景"))
+
+        if weak_areas:
+            doc.add_heading("改进建议", level=2)
+            for area_name, suggestion in weak_areas:
+                doc.add_paragraph()
+                doc.add_paragraph(f"🔧 {area_name}:", style='List Bullet').runs[0].bold = True
+                doc.add_paragraph(f"   {suggestion}")
+
+        doc.add_paragraph()  # Blank line
+
+        # Positive feedback for good performance
+        good_areas = []
+        if scores['completion'] >= 32:
+            good_areas.append("实验完成度很高，现象记录详细")
+        if scores['code_quality'] >= 27:
+            good_areas.append("代码质量优秀，注释规范完整")
+        if scores['report_quality'] >= 9:
+            good_areas.append("报告质量高，内容充实完整")
+        if scores['principle_understanding'] >= 9:
+            good_areas.append("对实验原理理解深入")
+
+        if good_areas:
+            doc.add_heading("报告亮点", level=2)
+            for item in good_areas:
+                doc.add_paragraph(f"✓ {item}")
 
         # Save document
         output_path = STUDENT_OUTPUT / f"{eval['student_id']}_反馈.docx"
@@ -388,6 +613,10 @@ def create_student_feedback(evaluations, rubric, quality_data=None):
 
 def main():
     print("Generating output files...")
+
+    # Create output directories
+    TEACHER_OUTPUT.mkdir(parents=True, exist_ok=True)
+    STUDENT_OUTPUT.mkdir(parents=True, exist_ok=True)
 
     # Load evaluations
     eval_path = PROCESSED_DIR / "evaluations.json"

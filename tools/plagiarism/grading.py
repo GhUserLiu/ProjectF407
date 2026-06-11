@@ -317,23 +317,34 @@ class RubricGrader:
         category_name = category['name']
         category_points = category['points']
         criteria = category.get('criteria', [])
+        is_manual = category.get('manual_evaluation', False)
 
         criteria_scores = []
         category_earned = 0.0
         feedback = []
 
-        for criterion in criteria:
-            criterion_score = self._grade_criterion(criterion, content, full_text)
-            criteria_scores.append(criterion_score)
-            category_earned += criterion_score.points_earned
+        # 手动评分类别（如实验态度）：默认给6分
+        if is_manual:
+            default_score = 6.0  # 默认6分
+            category_earned = min(default_score, category_points)  # 不超过满分
+            feedback.append(f"📝 教师评定（默认{default_score}分，可手动调整）")
+            feedback.append(f"  - 全勤：10分")
+            feedback.append(f"  - 缺勤1次：5分")
+            feedback.append(f"  - 缺勤2次及以上：0分")
+        else:
+            # 自动评分类别：根据关键词匹配
+            for criterion in criteria:
+                criterion_score = self._grade_criterion(criterion, content, full_text)
+                criteria_scores.append(criterion_score)
+                category_earned += criterion_score.points_earned
 
-            # 生成反馈
-            if criterion_score.points_earned == criterion['points']:
-                feedback.append(f"✓ {criterion['description']}")
-            elif criterion_score.points_earned > 0:
-                feedback.append(f"△ {criterion['description']} (部分)")
-            else:
-                feedback.append(f"✗ {criterion['description']}")
+                # 生成反馈
+                if criterion_score.points_earned == criterion['points']:
+                    feedback.append(f"✓ {criterion['description']}")
+                elif criterion_score.points_earned > 0:
+                    feedback.append(f"△ {criterion['description']} (部分)")
+                else:
+                    feedback.append(f"✗ {criterion['description']}")
 
         percentage = (category_earned / category_points * 100) if category_points > 0 else 0
 

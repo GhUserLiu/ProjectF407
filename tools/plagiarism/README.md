@@ -1,7 +1,8 @@
 # 增强版实验报告查重与质量评估系统
 
-> 版本: 2.0.0
+> 版本: 2.4.0
 > 作者: STM32F407 教学团队
+> 新增: 配置化权重、增强语义检测、增强AI生成检测
 
 ## 功能概述
 
@@ -19,14 +20,25 @@
 | **详细报告** | 生成 Excel、JSON、HTML 格式报告 |
 | **相似度矩阵** | 可视化学生间相似度热力图 |
 | **抄袭团伙** | 自动检测多人互抄团伙 |
+| **语义检测** | 检测改写抄袭（同义词替换、句式变换） |
+| **AI生成检测** | 基于统计特征检测AI生成内容 |
 
 ## 快速开始
 
 ### 安装依赖
 
 ```bash
+# 核心依赖（必需）
 pip install openpyxl python-docx
+
+# 推荐依赖（提升检测准确度）
+pip install jieba sentence-transformers Pillow
+
+# 或一键安装所有依赖
+pip install -r requirements.txt
 ```
+
+详细说明: [安装指南](INSTALL.md)
 
 ### 基础用法
 
@@ -39,6 +51,28 @@ python tools/plagiarism_detection_enhanced.py --experiment-dir "docs/teaching/20
 
 # 设置可疑阈值和方法
 python tools/plagiarism_detection_enhanced.py --threshold 70 --method cosine
+```
+
+### 高级用法（v2.4.0 新增）
+
+```bash
+# 使用配置文件
+python tools/plagiarism_detection_enhanced.py --config-file config.json
+
+# 自定义权重
+python tools/plagiarism_detection_enhanced.py \
+    --weight-text 0.4 \
+    --weight-code 0.4 \
+    --weight-semantic 0.2
+
+# 启用增强功能
+python tools/plagiarism_detection_enhanced.py \
+    --enable-semantic \
+    --enable-ai-detection \
+    --enable-jieba
+
+# 保存当前配置
+python tools/plagiarism_detection_enhanced.py --save-config my_config.json
 ```
 
 ### 命令行参数

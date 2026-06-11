@@ -15,7 +15,12 @@ from openpyxl.styles import (
     Font, Alignment, PatternFill, Border, Side,
     GradientFill
 )
-from openpyxl.chart import HeatmapChart
+try:
+    from openpyxl.chart import HeatmapChart
+    HEATMAP_AVAILABLE = True
+except ImportError:
+    HeatmapChart = None
+    HEATMAP_AVAILABLE = False
 from .core import SimilarityResult, SimilarityMethod
 
 

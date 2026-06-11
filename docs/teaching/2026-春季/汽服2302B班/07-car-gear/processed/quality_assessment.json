@@ -1,0 +1,3813 @@
+{
+  "plagiarism_data": {
+    "plagiarism_results": {
+      "23071140201": {
+        "23071140211": {
+          "overall": 56.7,
+          "code": 75.5,
+          "paragraphs": 0,
+          "weighted": 52.9
+        },
+        "23071140237": {
+          "overall": 56.5,
+          "code": 75.5,
+          "paragraphs": 0,
+          "weighted": 52.8
+        },
+        "23071140240": {
+          "overall": 99.2,
+          "code": 100.0,
+          "paragraphs": 1,
+          "weighted": 99.7
+        },
+        "23071140241": {
+          "overall": 97.3,
+          "code": 100.0,
+          "paragraphs": 1,
+          "weighted": 98.9
+        }
+      },
+      "23071140204": {
+        "23071140208": {
+          "overall": 92.1,
+          "code": 100.0,
+          "paragraphs": 1,
+          "weighted": 96.8
+        }
+      },
+      "23071140206": {
+        "23071140211": {
+          "overall": 100.0,
+          "code": 67.4,
+          "paragraphs": 0,
+          "weighted": 67.0
+        },
+        "23071140237": {
+          "overall": 99.2,
+          "code": 67.4,
+          "paragraphs": 0,
+          "weighted": 66.6
+        }
+      },
+      "23071140210": {
+        "23071140221": {
+          "overall": 99.3,
+          "code": 100.0,
+          "paragraphs": 1,
+          "weighted": 99.7
+        },
+        "23071140236": {
+          "overall": 99.0,
+          "code": 100.0,
+          "paragraphs": 1,
+          "weighted": 99.6
+        }
+      },
+      "23071140211": {
+        "23071140237": {
+          "overall": 99.2,
+          "code": 100.0,
+          "paragraphs": 1,
+          "weighted": 99.7
+        }
+      },
+      "23071140213": {
+        "23071140219": {
+          "overall": 100.0,
+          "code": 100.0,
+          "paragraphs": 1,
+          "weighted": 100.0
+        },
+        "23071140240": {
+          "overall": 24.2,
+          "code": 80.8,
+          "paragraphs": 0,
+          "weighted": 42.0
+        },
+        "23071140241": {
+          "overall": 24.4,
+          "code": 80.8,
+          "paragraphs": 0,
+          "weighted": 42.1
+        }
+      },
+      "23071140214": {
+        "23071140215": {
+          "overall": 100.0,
+          "code": 100.0,
+          "paragraphs": 1,
+          "weighted": 100.0
+        },
+        "23071140226": {
+          "overall": 98.7,
+          "code": 100.0,
+          "paragraphs": 1,
+          "weighted": 99.5
+        },
+        "23071140228": {
+          "overall": 100.0,
+          "code": 100.0,
+          "paragraphs": 1,
+          "weighted": 100.0
+        },
+        "23071140230": {
+          "overall": 92.5,
+          "code": 99.9,
+          "paragraphs": 1,
+          "weighted": 97.0
+        },
+        "23071140231": {
+          "overall": 89.4,
+          "code": 99.9,
+          "paragraphs": 1,
+          "weighted": 95.7
+        }
+      },
+      "23071140215": {
+        "23071140226": {
+          "overall": 98.7,
+          "code": 100.0,
+          "paragraphs": 1,
+          "weighted": 99.5
+        },
+        "23071140228": {
+          "overall": 100.0,
+          "code": 100.0,
+          "paragraphs": 1,
+          "weighted": 100.0
+        },
+        "23071140230": {
+          "overall": 92.5,
+          "code": 99.9,
+          "paragraphs": 1,
+          "weighted": 97.0
+        },
+        "23071140231": {
+          "overall": 89.4,
+          "code": 99.9,
+          "paragraphs": 1,
+          "weighted": 95.7
+        }
+      },
+      "23071140216": {
+        "23071140223": {
+          "overall": 100.0,
+          "code": 100.0,
+          "paragraphs": 1,
+          "weighted": 100.0
+        }
+      },
+      "23071140219": {
+        "23071140240": {
+          "overall": 24.2,
+          "code": 80.8,
+          "paragraphs": 0,
+          "weighted": 42.0
+        },
+        "23071140241": {
+          "overall": 24.4,
+          "code": 80.8,
+          "paragraphs": 0,
+          "weighted": 42.1
+        }
+      },
+      "23071140220": {
+        "23071140233": {
+          "overall": 100.0,
+          "code": 100.0,
+          "paragraphs": 1,
+          "weighted": 100.0
+        }
+      },
+      "23071140221": {
+        "23071140236": {
+          "overall": 98.8,
+          "code": 100.0,
+          "paragraphs": 1,
+          "weighted": 99.5
+        }
+      },
+      "23071140222": {
+        "23071140224": {
+          "overall": 96.8,
+          "code": 100.0,
+          "paragraphs": 1,
+          "weighted": 98.7
+        },
+        "23071140232": {
+          "overall": 99.7,
+          "code": 100.0,
+          "paragraphs": 1,
+          "weighted": 99.9
+        }
+      },
+      "23071140224": {
+        "23071140232": {
+          "overall": 96.9,
+          "code": 100.0,
+          "paragraphs": 1,
+          "weighted": 98.8
+        }
+      },
+      "23071140226": {
+        "23071140228": {
+          "overall": 98.7,
+          "code": 100.0,
+          "paragraphs": 1,
+          "weighted": 99.5
+        },
+        "23071140230": {
+          "overall": 93.6,
+          "code": 99.9,
+          "paragraphs": 1,
+          "weighted": 97.4
+        },
+        "23071140231": {
+          "overall": 89.4,
+          "code": 99.9,
+          "paragraphs": 1,
+          "weighted": 95.7
+        }
+      },
+      "23071140227": {
+        "23071140238": {
+          "overall": 97.4,
+          "code": 97.1,
+          "paragraphs": 0,
+          "weighted": 77.8
+        },
+        "23071140239": {
+          "overall": 96.6,
+          "code": 96.9,
+          "paragraphs": 1,
+          "weighted": 97.4
+        }
+      },
+      "23071140228": {
+        "23071140230": {
+          "overall": 92.5,
+          "code": 99.9,
+          "paragraphs": 1,
+          "weighted": 97.0
+        },
+        "23071140231": {
+          "overall": 89.4,
+          "code": 99.9,
+          "paragraphs": 1,
+          "weighted": 95.7
+        }
+      },
+      "23071140230": {
+        "23071140231": {
+          "overall": 93.9,
+          "code": 100.0,
+          "paragraphs": 1,
+          "weighted": 97.6
+        }
+      },
+      "23071140238": {
+        "23071140239": {
+          "overall": 96.4,
+          "code": 97.2,
+          "paragraphs": 0,
+          "weighted": 77.4
+        }
+      },
+      "23071140240": {
+        "23071140241": {
+          "overall": 98.3,
+          "code": 100.0,
+          "paragraphs": 1,
+          "weighted": 99.3
+        }
+      }
+    },
+    "suspicious_pairs": [
+      {
+        "s1": "23071140201",
+        "s2": "23071140240",
+        "s1_name": "汽服2302B班-23071140201-董雨航",
+        "s2_name": "汽服2302B班-23071140240-张攀博",
+        "similarity": 99.7
+      },
+      {
+        "s1": "23071140201",
+        "s2": "23071140241",
+        "s1_name": "汽服2302B班-23071140201-董雨航",
+        "s2_name": "汽服2302B班-23071140241-陈子默",
+        "similarity": 98.9
+      },
+      {
+        "s1": "23071140204",
+        "s2": "23071140208",
+        "s1_name": "汽服2302B班-23071140204-王舒乐",
+        "s2_name": "汽服2302B班-23071140208-刘潇霞（1）",
+        "similarity": 96.8
+      },
+      {
+        "s1": "23071140206",
+        "s2": "23071140211",
+        "s1_name": "汽服2302B班-23071140206-王晨露",
+        "s2_name": "汽服2302B班-23071140211-安晓童",
+        "similarity": 67.0
+      },
+      {
+        "s1": "23071140206",
+        "s2": "23071140237",
+        "s1_name": "汽服2302B班-23071140206-王晨露",
+        "s2_name": "汽服2302B班-23071140237-刘烊宏",
+        "similarity": 66.6
+      },
+      {
+        "s1": "23071140210",
+        "s2": "23071140221",
+        "s1_name": "汽服2302B班-23071140210-王倩倩",
+        "s2_name": "汽服2302B班-23071140221-郝卓瞳",
+        "similarity": 99.7
+      },
+      {
+        "s1": "23071140210",
+        "s2": "23071140236",
+        "s1_name": "汽服2302B班-23071140210-王倩倩",
+        "s2_name": "汽服2302B班-23071140236-徐文静",
+        "similarity": 99.6
+      },
+      {
+        "s1": "23071140211",
+        "s2": "23071140237",
+        "s1_name": "汽服2302B班-23071140211-安晓童",
+        "s2_name": "汽服2302B班-23071140237-刘烊宏",
+        "similarity": 99.7
+      },
+      {
+        "s1": "23071140213",
+        "s2": "23071140219",
+        "s1_name": "汽服2302B班-23071140213-吴延洁",
+        "s2_name": "汽服2302B班-23071140219-许佳琦",
+        "similarity": 100.0
+      },
+      {
+        "s1": "23071140214",
+        "s2": "23071140215",
+        "s1_name": "汽服2302B班-23071140214-陈星彤",
+        "s2_name": "汽服2302B班-23071140215-侯鸿宾",
+        "similarity": 100.0
+      },
+      {
+        "s1": "23071140214",
+        "s2": "23071140226",
+        "s1_name": "汽服2302B班-23071140214-陈星彤",
+        "s2_name": "汽服2302B班-23071140226-辛康琳",
+        "similarity": 99.5
+      },
+      {
+        "s1": "23071140214",
+        "s2": "23071140228",
+        "s1_name": "汽服2302B班-23071140214-陈星彤",
+        "s2_name": "汽服2302B班-23071140228-尚祥",
+        "similarity": 100.0
+      },
+      {
+        "s1": "23071140214",
+        "s2": "23071140230",
+        "s1_name": "汽服2302B班-23071140214-陈星彤",
+        "s2_name": "汽服2302B班-23071140230-冀虹鑫",
+        "similarity": 97.0
+      },
+      {
+        "s1": "23071140214",
+        "s2": "23071140231",
+        "s1_name": "汽服2302B班-23071140214-陈星彤",
+        "s2_name": "汽服2302B班-23071140231-赵新宇",
+        "similarity": 95.7
+      },
+      {
+        "s1": "23071140215",
+        "s2": "23071140226",
+        "s1_name": "汽服2302B班-23071140215-侯鸿宾",
+        "s2_name": "汽服2302B班-23071140226-辛康琳",
+        "similarity": 99.5
+      },
+      {
+        "s1": "23071140215",
+        "s2": "23071140228",
+        "s1_name": "汽服2302B班-23071140215-侯鸿宾",
+        "s2_name": "汽服2302B班-23071140228-尚祥",
+        "similarity": 100.0
+      },
+      {
+        "s1": "23071140215",
+        "s2": "23071140230",
+        "s1_name": "汽服2302B班-23071140215-侯鸿宾",
+        "s2_name": "汽服2302B班-23071140230-冀虹鑫",
+        "similarity": 97.0
+      },
+      {
+        "s1": "23071140215",
+        "s2": "23071140231",
+        "s1_name": "汽服2302B班-23071140215-侯鸿宾",
+        "s2_name": "汽服2302B班-23071140231-赵新宇",
+        "similarity": 95.7
+      },
+      {
+        "s1": "23071140216",
+        "s2": "23071140223",
+        "s1_name": "汽服2302B班-23071140216-武晓楠",
+        "s2_name": "汽服2302B班-23071140223-李林鑫",
+        "similarity": 100.0
+      },
+      {
+        "s1": "23071140220",
+        "s2": "23071140233",
+        "s1_name": "汽服2302B班-23071140220-梁永宁",
+        "s2_name": "汽服2302B班-23071140233-祁玉龙",
+        "similarity": 100.0
+      },
+      {
+        "s1": "23071140221",
+        "s2": "23071140236",
+        "s1_name": "汽服2302B班-23071140221-郝卓瞳",
+        "s2_name": "汽服2302B班-23071140236-徐文静",
+        "similarity": 99.5
+      },
+      {
+        "s1": "23071140222",
+        "s2": "23071140224",
+        "s1_name": "汽服2302B班-23071140222-赵增宇",
+        "s2_name": "汽服2302B班-23071140224-刘涛",
+        "similarity": 98.7
+      },
+      {
+        "s1": "23071140222",
+        "s2": "23071140232",
+        "s1_name": "汽服2302B班-23071140222-赵增宇",
+        "s2_name": "汽服2302B班-23071140232-王浩炜",
+        "similarity": 99.9
+      },
+      {
+        "s1": "23071140224",
+        "s2": "23071140232",
+        "s1_name": "汽服2302B班-23071140224-刘涛",
+        "s2_name": "汽服2302B班-23071140232-王浩炜",
+        "similarity": 98.8
+      },
+      {
+        "s1": "23071140226",
+        "s2": "23071140228",
+        "s1_name": "汽服2302B班-23071140226-辛康琳",
+        "s2_name": "汽服2302B班-23071140228-尚祥",
+        "similarity": 99.5
+      },
+      {
+        "s1": "23071140226",
+        "s2": "23071140230",
+        "s1_name": "汽服2302B班-23071140226-辛康琳",
+        "s2_name": "汽服2302B班-23071140230-冀虹鑫",
+        "similarity": 97.4
+      },
+      {
+        "s1": "23071140226",
+        "s2": "23071140231",
+        "s1_name": "汽服2302B班-23071140226-辛康琳",
+        "s2_name": "汽服2302B班-23071140231-赵新宇",
+        "similarity": 95.7
+      },
+      {
+        "s1": "23071140227",
+        "s2": "23071140238",
+        "s1_name": "汽服2302B班-23071140227-郜炫彤",
+        "s2_name": "汽服2302B班-23071140238-孟祥祖",
+        "similarity": 77.8
+      },
+      {
+        "s1": "23071140227",
+        "s2": "23071140239",
+        "s1_name": "汽服2302B班-23071140227-郜炫彤",
+        "s2_name": "汽服2302B班-23071140239-牛煜哲",
+        "similarity": 97.4
+      },
+      {
+        "s1": "23071140228",
+        "s2": "23071140230",
+        "s1_name": "汽服2302B班-23071140228-尚祥",
+        "s2_name": "汽服2302B班-23071140230-冀虹鑫",
+        "similarity": 97.0
+      },
+      {
+        "s1": "23071140228",
+        "s2": "23071140231",
+        "s1_name": "汽服2302B班-23071140228-尚祥",
+        "s2_name": "汽服2302B班-23071140231-赵新宇",
+        "similarity": 95.7
+      },
+      {
+        "s1": "23071140230",
+        "s2": "23071140231",
+        "s1_name": "汽服2302B班-23071140230-冀虹鑫",
+        "s2_name": "汽服2302B班-23071140231-赵新宇",
+        "similarity": 97.6
+      },
+      {
+        "s1": "23071140238",
+        "s2": "23071140239",
+        "s1_name": "汽服2302B班-23071140238-孟祥祖",
+        "s2_name": "汽服2302B班-23071140239-牛煜哲",
+        "similarity": 77.4
+      },
+      {
+        "s1": "23071140240",
+        "s2": "23071140241",
+        "s1_name": "汽服2302B班-23071140240-张攀博",
+        "s2_name": "汽服2302B班-23071140241-陈子默",
+        "similarity": 99.3
+      }
+    ]
+  },
+  "quality_scores": {
+    "23071140201": {
+      "category_qualities": {
+        "team_collaboration": {
+          "category_id": "team_collaboration",
+          "category_name": "团队协作",
+          "quality_score": 100.0,
+          "max_points": 5,
+          "quality_issues": [],
+          "quality_strengths": [
+            "成员信息较完整，缺少学号",
+            "分工描述详细具体",
+            "有协作过程记录"
+          ],
+          "depth_indicators": {
+            "member_info": true,
+            "division_detail": true,
+            "collaboration_evidence": true
+          }
+        },
+        "principle_understanding": {
+          "category_id": "principle_understanding",
+          "category_name": "实验原理与认知",
+          "quality_score": 80.0,
+          "max_points": 10,
+          "quality_issues": [
+            "实验目的阐述不够完整"
+          ],
+          "quality_strengths": [
+            "原理阐述深入，有关键技术点说明",
+            "联系了汽车电子应用场景"
+          ],
+          "depth_indicators": {
+            "purpose_clarity": false,
+            "principle_depth": true,
+            "application_scenario": true
+          }
+        },
+        "completion": {
+          "category_id": "completion",
+          "category_name": "实验完成度",
+          "quality_score": 100.0,
+          "max_points": 35,
+          "quality_issues": [],
+          "quality_strengths": [
+            "硬件连接图清晰完整",
+            "引脚配置说明完整，包含功能描述",
+            "实验结果记录详细",
+            "有结果对比分析",
+            "配有实验照片或截图"
+          ],
+          "depth_indicators": {
+            "hardware_diagram": true,
+            "pin_config": true,
+            "result_detail": true,
+            "result_analysis": true,
+            "has_photo": true
+          }
+        },
+        "code_quality": {
+          "category_id": "code_quality",
+          "category_name": "代码质量",
+          "quality_score": 85.0,
+          "max_points": 30,
+          "quality_issues": [
+            "缺少代码块或代码注释"
+          ],
+          "quality_strengths": [
+            "有流程图",
+            "关键代码展示完整",
+            "中断服务程序说明详细"
+          ],
+          "depth_indicators": {
+            "flowchart": true,
+            "code_completeness": true,
+            "comment_density": false,
+            "interrupt_desc": true
+          }
+        },
+        "report_quality": {
+          "category_id": "report_quality",
+          "category_name": "实验报告质量",
+          "quality_score": 85.0,
+          "max_points": 10,
+          "quality_issues": [
+            "思考题回答不完整（1/7）"
+          ],
+          "quality_strengths": [
+            "调试问题记录真实具体，有解决过程",
+            "有团队协作解决问题的记录",
+            "有个人心得"
+          ],
+          "depth_indicators": {
+            "problem_authenticity": true,
+            "team_collaboration": true,
+            "reflection_independence": true,
+            "thinking_completeness": false
+          }
+        }
+      },
+      "overall_quality": 91.11111111111111
+    },
+    "23071140202": {
+      "category_qualities": {
+        "team_collaboration": {
+          "category_id": "team_collaboration",
+          "category_name": "团队协作",
+          "quality_score": 100.0,
+          "max_points": 5,
+          "quality_issues": [],
+          "quality_strengths": [
+            "成员信息较完整，缺少学号",
+            "分工描述详细具体",
+            "有协作过程记录"
+          ],
+          "depth_indicators": {
+            "member_info": true,
+            "division_detail": true,
+            "collaboration_evidence": true
+          }
+        },
+        "principle_understanding": {
+          "category_id": "principle_understanding",
+          "category_name": "实验原理与认知",
+          "quality_score": 80.0,
+          "max_points": 10,
+          "quality_issues": [
+            "实验目的阐述不够完整"
+          ],
+          "quality_strengths": [
+            "原理阐述深入，有关键技术点说明",
+            "联系了汽车电子应用场景"
+          ],
+          "depth_indicators": {
+            "purpose_clarity": false,
+            "principle_depth": true,
+            "application_scenario": true
+          }
+        },
+        "completion": {
+          "category_id": "completion",
+          "category_name": "实验完成度",
+          "quality_score": 64.0,
+          "max_points": 35,
+          "quality_issues": [
+            "引脚说明不完整，缺少: PF9, PF10",
+            "实验结果记录不够详细",
+            "缺少结果对比分析"
+          ],
+          "quality_strengths": [
+            "硬件连接图清晰完整",
+            "配有实验照片或截图"
+          ],
+          "depth_indicators": {
+            "hardware_diagram": true,
+            "pin_config": false,
+            "result_detail": false,
+            "result_analysis": false,
+            "has_photo": true
+          }
+        },
+        "code_quality": {
+          "category_id": "code_quality",
+          "category_name": "代码质量",
+          "quality_score": 85.0,
+          "max_points": 30,
+          "quality_issues": [
+            "缺少代码块或代码注释"
+          ],
+          "quality_strengths": [
+            "代码流程图完整清晰",
+            "关键代码展示完整",
+            "中断服务程序说明详细"
+          ],
+          "depth_indicators": {
+            "flowchart": true,
+            "code_completeness": true,
+            "comment_density": false,
+            "interrupt_desc": true
+          }
+        },
+        "report_quality": {
+          "category_id": "report_quality",
+          "category_name": "实验报告质量",
+          "quality_score": 85.0,
+          "max_points": 10,
+          "quality_issues": [
+            "思考题回答不完整（2/7）"
+          ],
+          "quality_strengths": [
+            "调试问题记录真实具体，有解决过程",
+            "有团队协作解决问题的记录",
+            "个人心得具体深刻"
+          ],
+          "depth_indicators": {
+            "problem_authenticity": true,
+            "team_collaboration": true,
+            "reflection_independence": true,
+            "thinking_completeness": false
+          }
+        }
+      },
+      "overall_quality": 77.11111111111111
+    },
+    "23071140203": {
+      "category_qualities": {
+        "team_collaboration": {
+          "category_id": "team_collaboration",
+          "category_name": "团队协作",
+          "quality_score": 100.0,
+          "max_points": 5,
+          "quality_issues": [],
+          "quality_strengths": [
+            "成员信息较完整，缺少学号",
+            "分工描述详细具体",
+            "有协作过程记录"
+          ],
+          "depth_indicators": {
+            "member_info": true,
+            "division_detail": true,
+            "collaboration_evidence": true
+          }
+        },
+        "principle_understanding": {
+          "category_id": "principle_understanding",
+          "category_name": "实验原理与认知",
+          "quality_score": 60.0,
+          "max_points": 10,
+          "quality_issues": [
+            "实验目的阐述不够完整",
+            "原理阐述不够深入，缺少关键技术点说明"
+          ],
+          "quality_strengths": [
+            "联系了汽车电子应用场景"
+          ],
+          "depth_indicators": {
+            "purpose_clarity": false,
+            "principle_depth": false,
+            "application_scenario": true
+          }
+        },
+        "completion": {
+          "category_id": "completion",
+          "category_name": "实验完成度",
+          "quality_score": 76.0,
+          "max_points": 35,
+          "quality_issues": [
+            "实验结果记录不够详细",
+            "缺少结果对比分析"
+          ],
+          "quality_strengths": [
+            "硬件连接图清晰完整",
+            "引脚配置说明完整，包含功能描述",
+            "配有实验照片或截图"
+          ],
+          "depth_indicators": {
+            "hardware_diagram": true,
+            "pin_config": true,
+            "result_detail": false,
+            "result_analysis": false,
+            "has_photo": true
+          }
+        },
+        "code_quality": {
+          "category_id": "code_quality",
+          "category_name": "代码质量",
+          "quality_score": 70.0,
+          "max_points": 30,
+          "quality_issues": [
+            "关键代码展示不完整",
+            "缺少代码块或代码注释"
+          ],
+          "quality_strengths": [
+            "代码流程图完整清晰",
+            "中断服务程序说明详细"
+          ],
+          "depth_indicators": {
+            "flowchart": true,
+            "code_completeness": false,
+            "comment_density": false,
+            "interrupt_desc": true
+          }
+        },
+        "report_quality": {
+          "category_id": "report_quality",
+          "category_name": "实验报告质量",
+          "quality_score": 85.0,
+          "max_points": 10,
+          "quality_issues": [
+            "思考题回答不完整（2/7）"
+          ],
+          "quality_strengths": [
+            "调试问题记录真实具体，有解决过程",
+            "有团队协作解决问题的记录",
+            "个人心得具体深刻"
+          ],
+          "depth_indicators": {
+            "problem_authenticity": true,
+            "team_collaboration": true,
+            "reflection_independence": true,
+            "thinking_completeness": false
+          }
+        }
+      },
+      "overall_quality": 74.55555555555556
+    },
+    "23071140204": {
+      "category_qualities": {
+        "team_collaboration": {
+          "category_id": "team_collaboration",
+          "category_name": "团队协作",
+          "quality_score": 100.0,
+          "max_points": 5,
+          "quality_issues": [],
+          "quality_strengths": [
+            "成员信息较完整，缺少学号",
+            "分工描述详细具体",
+            "有协作过程记录"
+          ],
+          "depth_indicators": {
+            "member_info": true,
+            "division_detail": true,
+            "collaboration_evidence": true
+          }
+        },
+        "principle_understanding": {
+          "category_id": "principle_understanding",
+          "category_name": "实验原理与认知",
+          "quality_score": 60.0,
+          "max_points": 10,
+          "quality_issues": [
+            "实验目的阐述不够完整",
+            "原理阐述不够深入，缺少关键技术点说明"
+          ],
+          "quality_strengths": [
+            "联系了汽车电子应用场景"
+          ],
+          "depth_indicators": {
+            "purpose_clarity": false,
+            "principle_depth": false,
+            "application_scenario": true
+          }
+        },
+        "completion": {
+          "category_id": "completion",
+          "category_name": "实验完成度",
+          "quality_score": 76.0,
+          "max_points": 35,
+          "quality_issues": [
+            "引脚说明不完整，缺少: PE4, PF9, PF10",
+            "缺少结果对比分析"
+          ],
+          "quality_strengths": [
+            "硬件连接图清晰完整",
+            "实验结果记录详细",
+            "配有实验照片或截图"
+          ],
+          "depth_indicators": {
+            "hardware_diagram": true,
+            "pin_config": false,
+            "result_detail": true,
+            "result_analysis": false,
+            "has_photo": true
+          }
+        },
+        "code_quality": {
+          "category_id": "code_quality",
+          "category_name": "代码质量",
+          "quality_score": 85.0,
+          "max_points": 30,
+          "quality_issues": [
+            "缺少代码块或代码注释"
+          ],
+          "quality_strengths": [
+            "代码流程图完整清晰",
+            "关键代码展示完整",
+            "中断服务程序说明详细"
+          ],
+          "depth_indicators": {
+            "flowchart": true,
+            "code_completeness": true,
+            "comment_density": false,
+            "interrupt_desc": true
+          }
+        },
+        "report_quality": {
+          "category_id": "report_quality",
+          "category_name": "实验报告质量",
+          "quality_score": 85.0,
+          "max_points": 10,
+          "quality_issues": [
+            "思考题回答不完整（2/7）"
+          ],
+          "quality_strengths": [
+            "调试问题记录真实具体，有解决过程",
+            "有团队协作解决问题的记录",
+            "个人心得具体深刻"
+          ],
+          "depth_indicators": {
+            "problem_authenticity": true,
+            "team_collaboration": true,
+            "reflection_independence": true,
+            "thinking_completeness": false
+          }
+        }
+      },
+      "overall_quality": 79.55555555555556
+    },
+    "23071140206": {
+      "category_qualities": {
+        "team_collaboration": {
+          "category_id": "team_collaboration",
+          "category_name": "团队协作",
+          "quality_score": 100.0,
+          "max_points": 5,
+          "quality_issues": [],
+          "quality_strengths": [
+            "成员信息较完整，缺少学号",
+            "分工描述详细具体",
+            "有协作过程记录"
+          ],
+          "depth_indicators": {
+            "member_info": true,
+            "division_detail": true,
+            "collaboration_evidence": true
+          }
+        },
+        "principle_understanding": {
+          "category_id": "principle_understanding",
+          "category_name": "实验原理与认知",
+          "quality_score": 80.0,
+          "max_points": 10,
+          "quality_issues": [
+            "实验目的阐述不够完整"
+          ],
+          "quality_strengths": [
+            "原理阐述深入，有关键技术点说明",
+            "联系了汽车电子应用场景"
+          ],
+          "depth_indicators": {
+            "purpose_clarity": false,
+            "principle_depth": true,
+            "application_scenario": true
+          }
+        },
+        "completion": {
+          "category_id": "completion",
+          "category_name": "实验完成度",
+          "quality_score": 88.0,
+          "max_points": 35,
+          "quality_issues": [
+            "缺少结果对比分析"
+          ],
+          "quality_strengths": [
+            "硬件连接图清晰完整",
+            "引脚配置说明完整，包含功能描述",
+            "实验结果记录详细",
+            "配有实验照片或截图"
+          ],
+          "depth_indicators": {
+            "hardware_diagram": true,
+            "pin_config": true,
+            "result_detail": true,
+            "result_analysis": false,
+            "has_photo": true
+          }
+        },
+        "code_quality": {
+          "category_id": "code_quality",
+          "category_name": "代码质量",
+          "quality_score": 85.0,
+          "max_points": 30,
+          "quality_issues": [
+            "缺少代码块或代码注释"
+          ],
+          "quality_strengths": [
+            "代码流程图完整清晰",
+            "关键代码展示完整",
+            "中断服务程序说明详细"
+          ],
+          "depth_indicators": {
+            "flowchart": true,
+            "code_completeness": true,
+            "comment_density": false,
+            "interrupt_desc": true
+          }
+        },
+        "report_quality": {
+          "category_id": "report_quality",
+          "category_name": "实验报告质量",
+          "quality_score": 85.0,
+          "max_points": 10,
+          "quality_issues": [
+            "思考题回答不完整（2/7）"
+          ],
+          "quality_strengths": [
+            "调试问题记录真实具体，有解决过程",
+            "有团队协作解决问题的记录",
+            "个人心得具体深刻"
+          ],
+          "depth_indicators": {
+            "problem_authenticity": true,
+            "team_collaboration": true,
+            "reflection_independence": true,
+            "thinking_completeness": false
+          }
+        }
+      },
+      "overall_quality": 86.44444444444444
+    },
+    "23071140208": {
+      "category_qualities": {
+        "team_collaboration": {
+          "category_id": "team_collaboration",
+          "category_name": "团队协作",
+          "quality_score": 100.0,
+          "max_points": 5,
+          "quality_issues": [],
+          "quality_strengths": [
+            "成员信息较完整，缺少学号",
+            "分工描述详细具体",
+            "有协作过程记录"
+          ],
+          "depth_indicators": {
+            "member_info": true,
+            "division_detail": true,
+            "collaboration_evidence": true
+          }
+        },
+        "principle_understanding": {
+          "category_id": "principle_understanding",
+          "category_name": "实验原理与认知",
+          "quality_score": 80.0,
+          "max_points": 10,
+          "quality_issues": [
+            "实验目的阐述不够完整"
+          ],
+          "quality_strengths": [
+            "原理阐述深入，有关键技术点说明",
+            "联系了汽车电子应用场景"
+          ],
+          "depth_indicators": {
+            "purpose_clarity": false,
+            "principle_depth": true,
+            "application_scenario": true
+          }
+        },
+        "completion": {
+          "category_id": "completion",
+          "category_name": "实验完成度",
+          "quality_score": 76.0,
+          "max_points": 35,
+          "quality_issues": [
+            "引脚说明不完整，缺少: PE4, PF9, PF10",
+            "缺少结果对比分析"
+          ],
+          "quality_strengths": [
+            "硬件连接图清晰完整",
+            "实验结果记录详细",
+            "配有实验照片或截图"
+          ],
+          "depth_indicators": {
+            "hardware_diagram": true,
+            "pin_config": false,
+            "result_detail": true,
+            "result_analysis": false,
+            "has_photo": true
+          }
+        },
+        "code_quality": {
+          "category_id": "code_quality",
+          "category_name": "代码质量",
+          "quality_score": 85.0,
+          "max_points": 30,
+          "quality_issues": [
+            "缺少代码块或代码注释"
+          ],
+          "quality_strengths": [
+            "代码流程图完整清晰",
+            "关键代码展示完整",
+            "中断服务程序说明详细"
+          ],
+          "depth_indicators": {
+            "flowchart": true,
+            "code_completeness": true,
+            "comment_density": false,
+            "interrupt_desc": true
+          }
+        },
+        "report_quality": {
+          "category_id": "report_quality",
+          "category_name": "实验报告质量",
+          "quality_score": 70.0,
+          "max_points": 10,
+          "quality_issues": [
+            "个人心得过于简单或通用",
+            "思考题回答不完整（2/7）"
+          ],
+          "quality_strengths": [
+            "调试问题记录真实具体，有解决过程",
+            "有团队协作解决问题的记录"
+          ],
+          "depth_indicators": {
+            "problem_authenticity": true,
+            "team_collaboration": true,
+            "reflection_independence": false,
+            "thinking_completeness": false
+          }
+        }
+      },
+      "overall_quality": 80.11111111111111
+    },
+    "23071140210": {
+      "category_qualities": {
+        "team_collaboration": {
+          "category_id": "team_collaboration",
+          "category_name": "团队协作",
+          "quality_score": 80.0,
+          "max_points": 5,
+          "quality_issues": [
+            "分工描述过于简单，应说明具体任务"
+          ],
+          "quality_strengths": [
+            "成员信息较完整，缺少学号",
+            "有协作过程记录"
+          ],
+          "depth_indicators": {
+            "member_info": true,
+            "division_detail": false,
+            "collaboration_evidence": true
+          }
+        },
+        "principle_understanding": {
+          "category_id": "principle_understanding",
+          "category_name": "实验原理与认知",
+          "quality_score": 80.0,
+          "max_points": 10,
+          "quality_issues": [
+            "实验目的阐述不够完整"
+          ],
+          "quality_strengths": [
+            "原理阐述深入，有关键技术点说明",
+            "联系了汽车电子应用场景"
+          ],
+          "depth_indicators": {
+            "purpose_clarity": false,
+            "principle_depth": true,
+            "application_scenario": true
+          }
+        },
+        "completion": {
+          "category_id": "completion",
+          "category_name": "实验完成度",
+          "quality_score": 100.0,
+          "max_points": 35,
+          "quality_issues": [],
+          "quality_strengths": [
+            "硬件连接图清晰完整",
+            "引脚配置说明完整，包含功能描述",
+            "实验结果记录详细",
+            "有结果对比分析",
+            "配有实验照片或截图"
+          ],
+          "depth_indicators": {
+            "hardware_diagram": true,
+            "pin_config": true,
+            "result_detail": true,
+            "result_analysis": true,
+            "has_photo": true
+          }
+        },
+        "code_quality": {
+          "category_id": "code_quality",
+          "category_name": "代码质量",
+          "quality_score": 85.0,
+          "max_points": 30,
+          "quality_issues": [
+            "缺少代码块或代码注释"
+          ],
+          "quality_strengths": [
+            "有流程图",
+            "关键代码展示完整",
+            "中断服务程序说明详细"
+          ],
+          "depth_indicators": {
+            "flowchart": true,
+            "code_completeness": true,
+            "comment_density": false,
+            "interrupt_desc": true
+          }
+        },
+        "report_quality": {
+          "category_id": "report_quality",
+          "category_name": "实验报告质量",
+          "quality_score": 85.0,
+          "max_points": 10,
+          "quality_issues": [
+            "思考题回答不完整（2/7）"
+          ],
+          "quality_strengths": [
+            "调试问题记录真实具体，有解决过程",
+            "有团队协作解决问题的记录",
+            "个人心得具体深刻"
+          ],
+          "depth_indicators": {
+            "problem_authenticity": true,
+            "team_collaboration": true,
+            "reflection_independence": true,
+            "thinking_completeness": false
+          }
+        }
+      },
+      "overall_quality": 90.0
+    },
+    "23071140211": {
+      "category_qualities": {
+        "team_collaboration": {
+          "category_id": "team_collaboration",
+          "category_name": "团队协作",
+          "quality_score": 100.0,
+          "max_points": 5,
+          "quality_issues": [],
+          "quality_strengths": [
+            "成员信息较完整，缺少学号",
+            "分工描述详细具体",
+            "有协作过程记录"
+          ],
+          "depth_indicators": {
+            "member_info": true,
+            "division_detail": true,
+            "collaboration_evidence": true
+          }
+        },
+        "principle_understanding": {
+          "category_id": "principle_understanding",
+          "category_name": "实验原理与认知",
+          "quality_score": 80.0,
+          "max_points": 10,
+          "quality_issues": [
+            "实验目的阐述不够完整"
+          ],
+          "quality_strengths": [
+            "原理阐述深入，有关键技术点说明",
+            "联系了汽车电子应用场景"
+          ],
+          "depth_indicators": {
+            "purpose_clarity": false,
+            "principle_depth": true,
+            "application_scenario": true
+          }
+        },
+        "completion": {
+          "category_id": "completion",
+          "category_name": "实验完成度",
+          "quality_score": 100.0,
+          "max_points": 35,
+          "quality_issues": [],
+          "quality_strengths": [
+            "硬件连接图清晰完整",
+            "引脚配置说明完整，包含功能描述",
+            "实验结果记录详细",
+            "有结果对比分析",
+            "配有实验照片或截图"
+          ],
+          "depth_indicators": {
+            "hardware_diagram": true,
+            "pin_config": true,
+            "result_detail": true,
+            "result_analysis": true,
+            "has_photo": true
+          }
+        },
+        "code_quality": {
+          "category_id": "code_quality",
+          "category_name": "代码质量",
+          "quality_score": 85.0,
+          "max_points": 30,
+          "quality_issues": [
+            "缺少代码块或代码注释"
+          ],
+          "quality_strengths": [
+            "代码流程图完整清晰",
+            "关键代码展示完整",
+            "中断服务程序说明详细"
+          ],
+          "depth_indicators": {
+            "flowchart": true,
+            "code_completeness": true,
+            "comment_density": false,
+            "interrupt_desc": true
+          }
+        },
+        "report_quality": {
+          "category_id": "report_quality",
+          "category_name": "实验报告质量",
+          "quality_score": 85.0,
+          "max_points": 10,
+          "quality_issues": [
+            "思考题回答不完整（2/7）"
+          ],
+          "quality_strengths": [
+            "调试问题记录真实具体，有解决过程",
+            "有团队协作解决问题的记录",
+            "个人心得具体深刻"
+          ],
+          "depth_indicators": {
+            "problem_authenticity": true,
+            "team_collaboration": true,
+            "reflection_independence": true,
+            "thinking_completeness": false
+          }
+        }
+      },
+      "overall_quality": 91.11111111111111
+    },
+    "23071140213": {
+      "category_qualities": {
+        "team_collaboration": {
+          "category_id": "team_collaboration",
+          "category_name": "团队协作",
+          "quality_score": 100.0,
+          "max_points": 5,
+          "quality_issues": [],
+          "quality_strengths": [
+            "成员信息较完整，缺少学号",
+            "分工描述详细具体",
+            "有协作过程记录"
+          ],
+          "depth_indicators": {
+            "member_info": true,
+            "division_detail": true,
+            "collaboration_evidence": true
+          }
+        },
+        "principle_understanding": {
+          "category_id": "principle_understanding",
+          "category_name": "实验原理与认知",
+          "quality_score": 60.0,
+          "max_points": 10,
+          "quality_issues": [
+            "实验目的阐述不够完整",
+            "原理阐述不够深入，缺少关键技术点说明"
+          ],
+          "quality_strengths": [
+            "联系了汽车电子应用场景"
+          ],
+          "depth_indicators": {
+            "purpose_clarity": false,
+            "principle_depth": false,
+            "application_scenario": true
+          }
+        },
+        "completion": {
+          "category_id": "completion",
+          "category_name": "实验完成度",
+          "quality_score": 76.0,
+          "max_points": 35,
+          "quality_issues": [
+            "缺少结果对比分析",
+            "缺少实验照片或截图"
+          ],
+          "quality_strengths": [
+            "硬件连接图清晰完整",
+            "引脚配置说明完整，包含功能描述",
+            "实验结果记录详细"
+          ],
+          "depth_indicators": {
+            "hardware_diagram": true,
+            "pin_config": true,
+            "result_detail": true,
+            "result_analysis": false,
+            "has_photo": false
+          }
+        },
+        "code_quality": {
+          "category_id": "code_quality",
+          "category_name": "代码质量",
+          "quality_score": 85.0,
+          "max_points": 30,
+          "quality_issues": [
+            "缺少代码块或代码注释"
+          ],
+          "quality_strengths": [
+            "代码流程图完整清晰",
+            "关键代码展示完整",
+            "中断服务程序说明详细"
+          ],
+          "depth_indicators": {
+            "flowchart": true,
+            "code_completeness": true,
+            "comment_density": false,
+            "interrupt_desc": true
+          }
+        },
+        "report_quality": {
+          "category_id": "report_quality",
+          "category_name": "实验报告质量",
+          "quality_score": 100.0,
+          "max_points": 10,
+          "quality_issues": [],
+          "quality_strengths": [
+            "调试问题记录真实具体，有解决过程",
+            "有团队协作解决问题的记录",
+            "个人心得具体深刻",
+            "思考题回答4题"
+          ],
+          "depth_indicators": {
+            "problem_authenticity": true,
+            "team_collaboration": true,
+            "reflection_independence": true,
+            "thinking_completeness": true
+          }
+        }
+      },
+      "overall_quality": 81.22222222222223
+    },
+    "23071140214": {
+      "category_qualities": {
+        "team_collaboration": {
+          "category_id": "team_collaboration",
+          "category_name": "团队协作",
+          "quality_score": 100.0,
+          "max_points": 5,
+          "quality_issues": [],
+          "quality_strengths": [
+            "成员信息较完整，缺少学号",
+            "分工描述详细具体",
+            "有协作过程记录"
+          ],
+          "depth_indicators": {
+            "member_info": true,
+            "division_detail": true,
+            "collaboration_evidence": true
+          }
+        },
+        "principle_understanding": {
+          "category_id": "principle_understanding",
+          "category_name": "实验原理与认知",
+          "quality_score": 80.0,
+          "max_points": 10,
+          "quality_issues": [
+            "实验目的阐述不够完整"
+          ],
+          "quality_strengths": [
+            "原理阐述深入，有关键技术点说明",
+            "联系了汽车电子应用场景"
+          ],
+          "depth_indicators": {
+            "purpose_clarity": false,
+            "principle_depth": true,
+            "application_scenario": true
+          }
+        },
+        "completion": {
+          "category_id": "completion",
+          "category_name": "实验完成度",
+          "quality_score": 100.0,
+          "max_points": 35,
+          "quality_issues": [],
+          "quality_strengths": [
+            "硬件连接图清晰完整",
+            "引脚配置说明完整，包含功能描述",
+            "实验结果记录详细",
+            "有结果对比分析",
+            "配有实验照片或截图"
+          ],
+          "depth_indicators": {
+            "hardware_diagram": true,
+            "pin_config": true,
+            "result_detail": true,
+            "result_analysis": true,
+            "has_photo": true
+          }
+        },
+        "code_quality": {
+          "category_id": "code_quality",
+          "category_name": "代码质量",
+          "quality_score": 85.0,
+          "max_points": 30,
+          "quality_issues": [
+            "缺少代码块或代码注释"
+          ],
+          "quality_strengths": [
+            "代码流程图完整清晰",
+            "关键代码展示完整",
+            "中断服务程序说明详细"
+          ],
+          "depth_indicators": {
+            "flowchart": true,
+            "code_completeness": true,
+            "comment_density": false,
+            "interrupt_desc": true
+          }
+        },
+        "report_quality": {
+          "category_id": "report_quality",
+          "category_name": "实验报告质量",
+          "quality_score": 100.0,
+          "max_points": 10,
+          "quality_issues": [],
+          "quality_strengths": [
+            "调试问题记录真实具体，有解决过程",
+            "有团队协作解决问题的记录",
+            "个人心得具体深刻",
+            "思考题回答4题"
+          ],
+          "depth_indicators": {
+            "problem_authenticity": true,
+            "team_collaboration": true,
+            "reflection_independence": true,
+            "thinking_completeness": true
+          }
+        }
+      },
+      "overall_quality": 92.77777777777777
+    },
+    "23071140215": {
+      "category_qualities": {
+        "team_collaboration": {
+          "category_id": "team_collaboration",
+          "category_name": "团队协作",
+          "quality_score": 100.0,
+          "max_points": 5,
+          "quality_issues": [],
+          "quality_strengths": [
+            "成员信息较完整，缺少学号",
+            "分工描述详细具体",
+            "有协作过程记录"
+          ],
+          "depth_indicators": {
+            "member_info": true,
+            "division_detail": true,
+            "collaboration_evidence": true
+          }
+        },
+        "principle_understanding": {
+          "category_id": "principle_understanding",
+          "category_name": "实验原理与认知",
+          "quality_score": 80.0,
+          "max_points": 10,
+          "quality_issues": [
+            "实验目的阐述不够完整"
+          ],
+          "quality_strengths": [
+            "原理阐述深入，有关键技术点说明",
+            "联系了汽车电子应用场景"
+          ],
+          "depth_indicators": {
+            "purpose_clarity": false,
+            "principle_depth": true,
+            "application_scenario": true
+          }
+        },
+        "completion": {
+          "category_id": "completion",
+          "category_name": "实验完成度",
+          "quality_score": 100.0,
+          "max_points": 35,
+          "quality_issues": [],
+          "quality_strengths": [
+            "硬件连接图清晰完整",
+            "引脚配置说明完整，包含功能描述",
+            "实验结果记录详细",
+            "有结果对比分析",
+            "配有实验照片或截图"
+          ],
+          "depth_indicators": {
+            "hardware_diagram": true,
+            "pin_config": true,
+            "result_detail": true,
+            "result_analysis": true,
+            "has_photo": true
+          }
+        },
+        "code_quality": {
+          "category_id": "code_quality",
+          "category_name": "代码质量",
+          "quality_score": 85.0,
+          "max_points": 30,
+          "quality_issues": [
+            "缺少代码块或代码注释"
+          ],
+          "quality_strengths": [
+            "代码流程图完整清晰",
+            "关键代码展示完整",
+            "中断服务程序说明详细"
+          ],
+          "depth_indicators": {
+            "flowchart": true,
+            "code_completeness": true,
+            "comment_density": false,
+            "interrupt_desc": true
+          }
+        },
+        "report_quality": {
+          "category_id": "report_quality",
+          "category_name": "实验报告质量",
+          "quality_score": 100.0,
+          "max_points": 10,
+          "quality_issues": [],
+          "quality_strengths": [
+            "调试问题记录真实具体，有解决过程",
+            "有团队协作解决问题的记录",
+            "个人心得具体深刻",
+            "思考题回答4题"
+          ],
+          "depth_indicators": {
+            "problem_authenticity": true,
+            "team_collaboration": true,
+            "reflection_independence": true,
+            "thinking_completeness": true
+          }
+        }
+      },
+      "overall_quality": 92.77777777777777
+    },
+    "23071140216": {
+      "category_qualities": {
+        "team_collaboration": {
+          "category_id": "team_collaboration",
+          "category_name": "团队协作",
+          "quality_score": 80.0,
+          "max_points": 5,
+          "quality_issues": [
+            "分工描述过于简单，应说明具体任务"
+          ],
+          "quality_strengths": [
+            "成员信息较完整，缺少学号",
+            "有协作过程记录"
+          ],
+          "depth_indicators": {
+            "member_info": true,
+            "division_detail": false,
+            "collaboration_evidence": true
+          }
+        },
+        "principle_understanding": {
+          "category_id": "principle_understanding",
+          "category_name": "实验原理与认知",
+          "quality_score": 60.0,
+          "max_points": 10,
+          "quality_issues": [
+            "实验目的阐述不够完整",
+            "原理阐述不够深入，缺少关键技术点说明"
+          ],
+          "quality_strengths": [
+            "联系了汽车电子应用场景"
+          ],
+          "depth_indicators": {
+            "purpose_clarity": false,
+            "principle_depth": false,
+            "application_scenario": true
+          }
+        },
+        "completion": {
+          "category_id": "completion",
+          "category_name": "实验完成度",
+          "quality_score": 64.0,
+          "max_points": 35,
+          "quality_issues": [
+            "引脚说明不完整，缺少: PE4, PF9, PF10",
+            "实验结果记录不够详细",
+            "缺少结果对比分析"
+          ],
+          "quality_strengths": [
+            "硬件连接图清晰完整",
+            "配有实验照片或截图"
+          ],
+          "depth_indicators": {
+            "hardware_diagram": true,
+            "pin_config": false,
+            "result_detail": false,
+            "result_analysis": false,
+            "has_photo": true
+          }
+        },
+        "code_quality": {
+          "category_id": "code_quality",
+          "category_name": "代码质量",
+          "quality_score": 85.0,
+          "max_points": 30,
+          "quality_issues": [
+            "缺少代码块或代码注释"
+          ],
+          "quality_strengths": [
+            "有流程图",
+            "有关键代码展示",
+            "中断服务程序说明详细"
+          ],
+          "depth_indicators": {
+            "flowchart": true,
+            "code_completeness": true,
+            "comment_density": false,
+            "interrupt_desc": true
+          }
+        },
+        "report_quality": {
+          "category_id": "report_quality",
+          "category_name": "实验报告质量",
+          "quality_score": 85.0,
+          "max_points": 10,
+          "quality_issues": [
+            "思考题回答不完整（2/7）"
+          ],
+          "quality_strengths": [
+            "调试问题记录真实具体，有解决过程",
+            "有团队协作解决问题的记录",
+            "个人心得具体深刻"
+          ],
+          "depth_indicators": {
+            "problem_authenticity": true,
+            "team_collaboration": true,
+            "reflection_independence": true,
+            "thinking_completeness": false
+          }
+        }
+      },
+      "overall_quality": 73.77777777777777
+    },
+    "23071140217": {
+      "category_qualities": {
+        "team_collaboration": {
+          "category_id": "team_collaboration",
+          "category_name": "团队协作",
+          "quality_score": 40.0,
+          "max_points": 5,
+          "quality_issues": [
+            "成员信息不完整，应包含学号、姓名、角色",
+            "分工描述过于简单，应说明具体任务",
+            "缺少协作过程记录"
+          ],
+          "quality_strengths": [],
+          "depth_indicators": {
+            "member_info": false,
+            "division_detail": false,
+            "collaboration_evidence": false
+          }
+        },
+        "principle_understanding": {
+          "category_id": "principle_understanding",
+          "category_name": "实验原理与认知",
+          "quality_score": 80.0,
+          "max_points": 10,
+          "quality_issues": [
+            "实验目的阐述不够完整"
+          ],
+          "quality_strengths": [
+            "原理阐述深入，有关键技术点说明",
+            "联系了汽车电子应用场景"
+          ],
+          "depth_indicators": {
+            "purpose_clarity": false,
+            "principle_depth": true,
+            "application_scenario": true
+          }
+        },
+        "completion": {
+          "category_id": "completion",
+          "category_name": "实验完成度",
+          "quality_score": 52.0,
+          "max_points": 35,
+          "quality_issues": [
+            "引脚说明不完整，缺少: PE4, PF9, PF10",
+            "实验结果记录不够详细",
+            "缺少结果对比分析",
+            "缺少实验照片或截图"
+          ],
+          "quality_strengths": [
+            "硬件连接图清晰完整"
+          ],
+          "depth_indicators": {
+            "hardware_diagram": true,
+            "pin_config": false,
+            "result_detail": false,
+            "result_analysis": false,
+            "has_photo": false
+          }
+        },
+        "code_quality": {
+          "category_id": "code_quality",
+          "category_name": "代码质量",
+          "quality_score": 70.0,
+          "max_points": 30,
+          "quality_issues": [
+            "缺少代码流程图",
+            "缺少代码块或代码注释"
+          ],
+          "quality_strengths": [
+            "有关键代码展示",
+            "中断服务程序说明详细"
+          ],
+          "depth_indicators": {
+            "flowchart": false,
+            "code_completeness": true,
+            "comment_density": false,
+            "interrupt_desc": true
+          }
+        },
+        "report_quality": {
+          "category_id": "report_quality",
+          "category_name": "实验报告质量",
+          "quality_score": 70.0,
+          "max_points": 10,
+          "quality_issues": [
+            "缺少团队协作解决问题的记录",
+            "思考题回答不完整（1/7）"
+          ],
+          "quality_strengths": [
+            "调试问题记录真实具体，有解决过程",
+            "个人心得具体深刻"
+          ],
+          "depth_indicators": {
+            "problem_authenticity": true,
+            "team_collaboration": false,
+            "reflection_independence": true,
+            "thinking_completeness": false
+          }
+        }
+      },
+      "overall_quality": 62.44444444444444
+    },
+    "23071140219": {
+      "category_qualities": {
+        "team_collaboration": {
+          "category_id": "team_collaboration",
+          "category_name": "团队协作",
+          "quality_score": 100.0,
+          "max_points": 5,
+          "quality_issues": [],
+          "quality_strengths": [
+            "成员信息较完整，缺少学号",
+            "分工描述详细具体",
+            "有协作过程记录"
+          ],
+          "depth_indicators": {
+            "member_info": true,
+            "division_detail": true,
+            "collaboration_evidence": true
+          }
+        },
+        "principle_understanding": {
+          "category_id": "principle_understanding",
+          "category_name": "实验原理与认知",
+          "quality_score": 80.0,
+          "max_points": 10,
+          "quality_issues": [
+            "实验目的阐述不够完整"
+          ],
+          "quality_strengths": [
+            "原理阐述深入，有关键技术点说明",
+            "联系了汽车电子应用场景"
+          ],
+          "depth_indicators": {
+            "purpose_clarity": false,
+            "principle_depth": true,
+            "application_scenario": true
+          }
+        },
+        "completion": {
+          "category_id": "completion",
+          "category_name": "实验完成度",
+          "quality_score": 76.0,
+          "max_points": 35,
+          "quality_issues": [
+            "缺少结果对比分析",
+            "缺少实验照片或截图"
+          ],
+          "quality_strengths": [
+            "硬件连接图清晰完整",
+            "引脚配置说明完整，包含功能描述",
+            "实验结果记录详细"
+          ],
+          "depth_indicators": {
+            "hardware_diagram": true,
+            "pin_config": true,
+            "result_detail": true,
+            "result_analysis": false,
+            "has_photo": false
+          }
+        },
+        "code_quality": {
+          "category_id": "code_quality",
+          "category_name": "代码质量",
+          "quality_score": 85.0,
+          "max_points": 30,
+          "quality_issues": [
+            "缺少代码块或代码注释"
+          ],
+          "quality_strengths": [
+            "代码流程图完整清晰",
+            "关键代码展示完整",
+            "中断服务程序说明详细"
+          ],
+          "depth_indicators": {
+            "flowchart": true,
+            "code_completeness": true,
+            "comment_density": false,
+            "interrupt_desc": true
+          }
+        },
+        "report_quality": {
+          "category_id": "report_quality",
+          "category_name": "实验报告质量",
+          "quality_score": 100.0,
+          "max_points": 10,
+          "quality_issues": [],
+          "quality_strengths": [
+            "调试问题记录真实具体，有解决过程",
+            "有团队协作解决问题的记录",
+            "个人心得具体深刻",
+            "思考题回答4题"
+          ],
+          "depth_indicators": {
+            "problem_authenticity": true,
+            "team_collaboration": true,
+            "reflection_independence": true,
+            "thinking_completeness": true
+          }
+        }
+      },
+      "overall_quality": 83.44444444444444
+    },
+    "23071140220": {
+      "category_qualities": {
+        "team_collaboration": {
+          "category_id": "team_collaboration",
+          "category_name": "团队协作",
+          "quality_score": 100.0,
+          "max_points": 5,
+          "quality_issues": [],
+          "quality_strengths": [
+            "成员信息较完整，缺少学号",
+            "分工描述详细具体",
+            "有协作过程记录"
+          ],
+          "depth_indicators": {
+            "member_info": true,
+            "division_detail": true,
+            "collaboration_evidence": true
+          }
+        },
+        "principle_understanding": {
+          "category_id": "principle_understanding",
+          "category_name": "实验原理与认知",
+          "quality_score": 80.0,
+          "max_points": 10,
+          "quality_issues": [
+            "实验目的阐述不够完整"
+          ],
+          "quality_strengths": [
+            "原理阐述深入，有关键技术点说明",
+            "联系了汽车电子应用场景"
+          ],
+          "depth_indicators": {
+            "purpose_clarity": false,
+            "principle_depth": true,
+            "application_scenario": true
+          }
+        },
+        "completion": {
+          "category_id": "completion",
+          "category_name": "实验完成度",
+          "quality_score": 88.0,
+          "max_points": 35,
+          "quality_issues": [
+            "缺少实验照片或截图"
+          ],
+          "quality_strengths": [
+            "硬件连接图清晰完整",
+            "引脚配置说明完整，包含功能描述",
+            "实验结果记录详细",
+            "有结果对比分析"
+          ],
+          "depth_indicators": {
+            "hardware_diagram": true,
+            "pin_config": true,
+            "result_detail": true,
+            "result_analysis": true,
+            "has_photo": false
+          }
+        },
+        "code_quality": {
+          "category_id": "code_quality",
+          "category_name": "代码质量",
+          "quality_score": 85.0,
+          "max_points": 30,
+          "quality_issues": [
+            "缺少代码块或代码注释"
+          ],
+          "quality_strengths": [
+            "代码流程图完整清晰",
+            "有关键代码展示",
+            "中断服务程序说明详细"
+          ],
+          "depth_indicators": {
+            "flowchart": true,
+            "code_completeness": true,
+            "comment_density": false,
+            "interrupt_desc": true
+          }
+        },
+        "report_quality": {
+          "category_id": "report_quality",
+          "category_name": "实验报告质量",
+          "quality_score": 85.0,
+          "max_points": 10,
+          "quality_issues": [
+            "思考题回答不完整（2/7）"
+          ],
+          "quality_strengths": [
+            "调试问题记录真实具体，有解决过程",
+            "有团队协作解决问题的记录",
+            "个人心得具体深刻"
+          ],
+          "depth_indicators": {
+            "problem_authenticity": true,
+            "team_collaboration": true,
+            "reflection_independence": true,
+            "thinking_completeness": false
+          }
+        }
+      },
+      "overall_quality": 86.44444444444444
+    },
+    "23071140221": {
+      "category_qualities": {
+        "team_collaboration": {
+          "category_id": "team_collaboration",
+          "category_name": "团队协作",
+          "quality_score": 100.0,
+          "max_points": 5,
+          "quality_issues": [],
+          "quality_strengths": [
+            "成员信息较完整，缺少学号",
+            "分工描述详细具体",
+            "有协作过程记录"
+          ],
+          "depth_indicators": {
+            "member_info": true,
+            "division_detail": true,
+            "collaboration_evidence": true
+          }
+        },
+        "principle_understanding": {
+          "category_id": "principle_understanding",
+          "category_name": "实验原理与认知",
+          "quality_score": 80.0,
+          "max_points": 10,
+          "quality_issues": [
+            "实验目的阐述不够完整"
+          ],
+          "quality_strengths": [
+            "原理阐述深入，有关键技术点说明",
+            "联系了汽车电子应用场景"
+          ],
+          "depth_indicators": {
+            "purpose_clarity": false,
+            "principle_depth": true,
+            "application_scenario": true
+          }
+        },
+        "completion": {
+          "category_id": "completion",
+          "category_name": "实验完成度",
+          "quality_score": 100.0,
+          "max_points": 35,
+          "quality_issues": [],
+          "quality_strengths": [
+            "硬件连接图清晰完整",
+            "引脚配置说明完整，包含功能描述",
+            "实验结果记录详细",
+            "有结果对比分析",
+            "配有实验照片或截图"
+          ],
+          "depth_indicators": {
+            "hardware_diagram": true,
+            "pin_config": true,
+            "result_detail": true,
+            "result_analysis": true,
+            "has_photo": true
+          }
+        },
+        "code_quality": {
+          "category_id": "code_quality",
+          "category_name": "代码质量",
+          "quality_score": 85.0,
+          "max_points": 30,
+          "quality_issues": [
+            "缺少代码块或代码注释"
+          ],
+          "quality_strengths": [
+            "有流程图",
+            "关键代码展示完整",
+            "中断服务程序说明详细"
+          ],
+          "depth_indicators": {
+            "flowchart": true,
+            "code_completeness": true,
+            "comment_density": false,
+            "interrupt_desc": true
+          }
+        },
+        "report_quality": {
+          "category_id": "report_quality",
+          "category_name": "实验报告质量",
+          "quality_score": 85.0,
+          "max_points": 10,
+          "quality_issues": [
+            "思考题回答不完整（2/7）"
+          ],
+          "quality_strengths": [
+            "调试问题记录真实具体，有解决过程",
+            "有团队协作解决问题的记录",
+            "个人心得具体深刻"
+          ],
+          "depth_indicators": {
+            "problem_authenticity": true,
+            "team_collaboration": true,
+            "reflection_independence": true,
+            "thinking_completeness": false
+          }
+        }
+      },
+      "overall_quality": 91.11111111111111
+    },
+    "23071140222": {
+      "category_qualities": {
+        "team_collaboration": {
+          "category_id": "team_collaboration",
+          "category_name": "团队协作",
+          "quality_score": 60.0,
+          "max_points": 5,
+          "quality_issues": [
+            "分工描述过于简单，应说明具体任务",
+            "缺少协作过程记录"
+          ],
+          "quality_strengths": [
+            "成员信息完整，包含学号和角色分工"
+          ],
+          "depth_indicators": {
+            "member_info": true,
+            "division_detail": false,
+            "collaboration_evidence": false
+          }
+        },
+        "principle_understanding": {
+          "category_id": "principle_understanding",
+          "category_name": "实验原理与认知",
+          "quality_score": 80.0,
+          "max_points": 10,
+          "quality_issues": [
+            "实验目的阐述不够完整"
+          ],
+          "quality_strengths": [
+            "原理阐述深入，有关键技术点说明",
+            "联系了汽车电子应用场景"
+          ],
+          "depth_indicators": {
+            "purpose_clarity": false,
+            "principle_depth": true,
+            "application_scenario": true
+          }
+        },
+        "completion": {
+          "category_id": "completion",
+          "category_name": "实验完成度",
+          "quality_score": 64.0,
+          "max_points": 35,
+          "quality_issues": [
+            "缺少或硬件连接图不清晰",
+            "缺少结果对比分析",
+            "缺少实验照片或截图"
+          ],
+          "quality_strengths": [
+            "引脚配置说明完整，包含功能描述",
+            "实验结果记录详细"
+          ],
+          "depth_indicators": {
+            "hardware_diagram": false,
+            "pin_config": true,
+            "result_detail": true,
+            "result_analysis": false,
+            "has_photo": false
+          }
+        },
+        "code_quality": {
+          "category_id": "code_quality",
+          "category_name": "代码质量",
+          "quality_score": 70.0,
+          "max_points": 30,
+          "quality_issues": [
+            "缺少代码流程图",
+            "缺少代码块或代码注释"
+          ],
+          "quality_strengths": [
+            "关键代码展示完整",
+            "中断服务程序说明详细"
+          ],
+          "depth_indicators": {
+            "flowchart": false,
+            "code_completeness": true,
+            "comment_density": false,
+            "interrupt_desc": true
+          }
+        },
+        "report_quality": {
+          "category_id": "report_quality",
+          "category_name": "实验报告质量",
+          "quality_score": 70.0,
+          "max_points": 10,
+          "quality_issues": [
+            "缺少团队协作解决问题的记录",
+            "思考题回答不完整（1/7）"
+          ],
+          "quality_strengths": [
+            "调试问题记录真实具体，有解决过程",
+            "个人心得具体深刻"
+          ],
+          "depth_indicators": {
+            "problem_authenticity": true,
+            "team_collaboration": false,
+            "reflection_independence": true,
+            "thinking_completeness": false
+          }
+        }
+      },
+      "overall_quality": 68.22222222222223
+    },
+    "23071140223": {
+      "category_qualities": {
+        "team_collaboration": {
+          "category_id": "team_collaboration",
+          "category_name": "团队协作",
+          "quality_score": 100.0,
+          "max_points": 5,
+          "quality_issues": [],
+          "quality_strengths": [
+            "成员信息较完整，缺少学号",
+            "分工描述详细具体",
+            "有协作过程记录"
+          ],
+          "depth_indicators": {
+            "member_info": true,
+            "division_detail": true,
+            "collaboration_evidence": true
+          }
+        },
+        "principle_understanding": {
+          "category_id": "principle_understanding",
+          "category_name": "实验原理与认知",
+          "quality_score": 60.0,
+          "max_points": 10,
+          "quality_issues": [
+            "实验目的阐述不够完整",
+            "原理阐述不够深入，缺少关键技术点说明"
+          ],
+          "quality_strengths": [
+            "联系了汽车电子应用场景"
+          ],
+          "depth_indicators": {
+            "purpose_clarity": false,
+            "principle_depth": false,
+            "application_scenario": true
+          }
+        },
+        "completion": {
+          "category_id": "completion",
+          "category_name": "实验完成度",
+          "quality_score": 64.0,
+          "max_points": 35,
+          "quality_issues": [
+            "引脚说明不完整，缺少: PE4, PF9, PF10",
+            "实验结果记录不够详细",
+            "缺少结果对比分析"
+          ],
+          "quality_strengths": [
+            "硬件连接图清晰完整",
+            "配有实验照片或截图"
+          ],
+          "depth_indicators": {
+            "hardware_diagram": true,
+            "pin_config": false,
+            "result_detail": false,
+            "result_analysis": false,
+            "has_photo": true
+          }
+        },
+        "code_quality": {
+          "category_id": "code_quality",
+          "category_name": "代码质量",
+          "quality_score": 85.0,
+          "max_points": 30,
+          "quality_issues": [
+            "缺少代码块或代码注释"
+          ],
+          "quality_strengths": [
+            "有流程图",
+            "有关键代码展示",
+            "中断服务程序说明详细"
+          ],
+          "depth_indicators": {
+            "flowchart": true,
+            "code_completeness": true,
+            "comment_density": false,
+            "interrupt_desc": true
+          }
+        },
+        "report_quality": {
+          "category_id": "report_quality",
+          "category_name": "实验报告质量",
+          "quality_score": 85.0,
+          "max_points": 10,
+          "quality_issues": [
+            "思考题回答不完整（2/7）"
+          ],
+          "quality_strengths": [
+            "调试问题记录真实具体，有解决过程",
+            "有团队协作解决问题的记录",
+            "个人心得具体深刻"
+          ],
+          "depth_indicators": {
+            "problem_authenticity": true,
+            "team_collaboration": true,
+            "reflection_independence": true,
+            "thinking_completeness": false
+          }
+        }
+      },
+      "overall_quality": 74.88888888888889
+    },
+    "23071140224": {
+      "category_qualities": {
+        "team_collaboration": {
+          "category_id": "team_collaboration",
+          "category_name": "团队协作",
+          "quality_score": 80.0,
+          "max_points": 5,
+          "quality_issues": [
+            "成员信息不完整，应包含学号、姓名、角色"
+          ],
+          "quality_strengths": [
+            "分工描述详细具体",
+            "有协作过程记录"
+          ],
+          "depth_indicators": {
+            "member_info": false,
+            "division_detail": true,
+            "collaboration_evidence": true
+          }
+        },
+        "principle_understanding": {
+          "category_id": "principle_understanding",
+          "category_name": "实验原理与认知",
+          "quality_score": 80.0,
+          "max_points": 10,
+          "quality_issues": [
+            "实验目的阐述不够完整"
+          ],
+          "quality_strengths": [
+            "原理阐述深入，有关键技术点说明",
+            "联系了汽车电子应用场景"
+          ],
+          "depth_indicators": {
+            "purpose_clarity": false,
+            "principle_depth": true,
+            "application_scenario": true
+          }
+        },
+        "completion": {
+          "category_id": "completion",
+          "category_name": "实验完成度",
+          "quality_score": 64.0,
+          "max_points": 35,
+          "quality_issues": [
+            "缺少或硬件连接图不清晰",
+            "缺少结果对比分析",
+            "缺少实验照片或截图"
+          ],
+          "quality_strengths": [
+            "引脚配置说明完整，包含功能描述",
+            "实验结果记录详细"
+          ],
+          "depth_indicators": {
+            "hardware_diagram": false,
+            "pin_config": true,
+            "result_detail": true,
+            "result_analysis": false,
+            "has_photo": false
+          }
+        },
+        "code_quality": {
+          "category_id": "code_quality",
+          "category_name": "代码质量",
+          "quality_score": 70.0,
+          "max_points": 30,
+          "quality_issues": [
+            "缺少代码流程图",
+            "缺少代码块或代码注释"
+          ],
+          "quality_strengths": [
+            "关键代码展示完整",
+            "中断服务程序说明详细"
+          ],
+          "depth_indicators": {
+            "flowchart": false,
+            "code_completeness": true,
+            "comment_density": false,
+            "interrupt_desc": true
+          }
+        },
+        "report_quality": {
+          "category_id": "report_quality",
+          "category_name": "实验报告质量",
+          "quality_score": 85.0,
+          "max_points": 10,
+          "quality_issues": [
+            "思考题回答不完整（1/7）"
+          ],
+          "quality_strengths": [
+            "调试问题记录真实具体，有解决过程",
+            "有团队协作解决问题的记录",
+            "个人心得具体深刻"
+          ],
+          "depth_indicators": {
+            "problem_authenticity": true,
+            "team_collaboration": true,
+            "reflection_independence": true,
+            "thinking_completeness": false
+          }
+        }
+      },
+      "overall_quality": 71.0
+    },
+    "23071140226": {
+      "category_qualities": {
+        "team_collaboration": {
+          "category_id": "team_collaboration",
+          "category_name": "团队协作",
+          "quality_score": 80.0,
+          "max_points": 5,
+          "quality_issues": [
+            "分工描述过于简单，应说明具体任务"
+          ],
+          "quality_strengths": [
+            "成员信息较完整，缺少学号",
+            "有协作过程记录"
+          ],
+          "depth_indicators": {
+            "member_info": true,
+            "division_detail": false,
+            "collaboration_evidence": true
+          }
+        },
+        "principle_understanding": {
+          "category_id": "principle_understanding",
+          "category_name": "实验原理与认知",
+          "quality_score": 80.0,
+          "max_points": 10,
+          "quality_issues": [
+            "实验目的阐述不够完整"
+          ],
+          "quality_strengths": [
+            "原理阐述深入，有关键技术点说明",
+            "联系了汽车电子应用场景"
+          ],
+          "depth_indicators": {
+            "purpose_clarity": false,
+            "principle_depth": true,
+            "application_scenario": true
+          }
+        },
+        "completion": {
+          "category_id": "completion",
+          "category_name": "实验完成度",
+          "quality_score": 100.0,
+          "max_points": 35,
+          "quality_issues": [],
+          "quality_strengths": [
+            "硬件连接图清晰完整",
+            "引脚配置说明完整，包含功能描述",
+            "实验结果记录详细",
+            "有结果对比分析",
+            "配有实验照片或截图"
+          ],
+          "depth_indicators": {
+            "hardware_diagram": true,
+            "pin_config": true,
+            "result_detail": true,
+            "result_analysis": true,
+            "has_photo": true
+          }
+        },
+        "code_quality": {
+          "category_id": "code_quality",
+          "category_name": "代码质量",
+          "quality_score": 85.0,
+          "max_points": 30,
+          "quality_issues": [
+            "缺少代码块或代码注释"
+          ],
+          "quality_strengths": [
+            "代码流程图完整清晰",
+            "关键代码展示完整",
+            "中断服务程序说明详细"
+          ],
+          "depth_indicators": {
+            "flowchart": true,
+            "code_completeness": true,
+            "comment_density": false,
+            "interrupt_desc": true
+          }
+        },
+        "report_quality": {
+          "category_id": "report_quality",
+          "category_name": "实验报告质量",
+          "quality_score": 100.0,
+          "max_points": 10,
+          "quality_issues": [],
+          "quality_strengths": [
+            "调试问题记录真实具体，有解决过程",
+            "有团队协作解决问题的记录",
+            "个人心得具体深刻",
+            "思考题回答4题"
+          ],
+          "depth_indicators": {
+            "problem_authenticity": true,
+            "team_collaboration": true,
+            "reflection_independence": true,
+            "thinking_completeness": true
+          }
+        }
+      },
+      "overall_quality": 91.66666666666667
+    },
+    "23071140227": {
+      "category_qualities": {
+        "team_collaboration": {
+          "category_id": "team_collaboration",
+          "category_name": "团队协作",
+          "quality_score": 100.0,
+          "max_points": 5,
+          "quality_issues": [],
+          "quality_strengths": [
+            "成员信息较完整，缺少学号",
+            "分工描述详细具体",
+            "有协作过程记录"
+          ],
+          "depth_indicators": {
+            "member_info": true,
+            "division_detail": true,
+            "collaboration_evidence": true
+          }
+        },
+        "principle_understanding": {
+          "category_id": "principle_understanding",
+          "category_name": "实验原理与认知",
+          "quality_score": 80.0,
+          "max_points": 10,
+          "quality_issues": [
+            "实验目的阐述不够完整"
+          ],
+          "quality_strengths": [
+            "原理阐述深入，有关键技术点说明",
+            "联系了汽车电子应用场景"
+          ],
+          "depth_indicators": {
+            "purpose_clarity": false,
+            "principle_depth": true,
+            "application_scenario": true
+          }
+        },
+        "completion": {
+          "category_id": "completion",
+          "category_name": "实验完成度",
+          "quality_score": 88.0,
+          "max_points": 35,
+          "quality_issues": [
+            "缺少实验照片或截图"
+          ],
+          "quality_strengths": [
+            "硬件连接图清晰完整",
+            "引脚配置说明完整，包含功能描述",
+            "实验结果记录详细",
+            "有结果对比分析"
+          ],
+          "depth_indicators": {
+            "hardware_diagram": true,
+            "pin_config": true,
+            "result_detail": true,
+            "result_analysis": true,
+            "has_photo": false
+          }
+        },
+        "code_quality": {
+          "category_id": "code_quality",
+          "category_name": "代码质量",
+          "quality_score": 85.0,
+          "max_points": 30,
+          "quality_issues": [
+            "代码注释不足"
+          ],
+          "quality_strengths": [
+            "代码流程图完整清晰",
+            "关键代码展示完整",
+            "中断服务程序说明详细"
+          ],
+          "depth_indicators": {
+            "flowchart": true,
+            "code_completeness": true,
+            "comment_density": false,
+            "interrupt_desc": true
+          }
+        },
+        "report_quality": {
+          "category_id": "report_quality",
+          "category_name": "实验报告质量",
+          "quality_score": 85.0,
+          "max_points": 10,
+          "quality_issues": [
+            "思考题回答不完整（2/7）"
+          ],
+          "quality_strengths": [
+            "调试问题记录真实具体，有解决过程",
+            "有团队协作解决问题的记录",
+            "个人心得具体深刻"
+          ],
+          "depth_indicators": {
+            "problem_authenticity": true,
+            "team_collaboration": true,
+            "reflection_independence": true,
+            "thinking_completeness": false
+          }
+        }
+      },
+      "overall_quality": 86.44444444444444
+    },
+    "23071140228": {
+      "category_qualities": {
+        "team_collaboration": {
+          "category_id": "team_collaboration",
+          "category_name": "团队协作",
+          "quality_score": 100.0,
+          "max_points": 5,
+          "quality_issues": [],
+          "quality_strengths": [
+            "成员信息较完整，缺少学号",
+            "分工描述详细具体",
+            "有协作过程记录"
+          ],
+          "depth_indicators": {
+            "member_info": true,
+            "division_detail": true,
+            "collaboration_evidence": true
+          }
+        },
+        "principle_understanding": {
+          "category_id": "principle_understanding",
+          "category_name": "实验原理与认知",
+          "quality_score": 80.0,
+          "max_points": 10,
+          "quality_issues": [
+            "实验目的阐述不够完整"
+          ],
+          "quality_strengths": [
+            "原理阐述深入，有关键技术点说明",
+            "联系了汽车电子应用场景"
+          ],
+          "depth_indicators": {
+            "purpose_clarity": false,
+            "principle_depth": true,
+            "application_scenario": true
+          }
+        },
+        "completion": {
+          "category_id": "completion",
+          "category_name": "实验完成度",
+          "quality_score": 100.0,
+          "max_points": 35,
+          "quality_issues": [],
+          "quality_strengths": [
+            "硬件连接图清晰完整",
+            "引脚配置说明完整，包含功能描述",
+            "实验结果记录详细",
+            "有结果对比分析",
+            "配有实验照片或截图"
+          ],
+          "depth_indicators": {
+            "hardware_diagram": true,
+            "pin_config": true,
+            "result_detail": true,
+            "result_analysis": true,
+            "has_photo": true
+          }
+        },
+        "code_quality": {
+          "category_id": "code_quality",
+          "category_name": "代码质量",
+          "quality_score": 85.0,
+          "max_points": 30,
+          "quality_issues": [
+            "缺少代码块或代码注释"
+          ],
+          "quality_strengths": [
+            "代码流程图完整清晰",
+            "关键代码展示完整",
+            "中断服务程序说明详细"
+          ],
+          "depth_indicators": {
+            "flowchart": true,
+            "code_completeness": true,
+            "comment_density": false,
+            "interrupt_desc": true
+          }
+        },
+        "report_quality": {
+          "category_id": "report_quality",
+          "category_name": "实验报告质量",
+          "quality_score": 100.0,
+          "max_points": 10,
+          "quality_issues": [],
+          "quality_strengths": [
+            "调试问题记录真实具体，有解决过程",
+            "有团队协作解决问题的记录",
+            "个人心得具体深刻",
+            "思考题回答4题"
+          ],
+          "depth_indicators": {
+            "problem_authenticity": true,
+            "team_collaboration": true,
+            "reflection_independence": true,
+            "thinking_completeness": true
+          }
+        }
+      },
+      "overall_quality": 92.77777777777777
+    },
+    "23071140230": {
+      "category_qualities": {
+        "team_collaboration": {
+          "category_id": "team_collaboration",
+          "category_name": "团队协作",
+          "quality_score": 100.0,
+          "max_points": 5,
+          "quality_issues": [],
+          "quality_strengths": [
+            "成员信息较完整，缺少学号",
+            "分工描述详细具体",
+            "有协作过程记录"
+          ],
+          "depth_indicators": {
+            "member_info": true,
+            "division_detail": true,
+            "collaboration_evidence": true
+          }
+        },
+        "principle_understanding": {
+          "category_id": "principle_understanding",
+          "category_name": "实验原理与认知",
+          "quality_score": 80.0,
+          "max_points": 10,
+          "quality_issues": [
+            "实验目的阐述不够完整"
+          ],
+          "quality_strengths": [
+            "原理阐述深入，有关键技术点说明",
+            "联系了汽车电子应用场景"
+          ],
+          "depth_indicators": {
+            "purpose_clarity": false,
+            "principle_depth": true,
+            "application_scenario": true
+          }
+        },
+        "completion": {
+          "category_id": "completion",
+          "category_name": "实验完成度",
+          "quality_score": 100.0,
+          "max_points": 35,
+          "quality_issues": [],
+          "quality_strengths": [
+            "硬件连接图清晰完整",
+            "引脚配置说明完整，包含功能描述",
+            "实验结果记录详细",
+            "有结果对比分析",
+            "配有实验照片或截图"
+          ],
+          "depth_indicators": {
+            "hardware_diagram": true,
+            "pin_config": true,
+            "result_detail": true,
+            "result_analysis": true,
+            "has_photo": true
+          }
+        },
+        "code_quality": {
+          "category_id": "code_quality",
+          "category_name": "代码质量",
+          "quality_score": 85.0,
+          "max_points": 30,
+          "quality_issues": [
+            "缺少代码块或代码注释"
+          ],
+          "quality_strengths": [
+            "代码流程图完整清晰",
+            "关键代码展示完整",
+            "中断服务程序说明详细"
+          ],
+          "depth_indicators": {
+            "flowchart": true,
+            "code_completeness": true,
+            "comment_density": false,
+            "interrupt_desc": true
+          }
+        },
+        "report_quality": {
+          "category_id": "report_quality",
+          "category_name": "实验报告质量",
+          "quality_score": 100.0,
+          "max_points": 10,
+          "quality_issues": [],
+          "quality_strengths": [
+            "调试问题记录真实具体，有解决过程",
+            "有团队协作解决问题的记录",
+            "个人心得具体深刻",
+            "思考题回答4题"
+          ],
+          "depth_indicators": {
+            "problem_authenticity": true,
+            "team_collaboration": true,
+            "reflection_independence": true,
+            "thinking_completeness": true
+          }
+        }
+      },
+      "overall_quality": 92.77777777777777
+    },
+    "23071140231": {
+      "category_qualities": {
+        "team_collaboration": {
+          "category_id": "team_collaboration",
+          "category_name": "团队协作",
+          "quality_score": 80.0,
+          "max_points": 5,
+          "quality_issues": [
+            "分工描述过于简单，应说明具体任务"
+          ],
+          "quality_strengths": [
+            "成员信息较完整，缺少学号",
+            "有协作过程记录"
+          ],
+          "depth_indicators": {
+            "member_info": true,
+            "division_detail": false,
+            "collaboration_evidence": true
+          }
+        },
+        "principle_understanding": {
+          "category_id": "principle_understanding",
+          "category_name": "实验原理与认知",
+          "quality_score": 80.0,
+          "max_points": 10,
+          "quality_issues": [
+            "实验目的阐述不够完整"
+          ],
+          "quality_strengths": [
+            "原理阐述深入，有关键技术点说明",
+            "联系了汽车电子应用场景"
+          ],
+          "depth_indicators": {
+            "purpose_clarity": false,
+            "principle_depth": true,
+            "application_scenario": true
+          }
+        },
+        "completion": {
+          "category_id": "completion",
+          "category_name": "实验完成度",
+          "quality_score": 100.0,
+          "max_points": 35,
+          "quality_issues": [],
+          "quality_strengths": [
+            "硬件连接图清晰完整",
+            "引脚配置说明完整，包含功能描述",
+            "实验结果记录详细",
+            "有结果对比分析",
+            "配有实验照片或截图"
+          ],
+          "depth_indicators": {
+            "hardware_diagram": true,
+            "pin_config": true,
+            "result_detail": true,
+            "result_analysis": true,
+            "has_photo": true
+          }
+        },
+        "code_quality": {
+          "category_id": "code_quality",
+          "category_name": "代码质量",
+          "quality_score": 85.0,
+          "max_points": 30,
+          "quality_issues": [
+            "缺少代码块或代码注释"
+          ],
+          "quality_strengths": [
+            "代码流程图完整清晰",
+            "关键代码展示完整",
+            "中断服务程序说明详细"
+          ],
+          "depth_indicators": {
+            "flowchart": true,
+            "code_completeness": true,
+            "comment_density": false,
+            "interrupt_desc": true
+          }
+        },
+        "report_quality": {
+          "category_id": "report_quality",
+          "category_name": "实验报告质量",
+          "quality_score": 100.0,
+          "max_points": 10,
+          "quality_issues": [],
+          "quality_strengths": [
+            "调试问题记录真实具体，有解决过程",
+            "有团队协作解决问题的记录",
+            "个人心得具体深刻",
+            "思考题回答4题"
+          ],
+          "depth_indicators": {
+            "problem_authenticity": true,
+            "team_collaboration": true,
+            "reflection_independence": true,
+            "thinking_completeness": true
+          }
+        }
+      },
+      "overall_quality": 91.66666666666667
+    },
+    "23071140232": {
+      "category_qualities": {
+        "team_collaboration": {
+          "category_id": "team_collaboration",
+          "category_name": "团队协作",
+          "quality_score": 40.0,
+          "max_points": 5,
+          "quality_issues": [
+            "成员信息不完整，应包含学号、姓名、角色",
+            "分工描述过于简单，应说明具体任务",
+            "缺少协作过程记录"
+          ],
+          "quality_strengths": [],
+          "depth_indicators": {
+            "member_info": false,
+            "division_detail": false,
+            "collaboration_evidence": false
+          }
+        },
+        "principle_understanding": {
+          "category_id": "principle_understanding",
+          "category_name": "实验原理与认知",
+          "quality_score": 80.0,
+          "max_points": 10,
+          "quality_issues": [
+            "实验目的阐述不够完整"
+          ],
+          "quality_strengths": [
+            "原理阐述深入，有关键技术点说明",
+            "联系了汽车电子应用场景"
+          ],
+          "depth_indicators": {
+            "purpose_clarity": false,
+            "principle_depth": true,
+            "application_scenario": true
+          }
+        },
+        "completion": {
+          "category_id": "completion",
+          "category_name": "实验完成度",
+          "quality_score": 64.0,
+          "max_points": 35,
+          "quality_issues": [
+            "缺少或硬件连接图不清晰",
+            "缺少结果对比分析",
+            "缺少实验照片或截图"
+          ],
+          "quality_strengths": [
+            "引脚配置说明完整，包含功能描述",
+            "实验结果记录详细"
+          ],
+          "depth_indicators": {
+            "hardware_diagram": false,
+            "pin_config": true,
+            "result_detail": true,
+            "result_analysis": false,
+            "has_photo": false
+          }
+        },
+        "code_quality": {
+          "category_id": "code_quality",
+          "category_name": "代码质量",
+          "quality_score": 70.0,
+          "max_points": 30,
+          "quality_issues": [
+            "缺少代码流程图",
+            "缺少代码块或代码注释"
+          ],
+          "quality_strengths": [
+            "关键代码展示完整",
+            "中断服务程序说明详细"
+          ],
+          "depth_indicators": {
+            "flowchart": false,
+            "code_completeness": true,
+            "comment_density": false,
+            "interrupt_desc": true
+          }
+        },
+        "report_quality": {
+          "category_id": "report_quality",
+          "category_name": "实验报告质量",
+          "quality_score": 70.0,
+          "max_points": 10,
+          "quality_issues": [
+            "缺少团队协作解决问题的记录",
+            "思考题回答不完整（1/7）"
+          ],
+          "quality_strengths": [
+            "调试问题记录真实具体，有解决过程",
+            "个人心得具体深刻"
+          ],
+          "depth_indicators": {
+            "problem_authenticity": true,
+            "team_collaboration": false,
+            "reflection_independence": true,
+            "thinking_completeness": false
+          }
+        }
+      },
+      "overall_quality": 67.11111111111111
+    },
+    "23071140233": {
+      "category_qualities": {
+        "team_collaboration": {
+          "category_id": "team_collaboration",
+          "category_name": "团队协作",
+          "quality_score": 100.0,
+          "max_points": 5,
+          "quality_issues": [],
+          "quality_strengths": [
+            "成员信息较完整，缺少学号",
+            "分工描述详细具体",
+            "有协作过程记录"
+          ],
+          "depth_indicators": {
+            "member_info": true,
+            "division_detail": true,
+            "collaboration_evidence": true
+          }
+        },
+        "principle_understanding": {
+          "category_id": "principle_understanding",
+          "category_name": "实验原理与认知",
+          "quality_score": 80.0,
+          "max_points": 10,
+          "quality_issues": [
+            "实验目的阐述不够完整"
+          ],
+          "quality_strengths": [
+            "原理阐述深入，有关键技术点说明",
+            "联系了汽车电子应用场景"
+          ],
+          "depth_indicators": {
+            "purpose_clarity": false,
+            "principle_depth": true,
+            "application_scenario": true
+          }
+        },
+        "completion": {
+          "category_id": "completion",
+          "category_name": "实验完成度",
+          "quality_score": 88.0,
+          "max_points": 35,
+          "quality_issues": [
+            "缺少实验照片或截图"
+          ],
+          "quality_strengths": [
+            "硬件连接图清晰完整",
+            "引脚配置说明完整，包含功能描述",
+            "实验结果记录详细",
+            "有结果对比分析"
+          ],
+          "depth_indicators": {
+            "hardware_diagram": true,
+            "pin_config": true,
+            "result_detail": true,
+            "result_analysis": true,
+            "has_photo": false
+          }
+        },
+        "code_quality": {
+          "category_id": "code_quality",
+          "category_name": "代码质量",
+          "quality_score": 85.0,
+          "max_points": 30,
+          "quality_issues": [
+            "缺少代码块或代码注释"
+          ],
+          "quality_strengths": [
+            "代码流程图完整清晰",
+            "有关键代码展示",
+            "中断服务程序说明详细"
+          ],
+          "depth_indicators": {
+            "flowchart": true,
+            "code_completeness": true,
+            "comment_density": false,
+            "interrupt_desc": true
+          }
+        },
+        "report_quality": {
+          "category_id": "report_quality",
+          "category_name": "实验报告质量",
+          "quality_score": 85.0,
+          "max_points": 10,
+          "quality_issues": [
+            "思考题回答不完整（2/7）"
+          ],
+          "quality_strengths": [
+            "调试问题记录真实具体，有解决过程",
+            "有团队协作解决问题的记录",
+            "个人心得具体深刻"
+          ],
+          "depth_indicators": {
+            "problem_authenticity": true,
+            "team_collaboration": true,
+            "reflection_independence": true,
+            "thinking_completeness": false
+          }
+        }
+      },
+      "overall_quality": 86.44444444444444
+    },
+    "23071140236": {
+      "category_qualities": {
+        "team_collaboration": {
+          "category_id": "team_collaboration",
+          "category_name": "团队协作",
+          "quality_score": 100.0,
+          "max_points": 5,
+          "quality_issues": [],
+          "quality_strengths": [
+            "成员信息较完整，缺少学号",
+            "分工描述详细具体",
+            "有协作过程记录"
+          ],
+          "depth_indicators": {
+            "member_info": true,
+            "division_detail": true,
+            "collaboration_evidence": true
+          }
+        },
+        "principle_understanding": {
+          "category_id": "principle_understanding",
+          "category_name": "实验原理与认知",
+          "quality_score": 80.0,
+          "max_points": 10,
+          "quality_issues": [
+            "实验目的阐述不够完整"
+          ],
+          "quality_strengths": [
+            "原理阐述深入，有关键技术点说明",
+            "联系了汽车电子应用场景"
+          ],
+          "depth_indicators": {
+            "purpose_clarity": false,
+            "principle_depth": true,
+            "application_scenario": true
+          }
+        },
+        "completion": {
+          "category_id": "completion",
+          "category_name": "实验完成度",
+          "quality_score": 100.0,
+          "max_points": 35,
+          "quality_issues": [],
+          "quality_strengths": [
+            "硬件连接图清晰完整",
+            "引脚配置说明完整，包含功能描述",
+            "实验结果记录详细",
+            "有结果对比分析",
+            "配有实验照片或截图"
+          ],
+          "depth_indicators": {
+            "hardware_diagram": true,
+            "pin_config": true,
+            "result_detail": true,
+            "result_analysis": true,
+            "has_photo": true
+          }
+        },
+        "code_quality": {
+          "category_id": "code_quality",
+          "category_name": "代码质量",
+          "quality_score": 85.0,
+          "max_points": 30,
+          "quality_issues": [
+            "缺少代码块或代码注释"
+          ],
+          "quality_strengths": [
+            "代码流程图完整清晰",
+            "关键代码展示完整",
+            "中断服务程序说明详细"
+          ],
+          "depth_indicators": {
+            "flowchart": true,
+            "code_completeness": true,
+            "comment_density": false,
+            "interrupt_desc": true
+          }
+        },
+        "report_quality": {
+          "category_id": "report_quality",
+          "category_name": "实验报告质量",
+          "quality_score": 85.0,
+          "max_points": 10,
+          "quality_issues": [
+            "思考题回答不完整（2/7）"
+          ],
+          "quality_strengths": [
+            "调试问题记录真实具体，有解决过程",
+            "有团队协作解决问题的记录",
+            "个人心得具体深刻"
+          ],
+          "depth_indicators": {
+            "problem_authenticity": true,
+            "team_collaboration": true,
+            "reflection_independence": true,
+            "thinking_completeness": false
+          }
+        }
+      },
+      "overall_quality": 91.11111111111111
+    },
+    "23071140237": {
+      "category_qualities": {
+        "team_collaboration": {
+          "category_id": "team_collaboration",
+          "category_name": "团队协作",
+          "quality_score": 100.0,
+          "max_points": 5,
+          "quality_issues": [],
+          "quality_strengths": [
+            "成员信息较完整，缺少学号",
+            "分工描述详细具体",
+            "有协作过程记录"
+          ],
+          "depth_indicators": {
+            "member_info": true,
+            "division_detail": true,
+            "collaboration_evidence": true
+          }
+        },
+        "principle_understanding": {
+          "category_id": "principle_understanding",
+          "category_name": "实验原理与认知",
+          "quality_score": 100.0,
+          "max_points": 10,
+          "quality_issues": [],
+          "quality_strengths": [
+            "实验目的阐述清晰完整",
+            "原理阐述深入，有关键技术点说明",
+            "联系了汽车电子应用场景"
+          ],
+          "depth_indicators": {
+            "purpose_clarity": true,
+            "principle_depth": true,
+            "application_scenario": true
+          }
+        },
+        "completion": {
+          "category_id": "completion",
+          "category_name": "实验完成度",
+          "quality_score": 88.0,
+          "max_points": 35,
+          "quality_issues": [
+            "缺少结果对比分析"
+          ],
+          "quality_strengths": [
+            "硬件连接图清晰完整",
+            "引脚配置说明完整，包含功能描述",
+            "实验结果记录详细",
+            "配有实验照片或截图"
+          ],
+          "depth_indicators": {
+            "hardware_diagram": true,
+            "pin_config": true,
+            "result_detail": true,
+            "result_analysis": false,
+            "has_photo": true
+          }
+        },
+        "code_quality": {
+          "category_id": "code_quality",
+          "category_name": "代码质量",
+          "quality_score": 85.0,
+          "max_points": 30,
+          "quality_issues": [
+            "缺少代码块或代码注释"
+          ],
+          "quality_strengths": [
+            "代码流程图完整清晰",
+            "关键代码展示完整",
+            "中断服务程序说明详细"
+          ],
+          "depth_indicators": {
+            "flowchart": true,
+            "code_completeness": true,
+            "comment_density": false,
+            "interrupt_desc": true
+          }
+        },
+        "report_quality": {
+          "category_id": "report_quality",
+          "category_name": "实验报告质量",
+          "quality_score": 85.0,
+          "max_points": 10,
+          "quality_issues": [
+            "思考题回答不完整（2/7）"
+          ],
+          "quality_strengths": [
+            "调试问题记录真实具体，有解决过程",
+            "有团队协作解决问题的记录",
+            "个人心得具体深刻"
+          ],
+          "depth_indicators": {
+            "problem_authenticity": true,
+            "team_collaboration": true,
+            "reflection_independence": true,
+            "thinking_completeness": false
+          }
+        }
+      },
+      "overall_quality": 88.66666666666667
+    },
+    "23071140238": {
+      "category_qualities": {
+        "team_collaboration": {
+          "category_id": "team_collaboration",
+          "category_name": "团队协作",
+          "quality_score": 100.0,
+          "max_points": 5,
+          "quality_issues": [],
+          "quality_strengths": [
+            "成员信息较完整，缺少学号",
+            "分工描述详细具体",
+            "有协作过程记录"
+          ],
+          "depth_indicators": {
+            "member_info": true,
+            "division_detail": true,
+            "collaboration_evidence": true
+          }
+        },
+        "principle_understanding": {
+          "category_id": "principle_understanding",
+          "category_name": "实验原理与认知",
+          "quality_score": 80.0,
+          "max_points": 10,
+          "quality_issues": [
+            "实验目的阐述不够完整"
+          ],
+          "quality_strengths": [
+            "原理阐述深入，有关键技术点说明",
+            "联系了汽车电子应用场景"
+          ],
+          "depth_indicators": {
+            "purpose_clarity": false,
+            "principle_depth": true,
+            "application_scenario": true
+          }
+        },
+        "completion": {
+          "category_id": "completion",
+          "category_name": "实验完成度",
+          "quality_score": 88.0,
+          "max_points": 35,
+          "quality_issues": [
+            "缺少实验照片或截图"
+          ],
+          "quality_strengths": [
+            "硬件连接图清晰完整",
+            "引脚配置说明完整，包含功能描述",
+            "实验结果记录详细",
+            "有结果对比分析"
+          ],
+          "depth_indicators": {
+            "hardware_diagram": true,
+            "pin_config": true,
+            "result_detail": true,
+            "result_analysis": true,
+            "has_photo": false
+          }
+        },
+        "code_quality": {
+          "category_id": "code_quality",
+          "category_name": "代码质量",
+          "quality_score": 85.0,
+          "max_points": 30,
+          "quality_issues": [
+            "代码注释不足"
+          ],
+          "quality_strengths": [
+            "代码流程图完整清晰",
+            "关键代码展示完整",
+            "中断服务程序说明详细"
+          ],
+          "depth_indicators": {
+            "flowchart": true,
+            "code_completeness": true,
+            "comment_density": false,
+            "interrupt_desc": true
+          }
+        },
+        "report_quality": {
+          "category_id": "report_quality",
+          "category_name": "实验报告质量",
+          "quality_score": 70.0,
+          "max_points": 10,
+          "quality_issues": [
+            "个人心得过于简单或通用",
+            "思考题回答不完整（2/7）"
+          ],
+          "quality_strengths": [
+            "调试问题记录真实具体，有解决过程",
+            "有团队协作解决问题的记录"
+          ],
+          "depth_indicators": {
+            "problem_authenticity": true,
+            "team_collaboration": true,
+            "reflection_independence": false,
+            "thinking_completeness": false
+          }
+        }
+      },
+      "overall_quality": 84.77777777777777
+    },
+    "23071140239": {
+      "category_qualities": {
+        "team_collaboration": {
+          "category_id": "team_collaboration",
+          "category_name": "团队协作",
+          "quality_score": 100.0,
+          "max_points": 5,
+          "quality_issues": [],
+          "quality_strengths": [
+            "成员信息较完整，缺少学号",
+            "分工描述详细具体",
+            "有协作过程记录"
+          ],
+          "depth_indicators": {
+            "member_info": true,
+            "division_detail": true,
+            "collaboration_evidence": true
+          }
+        },
+        "principle_understanding": {
+          "category_id": "principle_understanding",
+          "category_name": "实验原理与认知",
+          "quality_score": 80.0,
+          "max_points": 10,
+          "quality_issues": [
+            "实验目的阐述不够完整"
+          ],
+          "quality_strengths": [
+            "原理阐述深入，有关键技术点说明",
+            "联系了汽车电子应用场景"
+          ],
+          "depth_indicators": {
+            "purpose_clarity": false,
+            "principle_depth": true,
+            "application_scenario": true
+          }
+        },
+        "completion": {
+          "category_id": "completion",
+          "category_name": "实验完成度",
+          "quality_score": 88.0,
+          "max_points": 35,
+          "quality_issues": [
+            "缺少实验照片或截图"
+          ],
+          "quality_strengths": [
+            "硬件连接图清晰完整",
+            "引脚配置说明完整，包含功能描述",
+            "实验结果记录详细",
+            "有结果对比分析"
+          ],
+          "depth_indicators": {
+            "hardware_diagram": true,
+            "pin_config": true,
+            "result_detail": true,
+            "result_analysis": true,
+            "has_photo": false
+          }
+        },
+        "code_quality": {
+          "category_id": "code_quality",
+          "category_name": "代码质量",
+          "quality_score": 85.0,
+          "max_points": 30,
+          "quality_issues": [
+            "代码注释不足"
+          ],
+          "quality_strengths": [
+            "代码流程图完整清晰",
+            "关键代码展示完整",
+            "中断服务程序说明详细"
+          ],
+          "depth_indicators": {
+            "flowchart": true,
+            "code_completeness": true,
+            "comment_density": false,
+            "interrupt_desc": true
+          }
+        },
+        "report_quality": {
+          "category_id": "report_quality",
+          "category_name": "实验报告质量",
+          "quality_score": 85.0,
+          "max_points": 10,
+          "quality_issues": [
+            "思考题回答不完整（2/7）"
+          ],
+          "quality_strengths": [
+            "调试问题记录真实具体，有解决过程",
+            "有团队协作解决问题的记录",
+            "个人心得具体深刻"
+          ],
+          "depth_indicators": {
+            "problem_authenticity": true,
+            "team_collaboration": true,
+            "reflection_independence": true,
+            "thinking_completeness": false
+          }
+        }
+      },
+      "overall_quality": 86.44444444444444
+    },
+    "23071140240": {
+      "category_qualities": {
+        "team_collaboration": {
+          "category_id": "team_collaboration",
+          "category_name": "团队协作",
+          "quality_score": 100.0,
+          "max_points": 5,
+          "quality_issues": [],
+          "quality_strengths": [
+            "成员信息较完整，缺少学号",
+            "分工描述详细具体",
+            "有协作过程记录"
+          ],
+          "depth_indicators": {
+            "member_info": true,
+            "division_detail": true,
+            "collaboration_evidence": true
+          }
+        },
+        "principle_understanding": {
+          "category_id": "principle_understanding",
+          "category_name": "实验原理与认知",
+          "quality_score": 80.0,
+          "max_points": 10,
+          "quality_issues": [
+            "实验目的阐述不够完整"
+          ],
+          "quality_strengths": [
+            "原理阐述深入，有关键技术点说明",
+            "联系了汽车电子应用场景"
+          ],
+          "depth_indicators": {
+            "purpose_clarity": false,
+            "principle_depth": true,
+            "application_scenario": true
+          }
+        },
+        "completion": {
+          "category_id": "completion",
+          "category_name": "实验完成度",
+          "quality_score": 100.0,
+          "max_points": 35,
+          "quality_issues": [],
+          "quality_strengths": [
+            "硬件连接图清晰完整",
+            "引脚配置说明完整，包含功能描述",
+            "实验结果记录详细",
+            "有结果对比分析",
+            "配有实验照片或截图"
+          ],
+          "depth_indicators": {
+            "hardware_diagram": true,
+            "pin_config": true,
+            "result_detail": true,
+            "result_analysis": true,
+            "has_photo": true
+          }
+        },
+        "code_quality": {
+          "category_id": "code_quality",
+          "category_name": "代码质量",
+          "quality_score": 85.0,
+          "max_points": 30,
+          "quality_issues": [
+            "缺少代码块或代码注释"
+          ],
+          "quality_strengths": [
+            "有流程图",
+            "关键代码展示完整",
+            "中断服务程序说明详细"
+          ],
+          "depth_indicators": {
+            "flowchart": true,
+            "code_completeness": true,
+            "comment_density": false,
+            "interrupt_desc": true
+          }
+        },
+        "report_quality": {
+          "category_id": "report_quality",
+          "category_name": "实验报告质量",
+          "quality_score": 85.0,
+          "max_points": 10,
+          "quality_issues": [
+            "思考题回答不完整（1/7）"
+          ],
+          "quality_strengths": [
+            "调试问题记录真实具体，有解决过程",
+            "有团队协作解决问题的记录",
+            "个人心得具体深刻"
+          ],
+          "depth_indicators": {
+            "problem_authenticity": true,
+            "team_collaboration": true,
+            "reflection_independence": true,
+            "thinking_completeness": false
+          }
+        }
+      },
+      "overall_quality": 91.11111111111111
+    },
+    "23071140241": {
+      "category_qualities": {
+        "team_collaboration": {
+          "category_id": "team_collaboration",
+          "category_name": "团队协作",
+          "quality_score": 80.0,
+          "max_points": 5,
+          "quality_issues": [
+            "分工描述过于简单，应说明具体任务"
+          ],
+          "quality_strengths": [
+            "成员信息较完整，缺少学号",
+            "有协作过程记录"
+          ],
+          "depth_indicators": {
+            "member_info": true,
+            "division_detail": false,
+            "collaboration_evidence": true
+          }
+        },
+        "principle_understanding": {
+          "category_id": "principle_understanding",
+          "category_name": "实验原理与认知",
+          "quality_score": 80.0,
+          "max_points": 10,
+          "quality_issues": [
+            "实验目的阐述不够完整"
+          ],
+          "quality_strengths": [
+            "原理阐述深入，有关键技术点说明",
+            "联系了汽车电子应用场景"
+          ],
+          "depth_indicators": {
+            "purpose_clarity": false,
+            "principle_depth": true,
+            "application_scenario": true
+          }
+        },
+        "completion": {
+          "category_id": "completion",
+          "category_name": "实验完成度",
+          "quality_score": 100.0,
+          "max_points": 35,
+          "quality_issues": [],
+          "quality_strengths": [
+            "硬件连接图清晰完整",
+            "引脚配置说明完整，包含功能描述",
+            "实验结果记录详细",
+            "有结果对比分析",
+            "配有实验照片或截图"
+          ],
+          "depth_indicators": {
+            "hardware_diagram": true,
+            "pin_config": true,
+            "result_detail": true,
+            "result_analysis": true,
+            "has_photo": true
+          }
+        },
+        "code_quality": {
+          "category_id": "code_quality",
+          "category_name": "代码质量",
+          "quality_score": 85.0,
+          "max_points": 30,
+          "quality_issues": [
+            "缺少代码块或代码注释"
+          ],
+          "quality_strengths": [
+            "有流程图",
+            "关键代码展示完整",
+            "中断服务程序说明详细"
+          ],
+          "depth_indicators": {
+            "flowchart": true,
+            "code_completeness": true,
+            "comment_density": false,
+            "interrupt_desc": true
+          }
+        },
+        "report_quality": {
+          "category_id": "report_quality",
+          "category_name": "实验报告质量",
+          "quality_score": 70.0,
+          "max_points": 10,
+          "quality_issues": [
+            "个人心得过于简单或通用",
+            "思考题回答不完整（1/7）"
+          ],
+          "quality_strengths": [
+            "调试问题记录真实具体，有解决过程",
+            "有团队协作解决问题的记录"
+          ],
+          "depth_indicators": {
+            "problem_authenticity": true,
+            "team_collaboration": true,
+            "reflection_independence": false,
+            "thinking_completeness": false
+          }
+        }
+      },
+      "overall_quality": 88.33333333333333
+    },
+    "23071140205": {
+      "category_qualities": {},
+      "overall_quality": 0.0,
+      "issues": [
+        "未提交报告"
+      ]
+    },
+    "23071140209": {
+      "category_qualities": {},
+      "overall_quality": 0.0,
+      "issues": [
+        "未提交报告"
+      ]
+    },
+    "23071140229": {
+      "category_qualities": {},
+      "overall_quality": 0.0,
+      "issues": [
+        "未提交报告"
+      ]
+    },
+    "23071140234": {
+      "category_qualities": {},
+      "overall_quality": 0.0,
+      "issues": [
+        "未提交报告"
+      ]
+    },
+    "23071140235": {
+      "category_qualities": {},
+      "overall_quality": 0.0,
+      "issues": [
+        "未提交报告"
+      ]
+    }
+  },
+  "suggestions": {}
+}

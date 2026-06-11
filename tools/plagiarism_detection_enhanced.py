@@ -15,7 +15,7 @@ Enhanced Plagiarism Detection and Quality Assessment System for Lab Reports
 8. 可视化相似度矩阵
 
 作者: STM32F407 教学团队
-版本: 2.1.0
+版本: 2.4.0 - 新增配置化权重系统、增强语义检测、增强AI生成检测
 """
 
 import argparse
@@ -31,6 +31,12 @@ from tools.plagiarism.core import (
     TextPreprocessor,
     SimilarityMethod,
     SimilarityResult
+)
+from tools.plagiarism.config import (
+    PlagiarismConfig,
+    SimilarityWeights,
+    ThresholdConfig,
+    FeatureConfig
 )
 from tools.plagiarism.algorithms import (
     sequence_similarity,
@@ -67,6 +73,13 @@ from tools.plagiarism.feedback import (
     HTMLFeedbackGenerator,
     save_student_feedback
 )
+from tools.plagiarism.unified_feedback import (
+    UnifiedFeedbackGenerator,
+    FeedbackFormat,
+    FeedbackStyle,
+    save_unified_feedback,
+    SimilarityInfo
+)
 
 
 class EnhancedPlagiarismSystem:
@@ -80,7 +93,9 @@ class EnhancedPlagiarismSystem:
         threshold: float = 60.0,
         method: SimilarityMethod = SimilarityMethod.HYBRID,
         use_template_filter: bool = True,
-        template_path: Optional[Path] = None
+        template_path: Optional[Path] = None,
+        config: Optional[PlagiarismConfig] = None,
+        config_file: Optional[Path] = None
     ):
         """
         初始化系统
@@ -89,16 +104,45 @@ class EnhancedPlagiarismSystem:
             experiment_dir: 实验目录
             experiment_type: 实验类型
             class_name: 班级名称
-            threshold: 可疑阈值
-            method: 相似度计算方法
-            use_template_filter: 是否使用模板过滤
+            threshold: 可疑阈值（当不使用config时有效）
+            method: 相似度计算方法（当不使用config时有效）
+            use_template_filter: 是否使用模板过滤（当不使用config时有效）
             template_path: 模板文件路径
+            config: 完整配置对象
+            config_file: 配置文件路径
         """
         self.experiment_dir = experiment_dir
         self.experiment_type = experiment_type
         self.class_name = class_name
-        self.threshold = threshold
+
+        # 加载或创建配置
+        if config_file and config_file.exists():
+            print(f"加载配置文件: {config_file}")
+            self.config = PlagiarismConfig.from_json(config_file)
+            # 验证并标准化配置
+            if not self.config.validate():
+                print("警告: 配置权重无效，已自动标准化")
+                self.config = self.config.normalize()
+        elif config:
+            self.config = config
+            if not self.config.validate():
+                self.config = self.config.normalize()
+        else:
+            # 使用默认配置，但覆盖单独指定的参数
+            self.config = PlagiarismConfig(
+                weights=SimilarityWeights(text=0.6, code=0.4, structure=0.0, semantic=0.0),
+                thresholds=ThresholdConfig(suspicious=threshold),
+                features=FeatureConfig(
+                    enable_template_filter=use_template_filter,
+                    enable_semantic_detection=True,
+                    enable_jieba=True
+                )
+            )
+
+        # 为了向后兼容，保存旧的参数
+        self.threshold = self.config.thresholds.suspicious
         self.method = method
+        self.use_template_filter = self.config.features.enable_template_filter
 
         # 目录设置
         self.submissions_dir = experiment_dir / 'submissions' / 'extracted'
@@ -189,16 +233,26 @@ class EnhancedPlagiarismSystem:
         print("执行查重检测")
         print("="*60)
 
-        # 创建检测器
+        # 显示配置信息
+        print(f"配置: 文本权重={self.config.weights.text:.1%}, "
+              f"代码权重={self.config.weights.code:.1%}, "
+              f"语义权重={self.config.weights.semantic:.1%}")
+        print(f"功能: 语义检测={'[OK]' if self.config.features.enable_semantic_detection else '[X]'}, "
+              f"Jieba分词={'[OK]' if self.config.features.enable_jieba else '[X]'}, "
+              f"AI检测={'[OK]' if self.config.features.enable_ai_detection else '[X]'}")
+
+        # 创建检测器（传入配置对象）
         self.detector = PlagiarismDetector(
             method=self.method,
             threshold=self.threshold,
             remove_template=self.template_filter is not None,
-            group_info=self.group_info
+            template_content='',  # 已通过 template_filter 处理
+            group_info=self.group_info,
+            config=self.config
         )
 
         # 执行检测
-        self.all_results, self.suspicious = self.detector.detect(self.submissions)
+        self.all_results, self.suspicious, _ = self.detector.detect(self.submissions)
 
         # 检测抄袭团伙
         self.groups = self.detector.detect_groups(self.suspicious)
@@ -379,41 +433,126 @@ class EnhancedPlagiarismSystem:
         print(f"详细评分结果: {output_path}")
         return output_path
 
-    def generate_student_feedback(self, format: str = 'md'):
-        """为学生生成个性化反馈文件"""
-        print(f"\n生成学生反馈文件 ({format} 格式)...")
+    def generate_student_feedback(
+        self,
+        format: str = 'md',
+        style: str = 'detailed',
+        use_unified: bool = True
+    ):
+        """
+        为学生生成个性化反馈文件
+
+        Args:
+            format: 输出格式 (md/html/json)
+            style: 反馈风格 (standard/detailed/concise/encouraging/technical)
+            use_unified: 是否使用统一反馈系统
+        """
+        print(f"\n生成学生反馈文件 ({format} 格式, {style} 风格)...")
 
         feedback_dir = self.output_dir / 'feedback'
         feedback_dir.mkdir(exist_ok=True)
 
         generated = []
 
-        for grading_result in self.grading_results:
-            student_id = grading_result.student_id
+        # 转换风格参数
+        try:
+            feedback_style = FeedbackStyle(style)
+        except ValueError:
+            feedback_style = FeedbackStyle.DETAILED
 
-            # 获取技术检查结果
-            tech_result = self.technical_results.get(student_id, (0, [], [], []))
+        # 转换格式参数
+        try:
+            feedback_format = FeedbackFormat(format)
+        except ValueError:
+            feedback_format = FeedbackFormat.MARKDOWN
 
-            # 获取抄袭风险
-            plagiarism_risk = 0.0
-            if student_id in self.all_results and self.all_results[student_id]:
-                max_sim = max(r.overall_similarity for r in self.all_results[student_id])
-                plagiarism_risk = max_sim / 100
+        if use_unified:
+            # 使用统一反馈系统
+            generator = UnifiedFeedbackGenerator()
 
-            # 生成反馈文件
-            try:
-                feedback_path = save_student_feedback(
-                    student_id,
-                    grading_result.name,
-                    grading_result,
-                    tech_result,
-                    feedback_dir,
-                    plagiarism_risk,
-                    format
-                )
-                generated.append(feedback_path)
-            except Exception as e:
-                print(f"  警告: {student_id} 反馈生成失败: {e}")
+            for grading_result in self.grading_results:
+                student_id = grading_result.student_id
+
+                # 获取报告文本
+                text = self.submissions.get(student_id, {}).get('text', '')
+
+                # 获取技术检查结果
+                tech_result = self.technical_results.get(student_id, (0, [], [], []))
+
+                # 获取抄袭风险和相似度详细信息
+                plagiarism_risk = 0.0
+                similarity_details = []
+                if student_id in self.all_results and self.all_results[student_id]:
+                    # 获取所有相似度 > 50% 的结果
+                    similar_results = [r for r in self.all_results[student_id] if r.overall_similarity > 50]
+                    similar_results.sort(key=lambda x: x.overall_similarity, reverse=True)
+
+                    if similar_results:
+                        max_sim = similar_results[0].overall_similarity
+                        plagiarism_risk = max_sim / 100
+
+                        # 构建相似度详细信息
+                        for r in similar_results[:5]:  # 最多显示5个
+                            similar_to_name = self.submissions.get(r.similar_to, {}).get('name', r.similar_to)
+                            similarity_details.append(SimilarityInfo(
+                                student_id=r.similar_to,
+                                name=similar_to_name,
+                                similarity=r.overall_similarity,
+                                is_cross_group=getattr(r, 'is_cross_group', False)
+                            ))
+
+                try:
+                    # 生成统一反馈
+                    result = generator.generate(
+                        student_id=student_id,
+                        name=grading_result.name,
+                        text=text,
+                        grading_result=grading_result,
+                        technical_result=tech_result,
+                        plagiarism_risk=plagiarism_risk,
+                        similarity_details=similarity_details,
+                        style=feedback_style,
+                        format=feedback_format
+                    )
+
+                    # 保存反馈
+                    feedback_path = save_unified_feedback(
+                        result=result,
+                        output_dir=feedback_dir,
+                        generator=generator,
+                        style=feedback_style,
+                        format=feedback_format
+                    )
+                    generated.append(feedback_path)
+                except Exception as e:
+                    print(f"  警告: {student_id} 反馈生成失败: {e}")
+        else:
+            # 使用旧的反馈系统
+            for grading_result in self.grading_results:
+                student_id = grading_result.student_id
+
+                # 获取技术检查结果
+                tech_result = self.technical_results.get(student_id, (0, [], [], []))
+
+                # 获取抄袭风险
+                plagiarism_risk = 0.0
+                if student_id in self.all_results and self.all_results[student_id]:
+                    max_sim = max(r.overall_similarity for r in self.all_results[student_id])
+                    plagiarism_risk = max_sim / 100
+
+                try:
+                    feedback_path = save_student_feedback(
+                        student_id,
+                        grading_result.name,
+                        grading_result,
+                        tech_result,
+                        feedback_dir,
+                        plagiarism_risk,
+                        format
+                    )
+                    generated.append(feedback_path)
+                except Exception as e:
+                    print(f"  警告: {student_id} 反馈生成失败: {e}")
 
         print(f"生成 {len(generated)} 个反馈文件: {feedback_dir}")
         return generated
@@ -429,11 +568,15 @@ class EnhancedPlagiarismSystem:
     def run_full_analysis(self):
         """运行完整分析流程"""
         print("\n" + "="*60)
-        print(f"增强版实验报告查重与评分系统 v2.1")
+        print(f"增强版实验报告查重与评分系统 v2.4.0")
         print(f"实验类型: {self.experiment_type}")
         print(f"班级: {self.class_name}")
         print(f"查重阈值: {self.threshold}%")
         print(f"相似度算法: {self.method.value}")
+        print(f"配置权重: 文本={self.config.weights.text:.1%}, "
+              f"代码={self.config.weights.code:.1%}, "
+              f"结构={self.config.weights.structure:.1%}, "
+              f"语义={self.config.weights.semantic:.1%}")
         print("="*60)
 
         start_time = datetime.now()
@@ -565,6 +708,73 @@ def main():
         help='仅执行质量评估'
     )
 
+    # 新增：配置相关参数
+    parser.add_argument(
+        '--config-file',
+        type=Path,
+        help='配置文件路径 (JSON格式)'
+    )
+
+    parser.add_argument(
+        '--save-config',
+        type=Path,
+        help='保存当前配置到文件'
+    )
+
+    parser.add_argument(
+        '--enable-semantic',
+        action='store_true',
+        default=True,
+        help='启用语义相似度检测（检测改写）'
+    )
+
+    parser.add_argument(
+        '--disable-semantic',
+        action='store_true',
+        help='禁用语义相似度检测'
+    )
+
+    parser.add_argument(
+        '--enable-ai-detection',
+        action='store_true',
+        help='启用AI生成内容检测（实验性功能）'
+    )
+
+    parser.add_argument(
+        '--enable-jieba',
+        action='store_true',
+        default=True,
+        help='启用jieba中文分词（更精确）'
+    )
+
+    parser.add_argument(
+        '--weight-text',
+        type=float,
+        default=0.5,
+        help='文本相似度权重 (0-1)'
+    )
+
+    parser.add_argument(
+        '--weight-code',
+        type=float,
+        default=0.3,
+        help='代码相似度权重 (0-1)'
+    )
+
+    parser.add_argument(
+        '--weight-structure',
+        type=float,
+        default=0.1,
+        help='结构相似度权重 (0-1)'
+    )
+
+    parser.add_argument(
+        '--weight-semantic',
+        type=float,
+        default=0.1,
+        help='语义相似度权重 (0-1)'
+    )
+
     parser.add_argument(
         '--output-formats',
         type=str,
@@ -583,6 +793,33 @@ def main():
         'hybrid': SimilarityMethod.HYBRID
     }
 
+    # 创建配置（如果提供了配置文件，则加载；否则根据参数创建）
+    config = None
+    if args.config_file and args.config_file.exists():
+        config = PlagiarismConfig.from_json(args.config_file)
+    else:
+        # 根据命令行参数创建配置
+        config = PlagiarismConfig(
+            weights=SimilarityWeights(
+                text=args.weight_text,
+                code=args.weight_code,
+                structure=args.weight_structure,
+                semantic=args.weight_semantic
+            ),
+            thresholds=ThresholdConfig(suspicious=args.threshold),
+            features=FeatureConfig(
+                enable_template_filter=not args.no_template_filter,
+                enable_semantic_detection=args.enable_semantic and not args.disable_semantic,
+                enable_ai_detection=args.enable_ai_detection,
+                enable_jieba=args.enable_jieba
+            )
+        )
+
+        # 保存配置（如果请求）
+        if args.save_config:
+            config.to_json(args.save_config)
+            print(f"配置已保存到: {args.save_config}")
+
     # 创建系统
     system = EnhancedPlagiarismSystem(
         experiment_dir=args.experiment_dir,
@@ -591,7 +828,8 @@ def main():
         threshold=args.threshold,
         method=method_map[args.method],
         use_template_filter=not args.no_template_filter,
-        template_path=args.template
+        template_path=args.template,
+        config=config
     )
 
     # 执行分析

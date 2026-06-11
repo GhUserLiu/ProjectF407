@@ -8,11 +8,12 @@ import re
 from pathlib import Path
 from docx import Document
 
-BASE_DIR = Path(__file__).parent.parent.parent.parent
-# 默认使用最新的实验目录，可通过命令行参数覆盖
-EXPERIMENT_DIR = BASE_DIR / "assignments" / "2026-春季" / "汽服2302B班" / "07-car-gear"
+# Get the project root directory (go up from scripts to common to teaching to docs to project root)
+SCRIPT_DIR = Path(__file__).parent
+BASE_DIR = SCRIPT_DIR.parent.parent.parent.parent  # This should be the project root: NewProjectF407
+EXPERIMENT_DIR = BASE_DIR / "docs" / "teaching" / "2026-春季" / "汽服2302B班" / "07-car-gear"
 PROCESSED_DIR = EXPERIMENT_DIR / "processed"
-RUBRIC_FILE = Path(__file__).parent.parent / "rubrics" / "rubric.json"
+RUBRIC_FILE = SCRIPT_DIR.parent / "rubrics" / "rubric.json"
 
 def extract_text_from_docx(docx_path):
     """Extract all text from a .docx file"""
