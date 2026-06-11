@@ -1,8 +1,9 @@
 /**
   ******************************************************************************
   * @file           : main.c
-  * @brief          : STM32F407 转向灯 - HAL库版本
+  * @brief          : STM32F407 转向灯 - HAL库版本（安全增强版）
   *                 LED: 共阳极，低电平点亮
+  *                 改进：使用非阻塞消抖
   ******************************************************************************
   */
 
@@ -10,6 +11,7 @@
 #include "stm32f4xx_hal.h"
 #include "board.h"
 #include "config.h"
+#include "debounce.h"
 
 /* ========== 模式定义 ========== */
 typedef enum {
@@ -25,9 +27,9 @@ volatile uint8_t led0_state = 1;  /* 1=灭, 0=亮（低电平点亮） */
 volatile uint8_t led1_state = 1;
 volatile uint32_t toggle_counter = 0;
 
-/* ========== 按键状态变量 ========== */
-static uint8_t key0_pressed = 0;
-static uint8_t key_up_pressed = 0;
+/* ========== 按键状态变量（非阻塞消抖） ========== */
+static KeyState_t key0_state;
+static KeyState_t key_up_state;
 
 /* ========== HAL初始化 ========== */
 void SystemClock_Config(void)
@@ -66,45 +68,51 @@ uint8_t Read_KEY_UP(void)
     return KEY_UP_TRIGGER_HIGH ? pin_state : !pin_state;
 }
 
-/* ========== 按键扫描 ========== */
+/* ========== 按键扫描（非阻塞版本） ========== */
+void Key_Init_All(void)
+{
+    /* 初始化按键消抖状态 */
+    Key_Init(&key0_state);
+    Key_Init(&key_up_state);
+}
+
 void Key_Scan(void)
 {
+    /**
+     * @brief 按键扫描（非阻塞消抖版本）
+     *
+     * 改进说明:
+     * - 移除HAL_Delay阻塞调用
+     * - 使用状态机消抖（debounce模块）
+     * - 系统响应性更好，不影响LED闪烁
+     */
     uint8_t key0_now, key_up_now;
 
     key0_now = Read_KEY0();
     key_up_now = Read_KEY_UP();
 
-    /* 检测KEY0按下（上升沿触发） */
-    if (key0_now && !key0_pressed)
-    {
-        HAL_Delay(KEY_DEBOUNCE_DELAY);
-        if (Read_KEY0())
-        {
-            light_mode = (LightMode)((light_mode + 1) % 4);
-            if (light_mode != MODE_HAZARD)
-                previous_mode = light_mode;
-            toggle_counter = 0;
-        }
-    }
-    key0_pressed = key0_now;
+    /* 更新消抖状态 */
+    Key_Update(&key0_state, key0_now);
+    Key_Update(&key_up_state, key_up_now);
 
-    /* 检测KEY_UP按下（上升沿触发）- 记忆模式↔HAZARD切换 */
-    if (key_up_now && !key_up_pressed)
-    {
-        HAL_Delay(KEY_DEBOUNCE_DELAY);
-        if (Read_KEY_UP())
-        {
-            if (light_mode == MODE_HAZARD)
-                light_mode = previous_mode;
-            else
-            {
-                previous_mode = light_mode;
-                light_mode = MODE_HAZARD;
-            }
-            toggle_counter = 0;
-        }
+    /* 处理KEY0按下事件（消抖后） */
+    if (Key_IsPressed(&key0_state)) {
+        light_mode = (LightMode)((light_mode + 1) % 4);
+        if (light_mode != MODE_HAZARD)
+            previous_mode = light_mode;
+        toggle_counter = 0;
     }
-    key_up_pressed = key_up_now;
+
+    /* 处理KEY_UP按下事件（消抖后）- 记忆模式↔HAZARD切换 */
+    if (Key_IsPressed(&key_up_state)) {
+        if (light_mode == MODE_HAZARD)
+            light_mode = previous_mode;
+        else {
+            previous_mode = light_mode;
+            light_mode = MODE_HAZARD;
+        }
+        toggle_counter = 0;
+    }
 }
 
 /* ========== 更新LED显示 ========== */
@@ -163,12 +171,19 @@ int main(void)
     /* GPIO初始化（按键部分由HAL初始化，LED已在Reset_Handler中初始化） */
     GPIO_Init();
 
-    /* 主循环 */
+    /* 按键消抖初始化 */
+    Key_Init_All();
+
+    /* 主循环（非阻塞） */
     while (1)
     {
         Key_Scan();
         LED_Update();
-        HAL_Delay(MAIN_LOOP_DELAY);
+
+        /* 注意：移除了HAL_Delay以实现非阻塞循环
+         * LED闪烁频率由LED_Update()内部的计数器控制
+         * 主循环以CPU速度运行，确保按键响应及时
+         */
     }
 
     return 0;

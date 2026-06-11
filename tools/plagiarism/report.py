@@ -3,6 +3,7 @@
 Plagiarism Report Generator
 
 生成详细的查重报告和相似度矩阵
+安全增强：支持数据脱敏
 """
 
 import json
@@ -24,6 +25,9 @@ except ImportError:
     HEATMAP_AVAILABLE = False
 from .core import SimilarityResult, SimilarityMethod
 
+# 导入脱敏工具
+from tools.security.anonymizer import StudentDataAnonymizer, AnonymizationConfig
+
 
 @dataclass
 class ReportConfig:
@@ -32,6 +36,9 @@ class ReportConfig:
     experiment_name: str = '实验报告'
     class_name: str = '未知班级'
     threshold: float = 60.0
+    # 新增：脱敏配置
+    anonymize: bool = False
+    anonymization_config: AnonymizationConfig = field(default_factory=AnonymizationConfig)
     colors: Dict[str, str] = field(default_factory=lambda: {
         'low': '90EE90',      # 浅绿
         'medium': 'FFD700',   # 金色
@@ -129,6 +136,11 @@ class PlagiarismReport:
         self.results: Dict[str, List[SimilarityResult]] = {}
         self.suspicious: List[SimilarityResult] = []
         self.groups: List[Dict] = []
+
+        # 初始化脱敏器
+        self.anonymizer = None
+        if config.anonymize:
+            self.anonymizer = StudentDataAnonymizer(config.anonymization_config)
 
     def add_results(
         self,
@@ -391,13 +403,44 @@ class PlagiarismReport:
 
         Args:
             filename: 输出文件名
+
+        安全增强:
+            支持数据脱敏，保护学生隐私
         """
+        # 构建可疑详情数据
+        suspicious_details = []
+        for r in sorted(self.suspicious, key=lambda x: x.overall_similarity, reverse=True):
+            result_data = {
+                'student1': r.student_id,
+                'student2': r.similar_to,
+                'overall_similarity': r.overall_similarity,
+                'is_cross_group': r.is_cross_group,
+                'shared_paragraphs': len(r.shared_paragraphs),
+                'shared_code_blocks': len(r.shared_code_blocks)
+            }
+            # 应用脱敏
+            if self.anonymizer:
+                result_data = self.anonymizer.anonymize_dict(result_data)
+            suspicious_details.append(result_data)
+
+        # 构建团伙数据
+        groups_data = []
+        for group in self.groups:
+            group_data = group.copy()
+            if self.anonymizer and 'members' in group_data:
+                group_data['members'] = [
+                    self.anonymizer.anonymize_student_id(member)
+                    for member in group['members']
+                ]
+            groups_data.append(group_data)
+
         output = {
             'meta': {
                 'experiment_name': self.config.experiment_name,
                 'class_name': self.config.class_name,
                 'threshold': self.config.threshold,
-                'generated_at': datetime.now().isoformat()
+                'generated_at': datetime.now().isoformat(),
+                'anonymized': self.config.anonymize  # 标识是否脱敏
             },
             'summary': {
                 'total_students': len(self.results),
@@ -405,23 +448,23 @@ class PlagiarismReport:
                 'suspicious_students': len(self._get_suspicious_students()),
                 'plagiarism_groups': len(self.groups)
             },
-            'suspicious_details': [
-                {
-                    'student1': r.student_id,
-                    'student2': r.similar_to,
-                    'overall_similarity': r.overall_similarity,
-                    'is_cross_group': r.is_cross_group,
-                    'shared_paragraphs': len(r.shared_paragraphs),
-                    'shared_code_blocks': len(r.shared_code_blocks)
-                }
-                for r in sorted(self.suspicious, key=lambda x: x.overall_similarity, reverse=True)
-            ],
-            'groups': self.groups
+            'suspicious_details': suspicious_details,
+            'groups': groups_data
         }
 
         output_path = self.config.output_dir / filename
+
+        # 设置文件权限（仅所有者和组可读写）
         with open(output_path, 'w', encoding='utf-8') as f:
             json.dump(output, f, ensure_ascii=False, indent=2)
+
+        # 尝试设置文件权限（Unix系统）
+        try:
+            import os
+            import stat
+            os.chmod(output_path, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP)
+        except (OSError, AttributeError):
+            pass  # Windows或不支持权限的系统忽略
 
         return output_path
 

@@ -15,7 +15,7 @@ Enhanced Plagiarism Detection and Quality Assessment System for Lab Reports
 8. 可视化相似度矩阵
 
 作者: STM32F407 教学团队
-版本: 2.4.0 - 新增配置化权重系统、增强语义检测、增强AI生成检测
+版本: 2.5.0 - 安全增强版（路径验证、ZIP炸弹防护）
 """
 
 import argparse
@@ -24,6 +24,12 @@ import sys
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 from datetime import datetime
+
+# 导入安全工具
+from tools.security.path_validator import (
+    PathValidationError,
+    validate_experiment_dir
+)
 
 # 导入自定义模块
 from tools.plagiarism.core import (
@@ -783,6 +789,26 @@ def main():
     )
 
     args = parser.parse_args()
+
+    # ========== 安全验证：路径验证 ==========
+    # 验证实验目录路径（防御路径遍历攻击）
+    try:
+        validated_dir = validate_experiment_dir(args.experiment_dir)
+        args.experiment_dir = validated_dir
+    except PathValidationError as e:
+        print(f"错误: {e}")
+        print(f"请确保实验目录在允许的路径范围内 (docs/teaching/)")
+        return 1
+
+    # 验证模板文件路径（如果提供）
+    if args.template:
+        try:
+            # 模板文件也应在允许的目录内
+            validated_template = validate_experiment_dir(args.template)
+            args.template = validated_template
+        except PathValidationError as e:
+            print(f"模板文件路径验证失败: {e}")
+            return 1
 
     # 转换方法
     method_map = {

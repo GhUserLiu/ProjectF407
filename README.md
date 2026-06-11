@@ -62,6 +62,22 @@ NewProjectF407/
 
 ---
 
+## 安全功能
+
+本项目 v2.5.0+ 包含完整的安全防护措施：
+
+| 功能 | 描述 | 模块 |
+|------|------|------|
+| **ZIP炸弹防护** | 文件大小/数量限制，路径遍历检查 | `tools/security/zip_validator.py` |
+| **路径验证** | 限制目录访问范围，防御路径遍历 | `tools/security/path_validator.py` |
+| **XXE防护** | 安全XML解析，防御外部实体注入 | `tools/security/xml_parser.py` |
+| **数据脱敏** | 保护学生隐私，支持报告匿名化 | `tools/security/anonymizer.py` |
+| **命令注入防护** | Makefile参数白名单验证 | `Makefile` |
+
+详细说明: [安全指南](docs/security/SECURITY_GUIDE.md)
+
+---
+
 ## 配置说明
 
 ### 硬件固定配置 (`common/bsp/board.h`)
