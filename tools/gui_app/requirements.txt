@@ -1,0 +1,26 @@
+# STM32教学管理系统 - GUI应用依赖
+
+# GUI框架
+PyQt6==6.7.0
+PyQt6-WebEngine==6.7.0
+
+# 数据处理
+openpyxl==3.1.2
+python-docx==1.1.0
+pandas==2.0.0
+
+# 中文处理和机器学习
+jieba==0.42.1
+scikit-learn==1.4.0
+numpy==1.26.0
+
+# 文档生成
+reportlab==4.1.0
+markdown==3.5.0
+weasyprint==60.0
+
+# 打包工具
+pyinstaller==6.0.0
+
+# 工具库
+python-dateutil==2.8.2
