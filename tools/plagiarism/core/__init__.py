@@ -8,11 +8,13 @@ Core Plagiarism Detection Module
 from .detector import (
     PlagiarismDetector,
     SimilarityResult,
-    SimilarityMethod
+    SimilarityMethod,
+    TextPreprocessor
 )
 
 __all__ = [
     'PlagiarismDetector',
     'SimilarityResult',
     'SimilarityMethod',
+    'TextPreprocessor',
 ]

@@ -48,7 +48,9 @@
       "Bash(python3 -m py_compile \"c:/Users/liuzh/Projects/Workspace/stm32f407/tools/submission_utils.py\")",
       "Bash(python3)",
       "Bash(python -c \"from tools.submission_utils import extract_team_leader_info; print\\('函数导入成功'\\)\")",
-      "Bash(python -c \"import json; f=open\\('docs/teaching/common/rubrics/rubric.json', encoding='utf-8'\\); data=json.load\\(f\\); print\\('JSON有效'\\); print\\('评分类别数量:', len\\(data['categories']\\)\\)\")"
+      "Bash(python -c \"import json; f=open\\('docs/teaching/common/rubrics/rubric.json', encoding='utf-8'\\); data=json.load\\(f\\); print\\('JSON有效'\\); print\\('评分类别数量:', len\\(data['categories']\\)\\)\")",
+      "Bash(python tools/batch_class_processor.py --base-dir . --semester 2026-春季 --experiment 07-car-gear --threshold 60 --no-cross-class --output multi_class_test --verbose)",
+      "Bash(python tools/batch_class_processor.py --base-dir . --semester 2026-春季 --experiment 07-car-gear --threshold 60 --enable-cross-class --output multi_class_test --verbose)"
     ]
   }
 }

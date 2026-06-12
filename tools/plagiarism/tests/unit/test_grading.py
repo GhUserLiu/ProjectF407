@@ -17,9 +17,13 @@ class TestGradingSystem:
     def test_grade_submission(self, sample_rubric, sample_submission):
         """测试评分"""
         system = GradingSystem(rubric=sample_rubric)
-        result = system.grade(sample_submission)
+        result = system.grade(
+            student_id=sample_submission['student_id'],
+            name=sample_submission['name'],
+            text=sample_submission['content']
+        )
         assert result is not None
-        assert 'total_score' in result or 'score' in result
+        assert hasattr(result, 'total_score') or 'total_score' in result
 
 
 class TestRubricValidation:
