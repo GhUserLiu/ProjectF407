@@ -19,7 +19,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, pyqtSignal
 
 from app.models.domain import ProjectConfig, SimilarityWeights
-from app.ui.file_dialog_utils import get_existing_directory, get_open_filename
+from app.ui.file_dialog_utils import get_existing_directory, get_open_filename, get_save_filename
 
 
 class SettingsView(QWidget):
@@ -95,6 +95,16 @@ class SettingsView(QWidget):
         # 保存按钮
         button_layout = QHBoxLayout()
 
+        self.import_btn = QPushButton("📥 导入配置")
+        self.import_btn.clicked.connect(self._on_import_config)
+
+        self.export_btn = QPushButton("📤 导出配置")
+        self.export_btn.clicked.connect(self._on_export_config)
+
+        self.backup_btn = QPushButton("💾 备份数据")
+        self.backup_btn.setToolTip("备份项目配置和处理结果")
+        self.backup_btn.clicked.connect(self._on_backup_data)
+
         self.reset_btn = QPushButton("🔄 重置为默认")
         self.reset_btn.clicked.connect(self._on_reset)
 
@@ -116,6 +126,9 @@ class SettingsView(QWidget):
         self.save_btn.clicked.connect(self._on_save)
 
         button_layout.addStretch()
+        button_layout.addWidget(self.import_btn)
+        button_layout.addWidget(self.export_btn)
+        button_layout.addWidget(self.backup_btn)
         button_layout.addWidget(self.reset_btn)
         button_layout.addWidget(self.save_btn)
 
@@ -709,3 +722,286 @@ class SettingsView(QWidget):
         self.code_weight_spin.setValue(config.weights.code)
         self.structure_weight_spin.setValue(config.weights.structure)
         self.semantic_weight_spin.setValue(config.weights.semantic)
+
+    def _on_export_config(self):
+        """导出配置到文件"""
+        file_path, _ = get_save_filename(
+            self,
+            "导出配置文件",
+            "JSON文件 (*.json)",
+            'export',
+            self.current_config,
+            default_name="stm32_config.json"
+        )
+
+        if file_path:
+            try:
+                # 收集当前所有设置
+                config_data = {
+                    "version": "2.6.0",
+                    "project": {
+                        "class_name": self.class_name_edit.text(),
+                        "experiment_type": self.experiment_type_combo.currentData(),
+                        "experiment_dir": self.experiment_dir_edit.text(),
+                        "submissions_dir": self.submissions_dir_edit.text(),
+                        "output_dir": self.output_dir_edit.text(),
+                        "template_path": self.template_path_edit.text(),
+                        "rubric_path": self.rubric_path_edit.text(),
+                    },
+                    "plagiarism": {
+                        "suspicious_threshold": self.suspicious_threshold_spin.value(),
+                        "high_similarity_threshold": self.high_similarity_threshold_spin.value(),
+                        "plagiarism_threshold": self.plagiarism_threshold_spin.value(),
+                        "weights": {
+                            "text": self.text_weight_spin.value(),
+                            "code": self.code_weight_spin.value(),
+                            "structure": self.structure_weight_spin.value(),
+                            "semantic": self.semantic_weight_spin.value(),
+                        },
+                        "enable_template_filter": self.enable_template_filter_cb.isChecked(),
+                        "enable_semantic": self.enable_semantic_cb.isChecked(),
+                        "enable_jieba": self.enable_jieba_cb.isChecked(),
+                        "enable_code_obfuscation": self.enable_code_obfuscation_cb.isChecked(),
+                    },
+                    "grading": {
+                        "enable_rubric": self.enable_rubric_grading_cb.isChecked(),
+                        "enable_technical": self.enable_technical_check_cb.isChecked(),
+                        "enable_code_analysis": self.enable_code_analysis_cb.isChecked(),
+                        "enable_image_quality": self.enable_image_quality_cb.isChecked(),
+                        "enable_consistency": self.enable_consistency_cb.isChecked(),
+                        "max_score": self.max_score_spin.value(),
+                        "pass_score": self.pass_score_spin.value(),
+                        "grade_a": self.grade_a_spin.value(),
+                        "grade_b": self.grade_b_spin.value(),
+                        "grade_c": self.grade_c_spin.value(),
+                        "grade_d": self.grade_d_spin.value(),
+                    },
+                    "system": {
+                        "dark_mode": self.dark_mode_cb.isChecked(),
+                        "compact_mode": self.compact_mode_cb.isChecked(),
+                        "show_tooltips": self.show_tooltips_cb.isChecked(),
+                        "thread_count": self.thread_count_spin.value(),
+                        "cache_size": self.cache_size_spin.value(),
+                        "enable_log": self.enable_log_cb.isChecked(),
+                        "log_level": self.log_level_combo.currentData(),
+                    }
+                }
+
+                # 保存到文件
+                with open(file_path, 'w', encoding='utf-8') as f:
+                    json.dump(config_data, f, indent=2, ensure_ascii=False)
+
+                self.status_changed.emit(f"配置已导出到: {file_path}")
+
+            except Exception as e:
+                self.status_changed.emit(f"导出失败: {str(e)}")
+
+    def _on_import_config(self):
+        """从文件导入配置"""
+        file_path, _ = get_open_filename(
+            self,
+            "导入配置文件",
+            "JSON文件 (*.json)",
+            'config',
+            self.current_config
+        )
+
+        if file_path:
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    config_data = json.load(f)
+
+                # 验证版本
+                config_version = config_data.get("version", "1.0.0")
+                if config_version != "2.6.0":
+                    self.status_changed.emit(f"警告: 配置版本 {config_version} 可能不兼容")
+
+                # 加载项目设置
+                project = config_data.get("project", {})
+                self.class_name_edit.setText(project.get("class_name", ""))
+                self.experiment_dir_edit.setText(project.get("experiment_dir", ""))
+                self.submissions_dir_edit.setText(project.get("submissions_dir", ""))
+                self.output_dir_edit.setText(project.get("output_dir", ""))
+                self.template_path_edit.setText(project.get("template_path", ""))
+                self.rubric_path_edit.setText(project.get("rubric_path", ""))
+
+                exp_type = project.get("experiment_type", "档位实验")
+                for i in range(self.experiment_type_combo.count()):
+                    if self.experiment_type_combo.itemData(i) == exp_type:
+                        self.experiment_type_combo.setCurrentIndex(i)
+                        break
+
+                # 加载查重设置
+                plagiarism = config_data.get("plagiarism", {})
+                self.suspicious_threshold_spin.setValue(plagiarism.get("suspicious_threshold", 60))
+                self.high_similarity_threshold_spin.setValue(plagiarism.get("high_similarity_threshold", 70))
+                self.plagiarism_threshold_spin.setValue(plagiarism.get("plagiarism_threshold", 85))
+
+                weights = plagiarism.get("weights", {})
+                self.text_weight_spin.setValue(weights.get("text", 0.5))
+                self.code_weight_spin.setValue(weights.get("code", 0.3))
+                self.structure_weight_spin.setValue(weights.get("structure", 0.1))
+                self.semantic_weight_spin.setValue(weights.get("semantic", 0.1))
+
+                self.enable_template_filter_cb.setChecked(plagiarism.get("enable_template_filter", True))
+                self.enable_semantic_cb.setChecked(plagiarism.get("enable_semantic", True))
+                self.enable_jieba_cb.setChecked(plagiarism.get("enable_jieba", True))
+                self.enable_code_obfuscation_cb.setChecked(plagiarism.get("enable_code_obfuscation", False))
+
+                # 加载评分设置
+                grading = config_data.get("grading", {})
+                self.enable_rubric_grading_cb.setChecked(grading.get("enable_rubric", True))
+                self.enable_technical_check_cb.setChecked(grading.get("enable_technical", True))
+                self.enable_code_analysis_cb.setChecked(grading.get("enable_code_analysis", True))
+                self.enable_image_quality_cb.setChecked(grading.get("enable_image_quality", True))
+                self.enable_consistency_cb.setChecked(grading.get("enable_consistency", False))
+                self.max_score_spin.setValue(grading.get("max_score", 100))
+                self.pass_score_spin.setValue(grading.get("pass_score", 60))
+                self.grade_a_spin.setValue(grading.get("grade_a", 90))
+                self.grade_b_spin.setValue(grading.get("grade_b", 80))
+                self.grade_c_spin.setValue(grading.get("grade_c", 70))
+                self.grade_d_spin.setValue(grading.get("grade_d", 60))
+
+                # 加载系统设置
+                system = config_data.get("system", {})
+                self.dark_mode_cb.setChecked(system.get("dark_mode", False))
+                self.compact_mode_cb.setChecked(system.get("compact_mode", False))
+                self.show_tooltips_cb.setChecked(system.get("show_tooltips", True))
+                self.thread_count_spin.setValue(system.get("thread_count", 4))
+                self.cache_size_spin.setValue(system.get("cache_size", 100))
+                self.enable_log_cb.setChecked(system.get("enable_log", True))
+
+                log_level = system.get("log_level", "INFO")
+                for i in range(self.log_level_combo.count()):
+                    if self.log_level_combo.itemData(i) == log_level:
+                        self.log_level_combo.setCurrentIndex(i)
+                        break
+
+                self.status_changed.emit(f"配置已从文件导入: {file_path}")
+
+            except json.JSONDecodeError:
+                self.status_changed.emit("错误: 无效的配置文件格式")
+            except Exception as e:
+                self.status_changed.emit(f"导入失败: {str(e)}")
+
+    def _on_backup_data(self):
+        """备份项目数据和结果"""
+        if not self.current_config:
+            self.status_changed.emit("错误: 没有加载的项目配置")
+            return
+
+        # 选择备份目录
+        backup_dir = get_existing_directory(
+            self,
+            "选择备份目录",
+            'export',
+            self.current_config
+        )
+
+        if not backup_dir:
+            return
+
+        try:
+            import zipfile
+            import shutil
+            from datetime import datetime
+
+            # 创建备份文件名
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            backup_name = f"{self.class_name_edit.text() or 'project'}_backup_{timestamp}"
+            backup_path = Path(backup_dir) / f"{backup_name}.zip"
+
+            # 收集需要备份的文件
+            files_to_backup = []
+
+            # 1. 配置文件
+            config_content = {
+                "version": "2.6.0",
+                "project": {
+                    "class_name": self.class_name_edit.text(),
+                    "experiment_type": self.experiment_type_combo.currentData(),
+                    "experiment_dir": self.experiment_dir_edit.text(),
+                    "submissions_dir": self.submissions_dir_edit.text(),
+                    "output_dir": self.output_dir_edit.text(),
+                    "template_path": self.template_path_edit.text(),
+                    "rubric_path": self.rubric_path_edit.text(),
+                },
+                "plagiarism": {
+                    "suspicious_threshold": self.suspicious_threshold_spin.value(),
+                    "high_similarity_threshold": self.high_similarity_threshold_spin.value(),
+                    "plagiarism_threshold": self.plagiarism_threshold_spin.value(),
+                    "weights": {
+                        "text": self.text_weight_spin.value(),
+                        "code": self.code_weight_spin.value(),
+                        "structure": self.structure_weight_spin.value(),
+                        "semantic": self.semantic_weight_spin.value(),
+                    },
+                    "enable_template_filter": self.enable_template_filter_cb.isChecked(),
+                    "enable_semantic": self.enable_semantic_cb.isChecked(),
+                    "enable_jieba": self.enable_jieba_cb.isChecked(),
+                    "enable_code_obfuscation": self.enable_code_obfuscation_cb.isChecked(),
+                },
+                "grading": {
+                    "enable_rubric": self.enable_rubric_grading_cb.isChecked(),
+                    "enable_technical": self.enable_technical_check_cb.isChecked(),
+                    "enable_code_analysis": self.enable_code_analysis_cb.isChecked(),
+                    "enable_image_quality": self.enable_image_quality_cb.isChecked(),
+                    "enable_consistency": self.enable_consistency_cb.isChecked(),
+                    "max_score": self.max_score_spin.value(),
+                    "pass_score": self.pass_score_spin.value(),
+                    "grade_a": self.grade_a_spin.value(),
+                    "grade_b": self.grade_b_spin.value(),
+                    "grade_c": self.grade_c_spin.value(),
+                    "grade_d": self.grade_d_spin.value(),
+                }
+            }
+
+            # 2. 添加实际存在的文件
+            existing_paths = []
+            if self.experiment_dir_edit.text():
+                exp_dir = Path(self.experiment_dir_edit.text())
+                if exp_dir.exists():
+                    existing_paths.append(("experiment", exp_dir))
+
+            if self.submissions_dir_edit.text():
+                sub_dir = Path(self.submissions_dir_edit.text())
+                if sub_dir.exists():
+                    existing_paths.append(("submissions", sub_dir))
+
+            if self.output_dir_edit.text():
+                out_dir = Path(self.output_dir_edit.text())
+                if out_dir.exists():
+                    existing_paths.append(("output", out_dir))
+
+            if self.template_path_edit.text():
+                template = Path(self.template_path_edit.text())
+                if template.exists():
+                    existing_paths.append(("template", template))
+
+            if self.rubric_path_edit.text():
+                rubric = Path(self.rubric_path_edit.text())
+                if rubric.exists():
+                    existing_paths.append(("rubric", rubric))
+
+            # 创建 ZIP 文件
+            with zipfile.ZipFile(backup_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                # 添加配置文件
+                zipf.writestr("config.json", json.dumps(config_content, indent=2, ensure_ascii=False))
+
+                # 添加其他文件和目录
+                for name, path in existing_paths:
+                    if path.is_file():
+                        zipf.write(path, f"{name}/{path.name}")
+                    elif path.is_dir():
+                        for item in path.rglob('*'):
+                            if item.is_file():
+                                arc_name = f"{name}/{item.relative_to(path)}"
+                                zipf.write(item, arc_name)
+
+            # 计算备份大小
+            size_mb = backup_path.stat().st_size / (1024 * 1024)
+
+            self.status_changed.emit(f"备份成功: {backup_path.name} ({size_mb:.1f} MB)")
+
+        except Exception as e:
+            self.status_changed.emit(f"备份失败: {str(e)}")

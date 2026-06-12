@@ -58,7 +58,7 @@
 
 ```bash
 # 进入应用目录
-cd d:\4-Workspace\MCU_Research\project_test\NewProjectF407\tools\gui_app
+cd tools/gui_app
 
 # 安装依赖
 pip install -r requirements.txt
