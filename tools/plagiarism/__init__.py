@@ -2,250 +2,205 @@
 增强版实验报告查重与评分系统
 Enhanced Plagiarism Detection and Grading System for Lab Reports
 
-提供多种相似度算法、模板排除、代码查重、详细评分、技术检查、可视化报告等功能
-v2.5.0 - 新增代码深度分析、智能反馈建议、图像质量检测、评分一致性校验
+v2.6.0 - 模块化重构版本
+
+模块结构：
+- core: 核心查重检测
+- grading: 评分系统
+- feedback: 反馈生成
+- quality: 质量评估
+- code: 代码分析
+- image: 图像处理
+- report: 报告生成
+- utils: 工具函数
 """
 
-from .core import (
-    PlagiarismDetector,
-    TextPreprocessor,
-    SimilarityResult,
-    SimilarityMethod
-)
-from .algorithms import (
-    sequence_similarity,
-    cosine_similarity,
-    jaccard_similarity,
-    levenshtein_similarity,
-    compute_similarity
-)
-from .report import (
-    PlagiarismReport,
-    SimilarityMatrix,
-    ReportConfig
-)
-from .grading import (
-    RubricLoader,
-    RubricGrader,
-    GradingResult,
-    batch_grade,
-    load_rubric_for_experiment
-)
-from .technical_checks import (
-    TechnicalChecker,
-    ExperimentType,
-    CheckResult,
-    ContentStructureChecker,
-    CodeSnippetChecker,
-    ThinkingQuestionsChecker
-)
-from .feedback import (
-    FeedbackGenerator,
-    HTMLFeedbackGenerator,
-    save_student_feedback
-)
-from .unified_feedback import (
-    UnifiedFeedbackGenerator,
-    UnifiedFeedbackResult,
-    FeedbackFormat,
-    FeedbackStyle,
-    save_unified_feedback,
-    generate_feedback
-)
+# ========== 核心检测模块 ==========
+try:
+    from .core import (
+        PlagiarismDetector,
+        SimilarityResult,
+        SimilarityMethod
+    )
+except ImportError:
+    pass
 
-# 新增：配置系统
-from .config import (
-    PlagiarismConfig,
-    SimilarityWeights,
-    ThresholdConfig,
-    FeatureConfig,
-    default_config
-)
+# ========== 评分模块 ==========
+try:
+    from .grading import (
+        GradingSystem,
+        EnhancedGradingSystem
+    )
+except ImportError:
+    pass
 
-# 新增：高级检测功能
-from .code_obfuscation import (
-    CodeObfuscationDetector,
-    CodeObfuscationResult,
-    ObfuscationType
-)
-from .semantic import (
-    SemanticDetector,
-    SemanticSimilarityResult,
-    SemanticMethod
-)
-from .comparison_view import (
-    ComparisonViewGenerator,
-    DiffHighlighter,
-    DiffBlock,
-    DiffType
-)
-from .ai_detection.enhanced_detector import (
-    EnhancedAIGeneratorDetector,
-    AIGenerationResult
-)
-from .ai_detection.detector import (
-    AIGeneratedDetector,
-    AIGenerationResult as OldAIGenerationResult
-)
-from .image_similarity import (
-    ImageDetector,
-    ImageSimilarityResult,
-    HashType
-)
-from .image_quality import (
-    ImageQualityAssessor,
-    ImageQualityResult,
-    ImageType,
-    QualityMetrics,
-    ContentAnalyzer,
-    LabReportValidator
-)
+# ========== 反馈模块 ==========
+try:
+    from .feedback import (
+        FeedbackGenerator,
+        EnhancedFeedbackGenerator,
+        SmartFeedbackGenerator,
+        UnifiedFeedbackGenerator
+    )
+except ImportError:
+    pass
 
-# ========== v2.5.0 新增：质量评估强化 ==========
-from .code_analyzer import (
-    EnhancedCodeAnalyzer,
-    CStyleParser,
-    NamingConventionChecker,
-    ComplexityAnalyzer,
-    BestPracticeChecker,
-    SecurityChecker,
-    CodeAnalysisResult,
-    CodeIssue,
-    Severity,
-    FunctionMetrics,
-    analyze_code_from_report
-)
-from .smart_feedback import (
-    SmartFeedbackEngine,
-    SmartFeedback,
-    FeedbackCategory,
-    LearningResource,
-    generate_smart_feedback_report
-)
-from .image_quality_checker import (
-    ImageQualityChecker,
-    ImageRelevanceChecker,
-    ImageAnalysisResult,
-    ImageQuality,
-    ImageIssue,
-    check_images_from_directory
-)
-from .grading_validator import (
-    GradingValidator,
-    ValidationIssue,
-    ValidationReport,
-    ValidationSeverity,
-    validate_grading_results
-)
+# ========== 质量评估模块 ==========
+try:
+    from .quality import (
+        QualityAssessment,
+        AdaptiveThreshold,
+        TechnicalValidator
+    )
+except ImportError:
+    pass
 
-__version__ = '2.5.0'
+# ========== 代码分析模块 ==========
+try:
+    from .code import (
+        CodeAnalyzer,
+        CodeQualityAnalyzer
+    )
+except ImportError:
+    pass
+
+# ========== 图像处理模块 ==========
+try:
+    from .image import (
+        ImageQualityChecker,
+        ImageCounter
+    )
+except ImportError:
+    pass
+
+# ========== 报告生成模块 ==========
+try:
+    from .report import (
+        PlagiarismReport,
+        ReportConfig
+    )
+except ImportError:
+    pass
+
+# ========== 兼容旧版导入 ==========
+# 保留一些旧模块的直接导入以保持兼容性
+try:
+    from .code_obfuscation import CodeObfuscationDetector
+except ImportError:
+    pass
+
+try:
+    from .semantic import SemanticDetector
+except ImportError:
+    pass
+
+try:
+    from .ai_detection.enhanced_detector import EnhancedAIGeneratorDetector
+except ImportError:
+    pass
+
+try:
+    from .image_similarity import ImageDetector
+except ImportError:
+    pass
+
+try:
+    from .image_quality import ImageQualityAssessor
+except ImportError:
+    pass
+
+__version__ = '2.6.0'
+
 __all__ = [
-    # 核心
+    # 核心检测
     'PlagiarismDetector',
-    'TextPreprocessor',
     'SimilarityResult',
     'SimilarityMethod',
-    # 算法
-    'sequence_similarity',
-    'cosine_similarity',
-    'jaccard_similarity',
-    'levenshtein_similarity',
-    'compute_similarity',
+    # 评分
+    'GradingSystem',
+    'EnhancedGradingSystem',
+    # 反馈
+    'FeedbackGenerator',
+    'EnhancedFeedbackGenerator',
+    'SmartFeedbackGenerator',
+    'UnifiedFeedbackGenerator',
+    # 质量评估
+    'QualityAssessment',
+    'AdaptiveThreshold',
+    'TechnicalValidator',
+    # 代码分析
+    'CodeAnalyzer',
+    'CodeQualityAnalyzer',
+    # 图像处理
+    'ImageQualityChecker',
+    'ImageCounter',
     # 报告
     'PlagiarismReport',
-    'SimilarityMatrix',
     'ReportConfig',
-    # 评分
-    'RubricLoader',
-    'RubricGrader',
-    'GradingResult',
+]
+
+# ========== 向后兼容性层 ==========
+# 以下导入保持与旧版本的兼容性
+# 警告: 这些可能在未来版本中弃用
+
+try:
+    # 从 quality 模块导入旧版技术检查
+    from .quality import (
+        TechnicalChecker,
+        ExperimentType,
+        CheckResult,
+        ContentStructureChecker,
+        CodeSnippetChecker,
+        ThinkingQuestionsChecker
+    )
+except ImportError:
+    pass
+
+try:
+    # 从 grading 模块导入旧版评分函数
+    from .grading import (
+        batch_grade,
+        load_rubric_for_experiment,
+        GradingResult
+    )
+except ImportError:
+    pass
+
+try:
+    # 从 feedback 模块导入旧版反馈函数
+    from .feedback import (
+        save_student_feedback,
+        HTMLFeedbackGenerator
+    )
+except ImportError:
+    pass
+
+try:
+    # 从 code 模块导入代码分析
+    from .code import (
+        analyze_code_from_report,
+        CodeAnalysisResult
+    )
+except ImportError:
+    pass
+
+# 将兼容性导出添加到 __all__
+__all__.extend([
+    # 旧版评分
     'batch_grade',
     'load_rubric_for_experiment',
-    # 技术检查
+    'GradingResult',
+    # 旧版技术检查
     'TechnicalChecker',
     'ExperimentType',
     'CheckResult',
     'ContentStructureChecker',
     'CodeSnippetChecker',
     'ThinkingQuestionsChecker',
-    # 反馈
-    'FeedbackGenerator',
-    'HTMLFeedbackGenerator',
+    # 旧版反馈
     'save_student_feedback',
-    # 统一反馈系统 (v2.6.0 新增)
-    'UnifiedFeedbackGenerator',
-    'UnifiedFeedbackResult',
-    'FeedbackFormat',
-    'FeedbackStyle',
-    'save_unified_feedback',
-    'generate_feedback',
-    # ========== 配置系统 (v2.4.0 新增) ==========
-    'PlagiarismConfig',
-    'SimilarityWeights',
-    'ThresholdConfig',
-    'FeatureConfig',
-    'default_config',
-    # ========== 高级检测功能 ==========
-    # 代码混淆检测
-    'CodeObfuscationDetector',
-    'CodeObfuscationResult',
-    'ObfuscationType',
-    # 语义相似度检测
-    'SemanticDetector',
-    'SemanticSimilarityResult',
-    'SemanticMethod',
-    # 详细对比视图
-    'ComparisonViewGenerator',
-    'DiffHighlighter',
-    'DiffBlock',
-    'DiffType',
-    # AI生成检测 (增强版)
-    'EnhancedAIGeneratorDetector',
-    'AIGenerationResult',
-    # AI生成检测 (旧版，保持兼容)
-    'AIGeneratedDetector',
-    # 图片相似度检测
-    'ImageDetector',
-    'ImageSimilarityResult',
-    'HashType',
-    # ========== 图片质量评估 ==========
-    'ImageQualityAssessor',
-    'ImageQualityResult',
-    'ImageType',
-    'QualityMetrics',
-    'ContentAnalyzer',
-    'LabReportValidator',
-    # ========== v2.5.0 新增：质量评估强化 ==========
-    # 代码深度分析
-    'EnhancedCodeAnalyzer',
-    'CStyleParser',
-    'NamingConventionChecker',
-    'ComplexityAnalyzer',
-    'BestPracticeChecker',
-    'SecurityChecker',
-    'CodeAnalysisResult',
-    'CodeIssue',
-    'Severity',
-    'FunctionMetrics',
+    'HTMLFeedbackGenerator',
+    # 代码分析
     'analyze_code_from_report',
-    # 智能反馈建议
-    'SmartFeedbackEngine',
-    'SmartFeedback',
-    'FeedbackCategory',
-    'LearningResource',
-    'generate_smart_feedback_report',
-    # 图像质量检测
-    'ImageQualityChecker',
-    'ImageRelevanceChecker',
-    'ImageAnalysisResult',
-    'ImageQuality',
-    'ImageIssue',
-    'check_images_from_directory',
-    # 评分一致性校验
-    'GradingValidator',
-    'ValidationIssue',
-    'ValidationReport',
-    'ValidationSeverity',
-    'validate_grading_results',
-]
-
+    'CodeAnalysisResult',
+])

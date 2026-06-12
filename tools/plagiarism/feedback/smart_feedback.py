@@ -794,4 +794,10 @@ def generate_smart_feedback_report(
 
 
 # 导入必要的类型
-from tools.plagiarism.code_analyzer import Severity
+try:
+    from tools.plagiarism.code import Severity
+except ImportError:
+    try:
+        from ..code.code_analyzer import Severity
+    except ImportError:
+        from tools.plagiarism.code_analyzer import Severity

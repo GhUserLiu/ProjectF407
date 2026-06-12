@@ -13,9 +13,12 @@ from pathlib import Path
 import json
 
 try:
-    from .enhanced_feedback import Issue, EnhancedFeedbackGenerator
+    from ..feedback.enhanced_feedback import Issue, EnhancedFeedbackGenerator
 except ImportError:
-    from enhanced_feedback import Issue, EnhancedFeedbackGenerator
+    try:
+        from .enhanced_feedback import Issue, EnhancedFeedbackGenerator
+    except ImportError:
+        from enhanced_feedback import Issue, EnhancedFeedbackGenerator
 
 
 @dataclass

@@ -1,15 +1,122 @@
-# dot files
+# ========================================
+# IDE & Editor
+# ========================================
 /.vscode/launch.json
+/.vscode/settings.json.local
 /.settings
 /.eide/log
 /.eide.usr.ctx.json
+/.idea/
+*.swp
+*.swo
+*~
+.DS_Store
 
-# project out
-/build
-/bin
-/obj
-/out
+# ========================================
+# Build Outputs
+# ========================================
+/build/
+/bin/
+/obj/
+/out/
+*.o
+*.elf
+*.hex
+*.bin
+*.map
+*.lst
+*.d
+*.su
 
-# eide template
+# ========================================
+# Python
+# ========================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.hypothesis/
+.pytype/
+.mypy_cache/
+
+# ========================================
+# Virtual Environments
+# ========================================
+venv/
+env/
+ENV/
+.venv
+
+# ========================================
+# GUI Application
+# ========================================
+tools/gui_app/dist/
+tools/gui_app/build/
+*.spec
+
+# ========================================
+# Logs & Temporary
+# ========================================
+*.log
+*.tmp
+*.bak
+*.cache
+*.pid
+*.seed
+*.pid.lock
+
+# ========================================
+# OS Generated
+# ========================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ========================================
+# Project Specific
+# ========================================
+# Student submissions (optional - uncomment if needed)
+# docs/teaching/*/submissions/
+# docs/teaching/*/processed/
+
+# Generated reports (optional)
+docs/teaching/*/results/
+docs/teaching/*/*.xlsx
+docs/teaching/*/*.html
+
+# Model files (large)
+models/*.pkl
+models/*.h5
+models/*.pt
+
+# ========================================
+# EIDE Template
+# ========================================
 *.ept
 *.eide-template

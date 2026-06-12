@@ -39,6 +39,17 @@ class CategoryScore:
 
 
 @dataclass
+class PlagiarismInfo:
+    """抄袭相关信息"""
+    max_similarity: float = 0.0           # 最高相似度 0-100
+    similar_to: Optional[str] = None     # 与谁相似
+    is_cross_group: bool = False         # 是否跨组
+    penalty_applied: float = 0.0         # 已扣分数
+    risk_level: str = "none"             # 'none', 'warning', 'severe', 'critical'
+    shared_count: int = 0                # 共享段落数
+
+
+@dataclass
 class GradingResult:
     """完整评分结果"""
     student_id: str
@@ -53,6 +64,13 @@ class GradingResult:
     recommendations: List[str] = field(default_factory=list)
     detailed_feedback: str = ""
     auto_confidence: float = 0.85  # 自动评分置信度
+    # 新增字段：按组提交评分
+    is_team_leader: bool = False
+    experience_quality: str = ""  # 'missing', 'poor', 'fair', 'good'
+    attitude_adjustment: float = 0.0
+    # v2.6.0 新增：抄袭相关信息
+    plagiarism_info: PlagiarismInfo = field(default_factory=PlagiarismInfo)
+    original_score: float = 0.0    # 抄袭扣分前的原始分数
 
 
 class RubricLoader:
@@ -258,7 +276,7 @@ class RubricGrader:
         # 初始化关键词匹配器
         self.keyword_matcher = KeywordMatcher(enable_nlp=enable_nlp)
 
-    def grade(self, student_id: str, name: str, text: str) -> GradingResult:
+    def grade(self, student_id: str, name: str, text: str, is_leader: bool = False, experience_info: dict = None) -> GradingResult:
         """
         评估学生报告
 
@@ -266,6 +284,8 @@ class RubricGrader:
             student_id: 学号
             name: 姓名
             text: 报告文本
+            is_leader: 是否是组长
+            experience_info: 心得体会信息
 
         Returns:
             评分结果
@@ -284,6 +304,10 @@ class RubricGrader:
             category_id = category['id']
             category_name = category['name']
             category_points = category['points']
+
+            # 跳过条件类别（如组长加分），在后面处理
+            if category.get('conditional', False):
+                continue
 
             # 获取对应的章节内容
             source_section = category.get('source_section', '')
@@ -310,6 +334,54 @@ class RubricGrader:
                 if "缺少" in fb or "不足" in fb or "错误" in fb
             ])
 
+        # 处理组长加分
+        attitude_adjustment = 0.0
+        if is_leader:
+            # 查找组长加分类别
+            leader_category = next((c for c in self.categories if c.get('id') == 'team_leader_bonus'), None)
+            if leader_category:
+                leader_score = CategoryScore(
+                    category_id='team_leader_bonus',
+                    name='组长加分',
+                    points_earned=5.0,
+                    points_possible=5.0,
+                    percentage=100.0,
+                    criteria_scores=[],
+                    feedback=['✓ 担任组长，加5分']
+                )
+                category_scores['team_leader_bonus'] = leader_score
+                total_earned += 5
+                all_strengths.append('组长加分: 担任组长')
+
+        # 根据心得体会调整态度得分
+        if experience_info and 'attitude' in category_scores:
+            quality = experience_info.get('quality', 'fair')
+            adjustment_rules = {
+                'missing': -3,
+                'poor': -2,
+                'fair': 0,
+                'good': 1
+            }
+            attitude_adjustment = adjustment_rules.get(quality, 0)
+
+            # 应用调整
+            attitude_score = category_scores['attitude']
+            old_points = attitude_score.points_earned
+            adjusted = max(0, min(10, attitude_score.points_earned + attitude_adjustment))
+            attitude_score.points_earned = adjusted
+            total_earned += (adjusted - old_points)
+            attitude_score.percentage = (adjusted / attitude_score.points_possible * 100) if attitude_score.points_possible > 0 else 0
+
+            # 添加反馈说明
+            if attitude_adjustment < 0:
+                all_weaknesses.append(f'实验态度: 心得体会{quality}，扣{abs(attitude_adjustment)}分')
+            elif attitude_adjustment > 0:
+                all_strengths.append(f'实验态度: 心得体会{quality}，加{attitude_adjustment}分')
+
+            # 更新反馈列表
+            if attitude_adjustment != 0:
+                attitude_score.feedback.append(f'△ 心得体会调整: {attitude_adjustment:+.0f}分')
+
         # 计算总分和等级
         percentage = (total_earned / self.total_points * 100) if self.total_points > 0 else 0
         grade = self._calculate_grade(percentage)
@@ -330,7 +402,10 @@ class RubricGrader:
             strengths=all_strengths,
             weaknesses=all_weaknesses,
             recommendations=all_recommendations,
-            detailed_feedback=detailed_feedback
+            detailed_feedback=detailed_feedback,
+            is_team_leader=is_leader,
+            experience_quality=experience_info.get('quality', '') if experience_info else '',
+            attitude_adjustment=attitude_adjustment
         )
 
     def _find_section_content(self, sections: Dict, source_hint: str) -> str:
@@ -559,7 +634,7 @@ def batch_grade(
     批量评分
 
     Args:
-        submissions: 提交内容 {学号: {name, text}}
+        submissions: 提交内容 {学号: {name, text, is_leader?, experience?}}
         rubric: 评分标准
         experiment_type: 实验类型
         enable_nlp: 是否启用NLP增强
@@ -573,10 +648,12 @@ def batch_grade(
     for student_id, submission in submissions.items():
         name = submission.get('name', '')
         text = submission.get('text', '')
+        is_leader = submission.get('is_leader', False)
+        experience_info = submission.get('experience')
 
         if not text:
             # 未提交
-            results.append(GradingResult(
+            result = GradingResult(
                 student_id=student_id,
                 name=name,
                 total_score=0.0,
@@ -588,11 +665,241 @@ def batch_grade(
                 weaknesses=['未提交报告'],
                 recommendations=['请尽快提交实验报告'],
                 detailed_feedback="未提交报告",
-                auto_confidence=1.0
-            ))
+                auto_confidence=1.0,
+                is_team_leader=is_leader,
+                experience_quality=experience_info.get('quality', '') if experience_info else '',
+                attitude_adjustment=0.0
+            )
+            results.append(result)
             continue
 
-        result = grader.grade(student_id, name, text)
+        result = grader.grade(student_id, name, text, is_leader, experience_info)
         results.append(result)
+
+    return results
+
+
+# ============================================
+# v2.6.0 新增: 抄袭自动扣分机制
+# ============================================
+
+@dataclass
+class PlagiarismThresholds:
+    """抄袭扣分阈值配置"""
+    warning: float = 80.0      # 警告阈值
+    severe: float = 85.0       # 严重阈值
+    critical: float = 90.0     # 临界阈值（零分）
+
+    # 扣分规则
+    warning_penalty: float = 10.0     # 警告扣分
+    severe_penalty: float = 30.0      # 严重扣分
+    critical_penalty: float = 100.0   # 临界扣分（记0分）
+
+
+def apply_plagiarism_penalty(
+    result: GradingResult,
+    similarity_info: dict,
+    thresholds: PlagiarismThresholds = None
+) -> GradingResult:
+    """
+    根据相似度自动扣分
+
+    扣分规则:
+    - 80-85%相似：扣10分
+    - 85-90%相似：扣30分
+    - 90%以上：记0分
+
+    Args:
+        result: 评分结果（将被修改）
+        similarity_info: 相似度信息
+            {
+                'max_similarity': float,  # 最高相似度
+                'similar_to': str,        # 与谁相似
+                'is_cross_group': bool,   # 是否跨组
+                'shared_count': int       # 共享段落数
+            }
+        thresholds: 阈值配置（可选）
+
+    Returns:
+        修改后的评分结果
+    """
+    if thresholds is None:
+        thresholds = PlagiarismThresholds()
+
+    max_sim = similarity_info.get('max_similarity', 0.0)
+    similar_to = similarity_info.get('similar_to', '')
+    is_cross_group = similarity_info.get('is_cross_group', False)
+    shared_count = similarity_info.get('shared_count', 0)
+
+    # 保存原始分数
+    result.original_score = result.total_score
+
+    # 确定风险等级和扣分
+    penalty = 0.0
+    risk_level = "none"
+
+    if max_sim >= thresholds.critical:
+        penalty = thresholds.critical_penalty
+        risk_level = "critical"
+        result.total_score = 0
+        result.grade = 'F'
+        result.weaknesses.append(
+            f"🚨 严重抄袭: 与 {similar_to} 相似度 {max_sim:.1f}%，记0分"
+        )
+    elif max_sim >= thresholds.severe:
+        penalty = thresholds.severe_penalty
+        risk_level = "severe"
+        result.total_score = max(0, result.total_score - penalty)
+        # 重新计算等级
+        result.percentage = (result.total_score / result.total_possible * 100) if result.total_possible > 0 else 0
+        result.grade = _calculate_grade_from_percentage(result.percentage, result.grading_scale)
+        result.weaknesses.append(
+            f"⚠️ 高度相似: 与 {similar_to} 相似度 {max_sim:.1f}%，扣{penalty:.0f}分"
+        )
+    elif max_sim >= thresholds.warning:
+        penalty = thresholds.warning_penalty
+        risk_level = "warning"
+        result.total_score = max(0, result.total_score - penalty)
+        result.percentage = (result.total_score / result.total_possible * 100) if result.total_possible > 0 else 0
+        result.grade = _calculate_grade_from_percentage(result.percentage, result.grading_scale)
+        result.weaknesses.append(
+            f"⚡ 相似度警告: 与 {similar_to} 相似度 {max_sim:.1f}%，扣{penalty:.0f}分"
+        )
+    elif is_cross_group and max_sim >= 70:
+        # 跨组且相似度较高，轻度扣分
+        penalty = 5.0
+        risk_level = "warning"
+        result.total_score = max(0, result.total_score - penalty)
+        result.percentage = (result.total_score / result.total_possible * 100) if result.total_possible > 0 else 0
+        result.grade = _calculate_grade_from_percentage(result.percentage, result.grading_scale)
+        result.weaknesses.append(
+            f"🔍 跨组相似: 与 {similar_to} 相似度 {max_sim:.1f}%，扣{penalty:.0f}分"
+        )
+
+    # 更新抄袭信息
+    result.plagiarism_info = PlagiarismInfo(
+        max_similarity=max_sim,
+        similar_to=similar_to,
+        is_cross_group=is_cross_group,
+        penalty_applied=penalty,
+        risk_level=risk_level,
+        shared_count=shared_count
+    )
+
+    # 如果有扣分，降低自动评分置信度
+    if penalty > 0:
+        result.auto_confidence = max(0.5, result.auto_confidence - 0.15)
+
+    return result
+
+
+def _calculate_grade_from_percentage(percentage: float, grading_scale: Dict[str, Dict] = None) -> str:
+    """根据百分比计算等级"""
+    if grading_scale is None:
+        grading_scale = {
+            'A': {'min': 90, 'max': 100},
+            'B': {'min': 80, 'max': 89},
+            'C': {'min': 70, 'max': 79},
+            'D': {'min': 60, 'max': 69},
+            'F': {'min': 0, 'max': 59}
+        }
+
+    for grade, scale in sorted(grading_scale.items(), key=lambda x: x[1]['min'], reverse=True):
+        if scale['min'] <= percentage <= scale['max']:
+            return grade
+    return 'F'
+
+
+def batch_grade_with_plagiarism_check(
+    submissions: Dict[str, Dict],
+    rubric: Dict,
+    experiment_type: str = '档位实验',
+    enable_nlp: bool = True,
+    enable_plagiarism_check: bool = True,
+    plagiarism_thresholds: PlagiarismThresholds = None,
+    group_info: Dict[str, str] = None
+) -> List[GradingResult]:
+    """
+    批量评分（含抄袭检测）
+
+    Args:
+        submissions: 提交内容 {学号: {name, text, is_leader?, experience?}}
+        rubric: 评分标准
+        experiment_type: 实验类型
+        enable_nlp: 是否启用NLP增强
+        enable_plagiarism_check: 是否启用抄袭检测
+        plagiarism_thresholds: 抄袭阈值配置
+        group_info: 小组信息 {学号: 小组号}
+
+    Returns:
+        评分结果列表（含抄袭扣分）
+    """
+    # 先执行基础评分
+    results = batch_grade(submissions, rubric, experiment_type, enable_nlp)
+
+    # 添加 grading_scale 到结果中（用于等级计算）
+    grading_scale = rubric.get('grading_scale', {})
+    for result in results:
+        result.grading_scale = grading_scale
+
+    if not enable_plagiarism_check:
+        return results
+
+    # 执行抄袭检测
+    try:
+        from tools.plagiarism.core import PlagiarismDetector, SimilarityMethod
+        from tools.plagiarism.config import PlagiarismConfig, ThresholdConfig, SimilarityWeights
+
+        # 创建检测器
+        config = PlagiarismConfig(
+            weights=SimilarityWeights(text=0.5, code=0.3, structure=0.1, semantic=0.1),
+            thresholds=ThresholdConfig(
+                suspicious=60.0,
+                high_similarity=70.0,
+                plagiarism=85.0
+            ),
+            group_info=group_info or {}
+        )
+
+        detector = PlagiarismDetector(
+            method=SimilarityMethod.HYBRID,
+            threshold=60.0,
+            config=config,
+            enable_adaptive_threshold=False
+        )
+
+        # 执行检测
+        all_results, suspicious, _ = detector.detect(submissions)
+
+        # 对每个学生应用抄袭扣分
+        for result in results:
+            student_id = result.student_id
+
+            # 找到该学生的最高相似度
+            max_sim = 0.0
+            similar_to = ""
+            is_cross_group = False
+            shared_count = 0
+
+            for sim_result in all_results.get(student_id, []):
+                if sim_result.overall_similarity > max_sim:
+                    max_sim = sim_result.overall_similarity
+                    similar_to = sim_result.similar_to
+                    is_cross_group = sim_result.is_cross_group
+                    shared_count = len(sim_result.shared_paragraphs)
+
+            # 如果有高相似度，应用扣分
+            if max_sim >= 70 or is_cross_group:
+                similarity_info = {
+                    'max_similarity': max_sim,
+                    'similar_to': similar_to,
+                    'is_cross_group': is_cross_group,
+                    'shared_count': shared_count
+                }
+                apply_plagiarism_penalty(result, similarity_info, plagiarism_thresholds)
+
+    except Exception as e:
+        print(f"[警告] 抄袭检测失败: {e}")
+        # 继续返回基础评分结果
 
     return results

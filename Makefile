@@ -180,7 +180,7 @@ $(BUILD_DIR)/core_stm32f4xx_hal.o: $(COMMON_DIR)/core/stm32f4xx_hal.c
 	@mkdir -p $(BUILD_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$(BUILD_DIR)/startup_stm32f407xx.o: $(COMMON_DIR)/startup/startup_stm407xx.s
+$(BUILD_DIR)/startup_stm32f407xx.o: $(COMMON_DIR)/startup/startup_stm32f407xx.s
 	@echo "Assembling $<..."
 	@mkdir -p $(BUILD_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
