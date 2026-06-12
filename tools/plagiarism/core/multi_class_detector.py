@@ -398,7 +398,7 @@ def create_multi_class_config(
     自动创建多班级配置
 
     Args:
-        base_dir: 基础目录
+        base_dir: 基础目录（应该是包含学期目录的父目录，或学期目录本身）
         semester: 学期
         experiment: 实验编号
         class_pattern: 班级名称模式
@@ -408,13 +408,98 @@ def create_multi_class_config(
     """
     configs = []
 
-    # 扫描班级目录
-    semester_dir = base_dir / "docs/teaching" / semester
+    # 首先确定学期目录的位置
+    # base_dir 可能是：
+    # 1. 项目根目录（如 D:\project），学期目录在 docs/teaching/semester
+    # 2. teaching 目录（如 D:\project\docs\teaching），学期目录在 semester 子目录
+    # 3. 学期目录本身（如 D:\project\docs\teaching\2026-春季）
 
-    if not semester_dir.exists():
+    semester_dir = None
+
+    # 情况1: base_dir 本身就是学期目录
+    if base_dir.name == semester or any(base_dir.glob(class_pattern)):
+        if base_dir.exists():
+            semester_dir = base_dir
+
+    # 情况2: base_dir/semester 存在
+    if not semester_dir:
+        candidate = base_dir / semester
+        if candidate.exists() and candidate.is_dir():
+            semester_dir = candidate
+
+    # 情况3: base_dir/docs/teaching/semester 存在（标准项目结构）
+    if not semester_dir:
+        candidate = base_dir / "docs" / "teaching" / semester
+        if candidate.exists() and candidate.is_dir():
+            semester_dir = candidate
+
+    # 情况4: base_dir/teaching/semester 存在
+    if not semester_dir:
+        candidate = base_dir / "teaching" / semester
+        if candidate.exists() and candidate.is_dir():
+            semester_dir = candidate
+
+    # 情况5: data/teaching/semester（打包环境）
+    if not semester_dir:
+        candidate = base_dir / "data" / "teaching" / semester
+        if candidate.exists() and candidate.is_dir():
+            semester_dir = candidate
+
+    if not semester_dir:
+        # 如果以上都没找到，尝试递归搜索
+        def find_semester_dir(search_dir: Path, max_depth: int = 3) -> Optional[Path]:
+            """递归查找学期目录"""
+            if max_depth <= 0:
+                return None
+
+            # 检查当前目录是否直接是学期目录
+            if search_dir.name == semester:
+                return search_dir
+
+            # 检查是否有学期子目录
+            semester_subdir = search_dir / semester
+            if semester_subdir.exists() and semester_subdir.is_dir():
+                return semester_subdir
+
+            # 递归搜索子目录
+            for item in search_dir.iterdir():
+                if item.is_dir() and not item.name.startswith('.'):
+                    result = find_semester_dir(item, max_depth - 1)
+                    if result:
+                        return result
+
+            return None
+
+        semester_dir = find_semester_dir(base_dir)
+
+    if not semester_dir:
+        # 还是找不到，返回空配置
         return configs
 
-    for class_dir in semester_dir.glob(class_pattern):
+    # 扫描班级目录
+    def find_class_dirs(search_dir: Path) -> List[Path]:
+        """递归查找班级目录"""
+        class_dirs = []
+
+        # 首先检查当前目录是否直接包含班级
+        for item in search_dir.glob(class_pattern):
+            if item.is_dir():
+                class_dirs.append(item)
+
+        # 如果没找到，递归搜索子目录
+        if not class_dirs:
+            for item in search_dir.iterdir():
+                if item.is_dir() and not item.name.startswith('.'):
+                    class_dirs.extend(find_class_dirs(item))
+
+        return class_dirs
+
+    class_dirs = find_class_dirs(semester_dir)
+
+    for class_dir in class_dirs:
+        if not class_dir.is_dir():
+            continue
+
         experiment_dir = class_dir / experiment
 
         if not experiment_dir.exists():
@@ -423,6 +508,19 @@ def create_multi_class_config(
         submissions_dir = experiment_dir / "submissions" / "extracted"
 
         if not submissions_dir.exists():
+            # 尝试其他可能的提交目录
+            possible_submissions = [
+                experiment_dir / "submissions",
+                experiment_dir / "extracted",
+                class_dir / "submissions" / "extracted",
+            ]
+            submissions_dir = None
+            for possible_dir in possible_submissions:
+                if possible_dir.exists():
+                    submissions_dir = possible_dir
+                    break
+
+        if not submissions_dir:
             continue
 
         # 创建班级配置
