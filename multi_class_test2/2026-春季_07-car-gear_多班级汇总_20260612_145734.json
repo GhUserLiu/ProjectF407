@@ -1,0 +1,138 @@
+{
+  "meta": {
+    "project_name": "2026-春季_07-car-gear",
+    "generated_at": "2026-06-12T14:57:34.653112"
+  },
+  "summary": {
+    "total_classes": 2,
+    "total_students": 37,
+    "total_suspicious_pairs": 40,
+    "cross_class_suspicious_pairs": 0,
+    "class_comparisons": 1,
+    "timestamp": "2026-06-12T14:57:34.582072"
+  },
+  "classes": {
+    "2026-春季_汽服2301B班": {
+      "class_name": "汽服2301B班",
+      "student_count": 5,
+      "suspicious_pairs": 6,
+      "suspicious_rate": 1.2,
+      "group_count": 1,
+      "groups": [
+        {
+          "members": [
+            "23071140125",
+            "23071140135",
+            "23071140123",
+            "23071140136"
+          ],
+          "size": 4
+        }
+      ]
+    },
+    "2026-春季_汽服2302B班": {
+      "class_name": "汽服2302B班",
+      "student_count": 32,
+      "suspicious_pairs": 34,
+      "suspicious_rate": 1.0625,
+      "group_count": 10,
+      "groups": [
+        {
+          "members": [
+            "23071140226",
+            "23071140230",
+            "23071140231",
+            "23071140228",
+            "23071140215",
+            "23071140214"
+          ],
+          "size": 6
+        },
+        {
+          "members": [
+            "23071140240",
+            "23071140201",
+            "23071140241"
+          ],
+          "size": 3
+        },
+        {
+          "members": [
+            "23071140236",
+            "23071140210",
+            "23071140221"
+          ],
+          "size": 3
+        },
+        {
+          "members": [
+            "23071140223",
+            "23071140216",
+            "23071140217"
+          ],
+          "size": 3
+        },
+        {
+          "members": [
+            "23071140222",
+            "23071140232",
+            "23071140224"
+          ],
+          "size": 3
+        },
+        {
+          "members": [
+            "23071140227",
+            "23071140239",
+            "23071140238"
+          ],
+          "size": 3
+        },
+        {
+          "members": [
+            "23071140208",
+            "23071140204"
+          ],
+          "size": 2
+        },
+        {
+          "members": [
+            "23071140237",
+            "23071140211"
+          ],
+          "size": 2
+        },
+        {
+          "members": [
+            "23071140219",
+            "23071140213"
+          ],
+          "size": 2
+        },
+        {
+          "members": [
+            "23071140220",
+            "23071140233"
+          ],
+          "size": 2
+        }
+      ]
+    }
+  },
+  "cross_class_results": [],
+  "class_comparisons": [
+    {
+      "class_id_1": "2026-春季_汽服2301B班",
+      "class_name_1": "汽服2301B班",
+      "class_id_2": "2026-春季_汽服2302B班",
+      "class_name_2": "汽服2302B班",
+      "avg_similarity": 0,
+      "max_similarity": 0,
+      "suspicious_pairs": 0,
+      "cross_class_pairs": 0,
+      "avg_score_diff": 0.0,
+      "submission_rate_diff": 0.0,
+      "compared_at": "2026-06-12T14:57:34.582038"
+    }
+  ]
+}
