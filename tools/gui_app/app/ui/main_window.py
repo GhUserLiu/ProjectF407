@@ -23,6 +23,7 @@ from app.ui.views.grading_view import GradingView
 from app.ui.views.feedback_view import FeedbackView
 from app.ui.views.report_view import ReportView
 from app.ui.views.settings_view import SettingsView
+from app.ui.views.multi_class_view import MultiClassView
 
 
 class MainWindow(QMainWindow):
@@ -46,6 +47,7 @@ class MainWindow(QMainWindow):
         self.feedback_view = None
         self.report_view = None
         self.settings_view = None
+        self.multi_class_view = None
 
         self._init_ui()
         self._create_and_register_views()
@@ -128,6 +130,7 @@ class MainWindow(QMainWindow):
         # 添加导航项
         nav_items = [
             ("overview", "📊 概览"),
+            ("multi_class", "🏫 多班级"),
             ("plagiarism", "🔍 查重检测"),
             ("grading", "📝 评分评估"),
             ("feedback", "💬 反馈生成"),
@@ -192,6 +195,10 @@ class MainWindow(QMainWindow):
         placeholder = self._create_placeholder_view("概览")
         self.content_stack.addWidget(placeholder)
         self.views['overview'] = placeholder
+
+        placeholder = self._create_placeholder_view("多班级处理")
+        self.content_stack.addWidget(placeholder)
+        self.views['multi_class'] = placeholder
 
         placeholder = self._create_placeholder_view("查重检测")
         self.content_stack.addWidget(placeholder)
@@ -370,6 +377,7 @@ class MainWindow(QMainWindow):
         """创建并注册所有视图"""
         # 创建各个视图
         self.dashboard_view = DashboardView()
+        self.multi_class_view = MultiClassView()
         self.plagiarism_view = PlagiarismView()
         self.grading_view = GradingView()
         self.feedback_view = FeedbackView()
@@ -378,6 +386,7 @@ class MainWindow(QMainWindow):
 
         # 注册视图
         self.register_view('overview', self.dashboard_view)
+        self.register_view('multi_class', self.multi_class_view)
         self.register_view('plagiarism', self.plagiarism_view)
         self.register_view('grading', self.grading_view)
         self.register_view('feedback', self.feedback_view)
@@ -391,6 +400,9 @@ class MainWindow(QMainWindow):
             self.dashboard_view.navigate_to.connect(self._navigate_to_view)
             self.dashboard_view.new_project.connect(self._on_new_project)
             self.dashboard_view.open_project.connect(self._on_open_project)
+
+        if self.multi_class_view:
+            self.multi_class_view.status_changed.connect(self.show_status)
 
         if self.plagiarism_view:
             self.plagiarism_view.status_changed.connect(self.show_status)
@@ -435,7 +447,7 @@ class MainWindow(QMainWindow):
         if self.dashboard_view:
             self.dashboard_view.set_config(config)
 
-    def _load_project(self, project_path):
+    def register_view(self, view_id: str, widget):
         """注册视图"""
         if view_id in self.views:
             # 替换现有视图
@@ -451,6 +463,3 @@ class MainWindow(QMainWindow):
             # 添加新视图
             self.content_stack.addWidget(widget)
             self.views[view_id] = widget
-
-
-from pathlib import Path

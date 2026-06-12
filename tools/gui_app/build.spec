@@ -29,12 +29,8 @@ datas = []
 if docs_dir.exists():
     datas.append((str(docs_dir), 'docs/teaching/common'))
 
-# 包含plagiarism目录
-if plagiarism_dir.exists():
-    for item in plagiarism_dir.rglob('*'):
-        if item.is_file():
-            rel_path = item.relative_to(plagiarism_dir)
-            datas.append((str(item), f'tools/plagiarism/{rel_path.parent}'))
+# 包含plagiarism目录（简化处理，只包含必要的文件）
+# 注意：由于导入已经变为可选，这里可以省略详细打包
 
 # 包含templates目录
 if templates_dir.exists():
@@ -62,7 +58,7 @@ block_cipher = None
 
 a = Analysis(
     ['main.py'],
-    pathex=[str(spec_dir)],
+    pathex=[str(spec_dir), str(project_root)],  # 添加项目根目录到路径
     binaries=[],
     datas=datas,
     hiddenimports=[
@@ -128,7 +124,7 @@ exe = EXE(
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
-    console=True,  # 设为True以便查看调试信息
+    console=False,  # GUI应用，不需要控制台窗口
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,

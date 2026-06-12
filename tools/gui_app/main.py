@@ -12,9 +12,22 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 
 # 添加项目根目录到Python路径
-project_root = Path(__file__).parents[2]
-if str(project_root) not in sys.path:
-    sys.path.insert(0, str(project_root))
+if getattr(sys, 'frozen', False):
+    # 如果是打包后的可执行文件
+    # 可执行文件所在目录
+    app_dir = Path(sys.executable).parent
+    # 添加 tools 目录到路径（tools 目录在 app 的父级）
+    # PyInstaller 会将 tools 作为数据文件放在根目录
+    if (app_dir / 'tools').exists():
+        sys.path.insert(0, str(app_dir))
+    else:
+        # 备用方案：添加内部路径
+        sys.path.insert(0, str(Path(sys._MEIPASS) / 'tools'))
+else:
+    # 开发环境
+    project_root = Path(__file__).parents[2]
+    if str(project_root) not in sys.path:
+        sys.path.insert(0, str(project_root))
 
 from app.ui.main_window import MainWindow
 
