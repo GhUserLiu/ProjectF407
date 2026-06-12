@@ -41,7 +41,14 @@
       "Bash(python auto_score.py)",
       "Bash(grep -E \"\\\\.json$\")",
       "Bash(python -m tools.plagiarism_detection_enhanced --experiment-dir \"c:/Users/liuzh/Projects/Workspace/stm32f407/docs/teaching/2026-春季/汽服2302B班/07-car-gear\" --experiment-type \"档位实验\" --class-name \"汽服2302B班\" --plagiarism-only)",
-      "Bash(python -m tools.plagiarism_detection_enhanced --experiment-dir \"docs/teaching/2026-春季/汽服2302B班/07-car-gear\" --experiment-type \"档位实验\" --class-name \"汽服2302B班\" --plagiarism-only)"
+      "Bash(python -m tools.plagiarism_detection_enhanced --experiment-dir \"docs/teaching/2026-春季/汽服2302B班/07-car-gear\" --experiment-type \"档位实验\" --class-name \"汽服2302B班\" --plagiarism-only)",
+      "Bash(python3 -m py_compile tools/submission_utils.py)",
+      "Bash(python3 -m py_compile tools/plagiarism/grading.py)",
+      "Bash(python3 -m py_compile tools/enhanced_quality_assessment.py)",
+      "Bash(python3 -m py_compile \"c:/Users/liuzh/Projects/Workspace/stm32f407/tools/submission_utils.py\")",
+      "Bash(python3)",
+      "Bash(python -c \"from tools.submission_utils import extract_team_leader_info; print\\('函数导入成功'\\)\")",
+      "Bash(python -c \"import json; f=open\\('docs/teaching/common/rubrics/rubric.json', encoding='utf-8'\\); data=json.load\\(f\\); print\\('JSON有效'\\); print\\('评分类别数量:', len\\(data['categories']\\)\\)\")"
     ]
   }
 }

@@ -3,11 +3,15 @@
   * @file    : error_handler.c
   * @brief   : 统一错误处理框架实现 - 遵循HAL库规范
   * @author  : 项目开发者
-  * @date    : 2026-06-11
+  * @date    : 2026-06-12
+  * @version : 2.0.0 - 完善了UART输出和看门狗功能
   ******************************************************************************
   * @attention
   *
   * 本文件实现了项目统一的错误处理机制
+  * - 支持UART错误信息输出
+  * - 支持看门狗初始化和刷新
+  * - 支持错误恢复机制
   *
   ******************************************************************************
   */
@@ -15,10 +19,23 @@
 /* ========== Includes ========== */
 #include "error_handler.h"
 #include "stm32f4xx_hal.h"
+#include <stdio.h>
+#include <string.h>
 
 /* ========== Private Variables ========== */
 static volatile uint32_t error_count = 0;
 static volatile ErrorCode_t last_error_code = ERR_OK;
+
+/* UART句柄（用于错误信息输出）- 可选 */
+/* 注意：如果使用UART输出，需要在main.c中定义并初始化huart1 */
+#ifdef USE_ERROR_UART
+extern UART_HandleTypeDef huart1;
+#endif
+
+/* ========== Private Function Prototypes ========== */
+static void Error_LED_Update(ErrorLevel_t level);
+static void Error_System_Reset(void);
+static void Error_UART_Output(const char *message);
 
 /* ========== Private Function Prototypes ========== */
 static void Error_LED_Update(ErrorLevel_t level);
@@ -106,8 +123,14 @@ void Error_Handler_Detailed(ErrorCode_t code, const char *file, uint16_t line)
     ErrorLevel_t level = Error_GetLevel(code);
     const char *message = Error_GetMessage(code);
 
-    /* TODO: 可以将错误信息通过UART输出 */
-    /* UART_Printf("Error: %s (%d) in %s:%lu\n", message, code, file, line); */
+    /* 通过UART输出错误信息（如果UART已初始化） */
+    char error_buffer[128];
+    int len = snprintf(error_buffer, sizeof(error_buffer),
+                       "Error: %s (0x%X) in %s:%d\r\n", message, code, file, line);
+    if (len > 0 && len < sizeof(error_buffer))
+    {
+        Error_UART_Output(error_buffer);
+    }
 
     /* 根据错误级别处理 */
     if (level >= ERR_LEVEL_CRITICAL)
@@ -228,6 +251,7 @@ ErrorLevel_t Error_GetLevel(ErrorCode_t code)
   * @param  level: 错误级别
   * @param  message: 错误消息
   * @retval None
+  * @note   错误日志通过UART输出，可扩展为保存到Flash
   */
 void Error_Log(ErrorCode_t code, ErrorLevel_t level, const char *message)
 {
@@ -235,8 +259,17 @@ void Error_Log(ErrorCode_t code, ErrorLevel_t level, const char *message)
     error_count++;
     last_error_code = code;
 
-    /* TODO: 实现错误日志记录功能 */
-    /* 可以将日志保存到非易失性存储器 */
+    /* 通过UART输出错误日志 */
+    char log_buffer[128];
+    int len = snprintf(log_buffer, sizeof(log_buffer),
+                       "[LOG] Level=%d Code=0x%X: %s\r\n", level, code, message);
+    if (len > 0 && len < sizeof(log_buffer))
+    {
+        Error_UART_Output(log_buffer);
+    }
+
+    /* TODO: 将日志保存到非易失性存储器（Flash/EEPROM） */
+    /* 实现方法：分配一个Flash扇区用于循环存储日志 */
 }
 
 /**
@@ -350,14 +383,26 @@ static void Error_System_Reset(void)
 
 #if defined(USE_WATCHDOG) && (USE_WATCHDOG == 1)
 
+/* 独立看门狗句柄 */
+static IWDG_HandleTypeDef hiwdg;
+
 /**
   * @brief  初始化看门狗
   * @retval None
+  * @note   使用独立看门狗（IWDG），超时时间约4秒（LSI=32kHz）
   */
 void Watchdog_Init(void)
 {
-    /* TODO: 实现看门狗初始化 */
-    /* 使用IWDG（独立看门狗）或WWDG（窗口看门狗） */
+    hiwdg.Instance = IWDG;
+    hiwdg.Init.Prescaler = IWDG_PRESCALER_32;   /* LSI/32 = 1kHz */
+    hiwdg.Init.Reload = 4095;                     /* 4095/1kHz ≈ 4秒 */
+    hiwdg.Init.Window = 4095;                     /* 窗口模式不使用 */
+
+    if (HAL_IWDG_Init(&hiwdg) != HAL_OK)
+    {
+        /* 看门狗初始化失败 */
+        Error_Handler_WithCode(ERR_WATCHDOG_INIT);
+    }
 }
 
 /**
@@ -366,8 +411,7 @@ void Watchdog_Init(void)
   */
 void Watchdog_Refresh(void)
 {
-    /* TODO: 实现看门狗刷新 */
-    /* HAL_IWDG_Refresh(&hiwdg); */
+    HAL_IWDG_Refresh(&hiwdg);
 }
 
 /**
@@ -422,4 +466,28 @@ void BusFault_Handler(void)
 void UsageFault_Handler(void)
 {
     Error_Handler_WithCode(ERR_USAGE_FAULT);
+}
+
+/* ========== Private Function Implementations ========== */
+
+/**
+  * @brief  通过UART输出错误信息
+  * @param  message: 要输出的消息
+  * @retval None
+  * @note   如果UART未定义或未初始化，函数将静默返回
+  */
+static void Error_UART_Output(const char *message)
+{
+#ifdef USE_ERROR_UART
+    /* 检查UART是否已初始化（通过检查huart1实例） */
+    extern UART_HandleTypeDef huart1;
+
+    /* 简单检查：如果huart1.Instance非NULL，认为已初始化 */
+    if (huart1.Instance != NULL)
+    {
+        /* 阻塞发送错误信息 */
+        HAL_UART_Transmit(&huart1, (uint8_t *)message, strlen(message), HAL_MAX_DELAY);
+    }
+#endif
+    /* 如果UART未定义或未初始化，静默返回 - 不影响系统运行 */
 }

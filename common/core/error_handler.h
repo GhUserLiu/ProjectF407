@@ -22,6 +22,7 @@ extern "C" {
 
 /* ========== Includes ========== */
 #include <stdint.h>
+#include <stdbool.h>
 
 /* ========== Macros ========== */
 
