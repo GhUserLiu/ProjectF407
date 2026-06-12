@@ -24,6 +24,8 @@ from app.ui.views.feedback_view import FeedbackView
 from app.ui.views.report_view import ReportView
 from app.ui.views.settings_view import SettingsView
 from app.ui.views.multi_class_view import MultiClassView
+from app.ui.about_dialog import AboutDialog
+from app.ui.file_dialog_utils import get_open_filename
 
 
 class MainWindow(QMainWindow):
@@ -291,6 +293,13 @@ class MainWindow(QMainWindow):
         refresh_action.triggered.connect(self._on_refresh)
         toolbar.addAction(refresh_action)
 
+        toolbar.addSeparator()
+
+        # 关于
+        about_action = QAction("ℹ️ 关于", self)
+        about_action.triggered.connect(self._on_about)
+        toolbar.addAction(about_action)
+
         self.addToolBar(toolbar)
 
     def _on_nav_changed(self, current_row: int):
@@ -317,11 +326,12 @@ class MainWindow(QMainWindow):
 
     def _on_open_project(self):
         """打开项目"""
-        file_path, _ = QFileDialog.getOpenFileName(
+        file_path, _ = get_open_filename(
             self,
             "打开项目配置",
-            str(self.config_manager.config_dir),
-            "项目配置文件 (*.json)"
+            "项目配置文件 (*.json)",
+            'project',
+            self.current_project
         )
 
         if file_path:
@@ -339,6 +349,11 @@ class MainWindow(QMainWindow):
         """刷新"""
         self._load_recent_projects()
         self.show_status("已刷新")
+
+    def _on_about(self):
+        """显示关于对话框"""
+        dialog = AboutDialog(self)
+        dialog.exec()
 
     def _on_recent_project_clicked(self, item):
         """最近项目项点击"""

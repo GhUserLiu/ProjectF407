@@ -20,6 +20,7 @@ from PyQt6.QtGui import QColor
 
 from app.models.domain import ProjectConfig
 from app.utils.workers import ReportWorker
+from app.ui.file_dialog_utils import get_existing_directory
 
 
 class ReportView(QWidget):
@@ -388,7 +389,12 @@ class ReportView(QWidget):
             return
 
         # 选择输出目录
-        directory = QFileDialog.getExistingDirectory(self, "选择输出目录")
+        directory = get_existing_directory(
+            self,
+            "选择输出目录",
+            'output',
+            self.current_config
+        )
         if not directory:
             return
 
@@ -416,7 +422,12 @@ class ReportView(QWidget):
             return
 
         # 选择输出目录
-        directory = QFileDialog.getExistingDirectory(self, "选择输出目录")
+        directory = get_existing_directory(
+            self,
+            "选择输出目录",
+            'output',
+            self.current_config
+        )
         if not directory:
             return
 
@@ -467,7 +478,12 @@ class ReportView(QWidget):
 
     def _on_export_statistics(self):
         """导出统计数据"""
-        directory = QFileDialog.getExistingDirectory(self, "选择输出目录")
+        directory = get_existing_directory(
+            self,
+            "选择输出目录",
+            'output',
+            self.current_config
+        )
         if not directory:
             return
 

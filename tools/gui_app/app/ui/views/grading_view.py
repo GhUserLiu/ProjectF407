@@ -19,6 +19,7 @@ from PyQt6.QtGui import QColor, QBrush
 
 from app.models.domain import ProjectConfig, GradingInfo
 from app.core.grading import GradingService
+from app.ui.file_dialog_utils import get_open_filename
 
 
 class GradingView(QWidget):
@@ -371,11 +372,12 @@ class GradingView(QWidget):
 
     def _on_select_rubric(self):
         """选择Rubric文件"""
-        file_path, _ = QFileDialog.getOpenFileName(
+        file_path, _ = get_open_filename(
             self,
             "选择Rubric文件",
-            "",
-            "JSON文件 (*.json)"
+            "JSON文件 (*.json)",
+            'rubric',
+            self.current_config
         )
 
         if file_path:

@@ -25,6 +25,7 @@ if str(project_root) not in sys.path:
 
 from app.models.domain import MultiClassProjectConfig, ClassConfig, CrossClassComparison
 from app.core.multi_class_service import MultiClassService
+from app.ui.file_dialog_utils import get_existing_directory, get_open_filename
 
 
 class MultiClassView(QWidget):
@@ -517,10 +518,11 @@ class MultiClassView(QWidget):
 
     def _on_select_base_path(self):
         """选择基础路径"""
-        dir_path = QFileDialog.getExistingDirectory(
+        dir_path = get_existing_directory(
             self,
             "选择教学基础目录",
-            str(Path.cwd())
+            'submission',
+            None
         )
 
         if dir_path:
@@ -639,10 +641,11 @@ class MultiClassView(QWidget):
             return
 
         # 选择输出目录
-        output_dir = QFileDialog.getExistingDirectory(
+        output_dir = get_existing_directory(
             self,
             "选择报告输出目录",
-            str(self.current_config.output_dir or Path.cwd())
+            'output',
+            self.current_config
         )
 
         if output_dir:

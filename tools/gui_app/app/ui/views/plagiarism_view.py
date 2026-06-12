@@ -18,6 +18,7 @@ from PyQt6.QtGui import QColor, QBrush
 
 from app.models.domain import ProjectConfig, PlagiarismPair, SimilarityLevel
 from app.core.plagiarism import PlagiarismService
+from app.ui.file_dialog_utils import get_existing_directory
 
 
 class PlagiarismView(QWidget):
@@ -366,7 +367,12 @@ class PlagiarismView(QWidget):
 
     def _on_select_directory(self):
         """选择目录"""
-        directory = QFileDialog.getExistingDirectory(self, "选择提交目录")
+        directory = get_existing_directory(
+            self,
+            "选择提交目录",
+            'submission',
+            self.current_config
+        )
         if directory:
             self.file_label.setText(directory)
             self.file_path = directory

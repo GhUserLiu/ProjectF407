@@ -19,6 +19,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, pyqtSignal
 
 from app.models.domain import ProjectConfig, SimilarityWeights
+from app.ui.file_dialog_utils import get_existing_directory, get_open_filename
 
 
 class SettingsView(QWidget):
@@ -568,40 +569,57 @@ class SettingsView(QWidget):
 
     def _on_select_experiment_dir(self):
         """选择实验目录"""
-        directory = QFileDialog.getExistingDirectory(self, "选择实验目录")
+        directory = get_existing_directory(
+            self,
+            "选择实验目录",
+            'submission',
+            self.current_config
+        )
         if directory:
             self.experiment_dir_edit.setText(directory)
 
     def _on_select_submissions_dir(self):
         """选择提交目录"""
-        directory = QFileDialog.getExistingDirectory(self, "选择提交目录")
+        directory = get_existing_directory(
+            self,
+            "选择提交目录",
+            'submission',
+            self.current_config
+        )
         if directory:
             self.submissions_dir_edit.setText(directory)
 
     def _on_select_output_dir(self):
         """选择输出目录"""
-        directory = QFileDialog.getExistingDirectory(self, "选择输出目录")
+        directory = get_existing_directory(
+            self,
+            "选择输出目录",
+            'output',
+            self.current_config
+        )
         if directory:
             self.output_dir_edit.setText(directory)
 
     def _on_select_template(self):
         """选择模板文件"""
-        file_path, _ = QFileDialog.getOpenFileName(
+        file_path, _ = get_open_filename(
             self,
             "选择模板文件",
-            "",
-            "所有文件 (*.*)"
+            "所有文件 (*.*)",
+            'rubric',
+            self.current_config
         )
         if file_path:
             self.template_path_edit.setText(file_path)
 
     def _on_select_rubric(self):
         """选择Rubric文件"""
-        file_path, _ = QFileDialog.getOpenFileName(
+        file_path, _ = get_open_filename(
             self,
             "选择Rubric文件",
-            "",
-            "JSON文件 (*.json)"
+            "JSON文件 (*.json)",
+            'rubric',
+            self.current_config
         )
         if file_path:
             self.rubric_path_edit.setText(file_path)

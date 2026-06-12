@@ -19,6 +19,7 @@ from PyQt6.QtGui import QColor, QBrush
 
 from app.models.domain import ProjectConfig, FeedbackStyle
 from app.utils.workers import FeedbackWorker
+from app.ui.file_dialog_utils import get_existing_directory, get_save_filename
 
 
 class FeedbackView(QWidget):
@@ -398,7 +399,12 @@ class FeedbackView(QWidget):
 
     def _on_export_all(self):
         """导出全部"""
-        directory = QFileDialog.getExistingDirectory(self, "选择导出目录")
+        directory = get_existing_directory(
+            self,
+            "选择导出目录",
+            'export',
+            self.current_config
+        )
         if directory:
             # TODO: 批量导出
             self.status_changed.emit(f"反馈已导出到: {directory}")
@@ -457,11 +463,13 @@ class FeedbackView(QWidget):
         extensions = {'md': '.md', 'html': '.html', 'txt': '.txt'}
         ext = extensions.get(format_type, '.md')
 
-        file_path, _ = QFileDialog.getSaveFileName(
+        file_path, _ = get_save_filename(
             self,
             "保存反馈",
-            f"feedback_{student_id}{ext}",
-            f"{format_type.upper()}文件 (*{ext})"
+            f"{format_type.upper()}文件 (*{ext})",
+            'export',
+            self.current_config,
+            f"feedback_{student_id}{ext}"
         )
 
         if file_path:
