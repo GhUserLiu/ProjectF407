@@ -1,26 +1,29 @@
-# STM32教学管理系统 - GUI应用依赖
+# STM32教学管理系统 - GUI应用专用依赖
+# ========================================
+# 安装说明：
+#   1. 首先安装项目根目录的依赖:
+#      pip install -r ../../requirements.txt
+#   2. 然后安装GUI专用依赖:
+#      pip install -r requirements.txt
+# ========================================
 
-# GUI框架
-PyQt6==6.7.0
-PyQt6-WebEngine==6.7.0
+# ========== GUI框架 ==========
+PyQt6==6.7.0               # Qt6 Python绑定
+PyQt6-WebEngine==6.7.0     # Qt WebEngine（用于HTML预览）
 
-# 数据处理
-openpyxl==3.1.2
-python-docx==1.1.0
-pandas==2.0.0
+# ========== HTML渲染 ==========
+weasyprint==62.3           # HTML转PDF/PNG
 
-# 中文处理和机器学习
-jieba==0.42.1
-scikit-learn==1.4.0
-numpy==1.26.0
+# ========== 打包工具 ==========
+pyinstaller==6.11.0        # 打包为可执行文件
 
-# 文档生成
-reportlab==4.1.0
-markdown==3.5.0
-weasyprint==60.0
-
-# 打包工具
-pyinstaller==6.0.0
-
-# 工具库
-python-dateutil==2.8.2
+# ========== 说明 ==========
+#
+# 以下依赖已在根目录 requirements.txt 中定义，无需重复安装：
+#   - openpyxl, python-docx, pandas
+#   - jieba, scikit-learn, numpy
+#   - reportlab, markdown
+#   - python-dateutil
+#
+# 如需开发环境工具，请安装:
+#   pip install -r ../../requirements-dev.txt

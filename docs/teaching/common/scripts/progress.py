@@ -98,15 +98,16 @@ class ProgressDisplay:
             kernel32 = ctypes.windll.kernel32
             kernel32.SetConsoleMode(kernel32.GetStdHandle(-11), 7)
             return True
-        except:
+        except (AttributeError, OSError, ctypes.WinError):
             # 非Windows系统通常支持
             return sys.platform != "win32" or "ANSICON" in sys.environ or "WT_SESSION" in sys.environ
 
     def _get_terminal_width(self) -> int:
         """获取终端宽度"""
         try:
+            import shutil
             return shutil.get_terminal_size().columns
-        except:
+        except (OSError, AttributeError):
             return 80
 
     def add_stage(self, name: str, total: int):

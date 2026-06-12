@@ -22,6 +22,12 @@ except ImportError:
     print('Warning: reportlab not installed')
 
 def register_chinese_fonts():
+    """
+    注册中文字体到reportlab
+
+    Returns:
+        bool: 是否成功注册至少一个字体
+    """
     try:
         font_paths = [
             ('C:/Windows/Fonts/simsun.ttc', 'SimSun', 'SimSun'),
@@ -33,13 +39,14 @@ def register_chinese_fonts():
                 try:
                     pdfmetrics.registerFont(TTFont(font_name, font_path))
                     pdfmetrics.registerFont(TTFont(substitute_name, font_path))
-                except:
+                except (OSError, IOError, RuntimeError):
+                    # 字体文件损坏或无法读取，跳过
                     pass
         mono_font = 'C:/Windows/Fonts/consola.ttf'
         if Path(mono_font).exists():
             pdfmetrics.registerFont(TTFont('Consolas', mono_font))
         return True
-    except:
+    except (OSError, AttributeError, ImportError):
         return False
 
 def md_to_pdf(md_file, pdf_file):

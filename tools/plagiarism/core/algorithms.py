@@ -10,7 +10,7 @@ import math
 from collections import Counter
 from difflib import SequenceMatcher
 from typing import List, Dict, Tuple
-from .core import SimilarityMethod
+from .detector import SimilarityMethod
 
 
 def sequence_similarity(text1: str, text2: str) -> float:

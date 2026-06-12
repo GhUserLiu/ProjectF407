@@ -222,3 +222,143 @@ class FeedbackInfo:
     style: FeedbackStyle = FeedbackStyle.DETAILED
     format: str = "markdown"  # markdown, html, pdf
     generated_at: str = ""
+
+
+# ==================== 多班级支持数据模型 ====================
+
+@dataclass
+class ClassConfig:
+    """单个班级配置"""
+    class_id: str                    # 班级唯一标识
+    class_name: str                  # 班级显示名称
+    experiment_dir: Path             # 实验目录
+    experiment_type: ExperimentType  # 实验类型
+    submissions_dir: Optional[Path] = None
+    template_path: Optional[Path] = None
+
+    # 统计信息（运行时计算）
+    student_count: int = 0
+    submission_count: int = 0
+    avg_score: float = 0.0
+    suspicious_rate: float = 0.0
+
+    def to_dict(self) -> Dict[str, Any]:
+        """转换为字典"""
+        return {
+            'class_id': self.class_id,
+            'class_name': self.class_name,
+            'experiment_dir': str(self.experiment_dir),
+            'experiment_type': self.experiment_type.value,
+            'submissions_dir': str(self.submissions_dir) if self.submissions_dir else None,
+            'template_path': str(self.template_path) if self.template_path else None,
+            'student_count': self.student_count,
+            'submission_count': self.submission_count,
+            'avg_score': self.avg_score,
+            'suspicious_rate': self.suspicious_rate
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'ClassConfig':
+        """从字典创建实例"""
+        return cls(
+            class_id=data['class_id'],
+            class_name=data['class_name'],
+            experiment_dir=Path(data['experiment_dir']),
+            experiment_type=ExperimentType(data['experiment_type']),
+            submissions_dir=Path(data['submissions_dir']) if data.get('submissions_dir') else None,
+            template_path=Path(data['template_path']) if data.get('template_path') else None,
+            student_count=data.get('student_count', 0),
+            submission_count=data.get('submission_count', 0),
+            avg_score=data.get('avg_score', 0.0),
+            suspicious_rate=data.get('suspicious_rate', 0.0)
+        )
+
+
+@dataclass
+class MultiClassProjectConfig:
+    """多班级项目配置"""
+    project_id: str                  # 项目唯一标识
+    project_name: str                 # 项目名称
+    classes: List[ClassConfig]       # 班级列表
+
+    # 共享配置
+    shared_threshold: float = 60.0
+    shared_weights: SimilarityWeights = field(default_factory=SimilarityWeights)
+    enable_cross_class_detection: bool = True  # 是否启用跨班级检测
+
+    # 输出配置
+    output_dir: Optional[Path] = None
+
+    # 元数据
+    created_at: str = ""
+    modified_at: str = ""
+    version: str = "2.0.0"
+
+    def to_dict(self) -> Dict[str, Any]:
+        """序列化为字典"""
+        return {
+            'project_id': self.project_id,
+            'project_name': self.project_name,
+            'classes': [c.to_dict() for c in self.classes],
+            'shared_threshold': self.shared_threshold,
+            'shared_weights': self.shared_weights.to_dict(),
+            'enable_cross_class_detection': self.enable_cross_class_detection,
+            'output_dir': str(self.output_dir) if self.output_dir else None,
+            'created_at': self.created_at,
+            'modified_at': self.modified_at,
+            'version': self.version
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'MultiClassProjectConfig':
+        """从字典反序列化"""
+        return cls(
+            project_id=data['project_id'],
+            project_name=data['project_name'],
+            classes=[ClassConfig.from_dict(c) for c in data['classes']],
+            shared_threshold=data.get('shared_threshold', 60.0),
+            shared_weights=SimilarityWeights(**data.get('shared_weights', {})),
+            enable_cross_class_detection=data.get('enable_cross_class_detection', True),
+            output_dir=Path(data['output_dir']) if data.get('output_dir') else None,
+            created_at=data.get('created_at', ''),
+            modified_at=data.get('modified_at', ''),
+            version=data.get('version', '2.0.0')
+        )
+
+
+@dataclass
+class CrossClassComparison:
+    """跨班级对比结果"""
+    class_id_1: str
+    class_name_1: str
+    class_id_2: str
+    class_name_2: str
+
+    # 对比指标
+    avg_similarity: float           # 平均相似度
+    max_similarity: float           # 最高相似度
+    suspicious_pairs: int           # 可疑对数
+    cross_class_pairs: int          # 跨班级对数
+
+    # 质量对比
+    avg_score_diff: float           # 平均分差异
+    submission_rate_diff: float    # 提交率差异
+
+    # 时间戳
+    compared_at: str = ""
+
+    def to_dict(self) -> Dict[str, Any]:
+        """转换为字典"""
+        return {
+            'class_id_1': self.class_id_1,
+            'class_name_1': self.class_name_1,
+            'class_id_2': self.class_id_2,
+            'class_name_2': self.class_name_2,
+            'avg_similarity': self.avg_similarity,
+            'max_similarity': self.max_similarity,
+            'suspicious_pairs': self.suspicious_pairs,
+            'cross_class_pairs': self.cross_class_pairs,
+            'avg_score_diff': self.avg_score_diff,
+            'submission_rate_diff': self.submission_rate_diff,
+            'compared_at': self.compared_at
+        }

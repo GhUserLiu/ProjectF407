@@ -93,20 +93,46 @@ class EnhancedQualityAssessmentSystem:
         print("加载学生提交")
         print("=" * 60)
 
-        from tools.submission_utils import get_student_info
+        from tools.submission_utils import (
+            get_student_info,
+            extract_team_leader_info,
+            extract_personal_experience
+        )
 
         student_info = get_student_info(self.submissions_dir)
         print(f"提取到 {len(student_info)} 个学生信息")
 
+        leader_count = 0
+        experience_stats = {'missing': 0, 'poor': 0, 'fair': 0, 'good': 0}
+
         for student_id, info in student_info.items():
-            if info.get('content'):
+            content = info.get('content')
+            if content:
+                # 提取组长信息
+                is_leader = extract_team_leader_info(content, student_id)
+                if is_leader:
+                    leader_count += 1
+
+                # 提取心得体会
+                experience = extract_personal_experience(content)
+                quality = experience.get('quality', 'missing')
+                experience_stats[quality] = experience_stats.get(quality, 0) + 1
+
                 self.submissions[student_id] = {
                     'name': info.get('name', ''),
-                    'text': info.get('content'),
-                    'raw_content': info.get('content')
+                    'text': content,
+                    'raw_content': content,
+                    'is_leader': is_leader,
+                    'experience': experience
                 }
 
         print(f"成功加载 {len(self.submissions)} 份有效报告")
+        print(f"  - 组长: {leader_count} 人")
+        print(f"  - 心得体会质量分布:")
+        for quality, count in experience_stats.items():
+            if count > 0:
+                print(f"      {quality}: {count} 人")
+
         return len(self.submissions) > 0
 
     def run_grading(self):

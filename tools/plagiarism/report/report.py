@@ -23,7 +23,7 @@ try:
 except ImportError:
     HeatmapChart = None
     HEATMAP_AVAILABLE = False
-from .core import SimilarityResult, SimilarityMethod
+from ..core import SimilarityResult, SimilarityMethod
 
 # 导入脱敏工具
 from tools.security.anonymizer import StudentDataAnonymizer, AnonymizationConfig

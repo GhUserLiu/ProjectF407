@@ -109,6 +109,11 @@ def get_student_info(extract_dir, limits=None):
 
                     # 从答题记录提取姓名和时间
                     doc_files = [f for f in inner_files if '答题记录' in f and f.endswith('.doc')]
+
+                    # 如果没有找到包含"答题记录"的文件，尝试查找所有.doc文件
+                    if not doc_files:
+                        doc_files = [f for f in inner_files if f.endswith('.doc')]
+
                     if doc_files:
                         # 验证文件路径（防御路径遍历）
                         validate_path_traversal(doc_files[0])
@@ -240,3 +245,125 @@ def get_student_teams(extract_dir, limits=None):
             logger.error(f"处理学生ZIP失败 ({student_id}): {e}")
 
     return student_teams
+
+
+def extract_team_leader_info(text: str, student_id: str) -> bool:
+    """
+    从报告中提取是否是组长的信息
+
+    Args:
+        text: 报告文本
+        student_id: 学生学号
+
+    Returns:
+        True if the student is the team leader
+    """
+    # 查找"组长"后跟学号的情况
+    patterns = [
+        r'组长[：:\s]*[^\d]*({})'.format(student_id),  # 组长后直接跟学号
+        r'组长[：:\s]*(\d+).*?{}'.format(student_id),  # 组长后有其他内容，然后提到学号
+    ]
+
+    for pattern in patterns:
+        try:
+            match = re.search(pattern, text)
+            if match:
+                return True
+        except re.error:
+            continue
+
+    # 查找团队成员表格或列表
+    # 尝试匹配团队成员区域
+    team_patterns = [
+        r'1\.1\s*团队成员[^\n]*[\s\S]*?1\.2\s*个人分工',
+        r'一、[^\n]*团队[^\n]*[\s\S]*?二、',
+        r'团队[^\n]*成员[^\n]*[\s\S]*?分工',
+    ]
+
+    for team_pattern in team_patterns:
+        team_section = re.search(team_pattern, text)
+        if team_section:
+            team_text = team_section.group(0)
+            # 检查是否在组长行中
+            if '组长' in team_text:
+                # 尝试多种格式
+                lines = team_text.split('\n')
+                for i, line in enumerate(lines):
+                    if '组长' in line:
+                        # 检查当前行和下一行是否包含学号
+                        current_content = line
+                        if i + 1 < len(lines):
+                            current_content += ' ' + lines[i + 1]
+
+                        if student_id in current_content:
+                            return True
+
+    return False
+
+
+def extract_personal_experience(text: str) -> dict:
+    """
+    从报告中提取心得体会内容和质量评估
+
+    Args:
+        text: 报告文本
+
+    Returns:
+        {
+            'has_experience': bool,
+            'content': str,
+            'quality': 'good' | 'fair' | 'poor' | 'missing',
+            'word_count': int
+        }
+    """
+    # 尝试多种模式匹配心得体会
+    patterns = [
+        r'个人心得体会[：:：\s\（\(]*.*?[\）\)]*\s*([\s\S]+?)(?=思考题|七、|附录|六、|$)',
+        r'6\.3\s*个人心得体会[：:：\s]*([\s\S]+?)(?=七、|思考题|$)',
+        r'六、[^\n]*问题与讨论[\s\S]*?个人心得[：:：\s]*([\s\S]+?)(?=思考题|七、|$)',
+        r'心得体会[：:：\s]*([\s\S]+?)(?=思考题|七、|附录|$)',
+    ]
+
+    content = None
+    for pattern in patterns:
+        try:
+            match = re.search(pattern, text)
+            if match:
+                content = match.group(1).strip()
+                if len(content) > 20:  # 确保内容有意义
+                    break
+        except re.error:
+            continue
+
+    if not content or len(content) < 20:
+        return {
+            'has_experience': False,
+            'content': '',
+            'quality': 'missing',
+            'word_count': 0
+        }
+
+    # 去除多余空白
+    content = re.sub(r'\s+', ' ', content).strip()
+    word_count = len(content)
+
+    # 评估质量
+    quality = 'poor'
+    if word_count < 50:
+        quality = 'poor'
+    elif word_count < 150:
+        quality = 'fair'
+    else:
+        # 检查是否有具体内容
+        specific_keywords = ['理解', '学会', '掌握', '实现', '解决', '问题', '收获', '体会', '总结']
+        if any(kw in content for kw in specific_keywords):
+            quality = 'good'
+        else:
+            quality = 'fair'
+
+    return {
+        'has_experience': True,
+        'content': content,
+        'quality': quality,
+        'word_count': word_count
+    }

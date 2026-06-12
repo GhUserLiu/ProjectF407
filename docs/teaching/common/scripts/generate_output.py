@@ -5,12 +5,14 @@
 """
 
 import json
+import argparse
 from pathlib import Path
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 from docx import Document
 from docx.shared import Pt, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+from typing import Set, Dict, Any, Optional
 
 BASE_DIR = Path(__file__).parent.parent.parent.parent.parent  # Go up to project root
 # 默认使用最新的实验目录，可通过命令行参数覆盖
@@ -21,16 +23,114 @@ OUTPUT_DIR = EXPERIMENT_DIR
 TEACHER_OUTPUT = OUTPUT_DIR / "results"
 STUDENT_OUTPUT = OUTPUT_DIR / "feedback"
 
-def create_teacher_excel(evaluations, rubric, quality_data=None):
-    """Create Excel workbook for teacher"""
+
+def load_plagiarism_students(plagiarism_threshold: float = 80.0) -> Set[str]:
+    """
+    从查重结果中动态加载抄袭学生名单
+
+    Args:
+        plagiarism_threshold: 抄袭判定阈值（相似度百分比）
+
+    Returns:
+        抄袭学生学号集合
+    """
+    plagiarism_students = set()
+
+    # 尝试从多个可能的路径加载查重结果
+    possible_paths = [
+        PROCESSED_DIR / "plagiarism_results.json",
+        PROCESSED_DIR / "quality_assessment.json",
+        OUTPUT_DIR / "results" / "查重报告.json",
+        OUTPUT_DIR / "results" / "grading_results.json"
+    ]
+
+    for path in possible_paths:
+        if path.exists():
+            try:
+                with open(path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+
+                # 从不同的数据格式中提取抄袭学生
+                if 'plagiarism_results' in data:
+                    # quality_assessment.json 格式
+                    for student_id, result in data['plagiarism_results'].items():
+                        max_sim = result.get('max_similarity', 0)
+                        if max_sim >= plagiarism_threshold:
+                            plagiarism_students.add(student_id)
+
+                elif 'students' in data:
+                    # grading_results.json 格式
+                    for student in data['students']:
+                        risk = student.get('plagiarism_risk', 0) * 100  # 转换为百分比
+                        if risk >= plagiarism_threshold:
+                            plagiarism_students.add(student['student_id'])
+
+                elif 'suspicious_pairs' in data:
+                    # 直接从可疑对中提取
+                    for pair in data['suspicious_pairs']:
+                        if pair.get('overall_similarity', 0) >= plagiarism_threshold:
+                            plagiarism_students.add(pair.get('s1') or pair.get('student_id_1'))
+                            plagiarism_students.add(pair.get('s2') or pair.get('student_id_2'))
+
+                if plagiarism_students:
+                    print(f"从 {path.name} 加载了 {len(plagiarism_students)} 名抄袭学生 (阈值: {plagiarism_threshold}%)")
+                    return plagiarism_students
+
+            except (json.JSONDecodeError, KeyError, TypeError) as e:
+                print(f"警告: 无法解析 {path}: {e}")
+                continue
+
+    print(f"未找到查重结果，将不自动判定抄袭")
+    return plagiarism_students
+
+
+def get_plagiarism_info(student_id: str, plagiarism_data: Optional[Dict]) -> Dict[str, Any]:
+    """
+    获取学生的抄袭详情信息
+
+    Args:
+        student_id: 学号
+        plagiarism_data: 查重数据字典
+
+    Returns:
+        抄袭信息字典
+    """
+    if not plagiarism_data:
+        return {'is_plagiarist': False, 'similar_students': []}
+
+    similar_students = []
+
+    # 尝试从不同格式中获取相似学生
+    if 'suspicious_pairs' in plagiarism_data:
+        for pair in plagiarism_data['suspicious_pairs']:
+            if pair.get('overall_similarity', 0) > 60:
+                if pair.get('s1') == student_id:
+                    similar_students.append((pair.get('s2', ''), pair.get('overall_similarity', 0)))
+                elif pair.get('s2') == student_id:
+                    similar_students.append((pair.get('s1', ''), pair.get('overall_similarity', 0)))
+
+    # 按相似度降序排序
+    similar_students.sort(key=lambda x: -x[1])
+
+    return {
+        'is_plagiarist': len([s for s in similar_students if s[1] >= 80]) > 0,
+        'similar_students': similar_students
+    }
+
+def create_teacher_excel(evaluations, rubric, quality_data=None, plagiarism_threshold=80.0):
+    """
+    Create Excel workbook for teacher
+
+    Args:
+        evaluations: 评估结果列表
+        rubric: 评分标准
+        quality_data: 质量评估数据（可选）
+        plagiarism_threshold: 抄袭判定阈值
+    """
     print("Creating teacher Excel workbook...")
 
-    # Original plagiarism student list (from auto_score.py)
-    ORIGINAL_PLAGIARISM_STUDENTS = {
-        '23071140217', '23071140216', '23071140214', '23071140228',
-        '23071140233', '23071140220', '23071140223', '23071140213',
-        '23071140219', '23071140204', '23071140208'
-    }
+    # 动态加载抄袭学生名单
+    ORIGINAL_PLAGIARISM_STUDENTS = load_plagiarism_students(plagiarism_threshold)
 
     wb = Workbook()
 
@@ -341,16 +441,20 @@ def create_teacher_excel(evaluations, rubric, quality_data=None):
     wb.save(output_path)
     print(f"  Saved: {output_path}")
 
-def create_student_feedback(evaluations, rubric, quality_data=None):
-    """Create feedback documents for students"""
+def create_student_feedback(evaluations, rubric, quality_data=None, plagiarism_threshold=80.0):
+    """
+    Create feedback documents for students
+
+    Args:
+        evaluations: 评估结果列表
+        rubric: 评分标准
+        quality_data: 质量评估数据（可选）
+        plagiarism_threshold: 抄袭判定阈值
+    """
     print("Creating student feedback documents...")
 
-    # Original plagiarism student list
-    ORIGINAL_PLAGIARISM_STUDENTS = {
-        '23071140217', '23071140216', '23071140214', '23071140228',
-        '23071140233', '23071140220', '23071140223', '23071140213',
-        '23071140219', '23071140204', '23071140208'
-    }
+    # 动态加载抄袭学生名单
+    ORIGINAL_PLAGIARISM_STUDENTS = load_plagiarism_students(plagiarism_threshold)
 
     # Get suspicious pairs for plagiarism details
     suspicious_pairs = quality_data.get('plagiarism_data', {}).get('suspicious_pairs', []) if quality_data else []
@@ -612,6 +716,23 @@ def create_student_feedback(evaluations, rubric, quality_data=None):
     print(f"  Created {len(evaluations)} feedback documents")
 
 def main():
+    """主函数，支持命令行参数"""
+    parser = argparse.ArgumentParser(description='生成输出文件（教师评分表和学生反馈）')
+    parser.add_argument('--experiment-dir', type=str, help='实验目录路径')
+    parser.add_argument('--plagiarism-threshold', type=float, default=80.0,
+                        help='抄袭判定阈值（相似度百分比，默认80）')
+    parser.add_argument('--force-plagiarism', type=str, help='强制指定抄袭学生（逗号分隔的学号）')
+    args = parser.parse_args()
+
+    # 更新全局路径
+    global EXPERIMENT_DIR, PROCESSED_DIR, OUTPUT_DIR, TEACHER_OUTPUT, STUDENT_OUTPUT
+    if args.experiment_dir:
+        EXPERIMENT_DIR = Path(args.experiment_dir)
+        PROCESSED_DIR = EXPERIMENT_DIR / "processed"
+        OUTPUT_DIR = EXPERIMENT_DIR
+        TEACHER_OUTPUT = OUTPUT_DIR / "results"
+        STUDENT_OUTPUT = OUTPUT_DIR / "feedback"
+
     print("Generating output files...")
 
     # Create output directories
@@ -622,7 +743,7 @@ def main():
     eval_path = PROCESSED_DIR / "evaluations.json"
     if not eval_path.exists():
         print("Error: evaluations.json not found. Run evaluate.py first.")
-        return
+        return 1
 
     with open(eval_path, 'r', encoding='utf-8') as f:
         evaluations = json.load(f)
@@ -640,9 +761,19 @@ def main():
             quality_data = json.load(f)
         print("Using quality assessment data...")
 
+    # 处理强制指定的抄袭学生
+    if args.force_plagiarism:
+        forced_plagiarists = set(args.force_plagiarism.split(','))
+        print(f"使用强制指定的抄袭学生: {forced_plagiarists}")
+
+        # 临时覆盖加载函数
+        global load_plagiarism_students
+        def load_plagiarism_students(threshold):
+            return forced_plagiarists
+
     # Generate outputs
-    create_teacher_excel(evaluations, rubric, quality_data)
-    create_student_feedback(evaluations, rubric, quality_data)
+    create_teacher_excel(evaluations, rubric, quality_data, args.plagiarism_threshold)
+    create_student_feedback(evaluations, rubric, quality_data, args.plagiarism_threshold)
 
     print("\nOutput generation complete!")
     print(f"Teacher Excel: {TEACHER_OUTPUT}")
@@ -654,5 +785,7 @@ def main():
         print(f"\nWARNING: Found {len(suspicious)} suspicious report pairs (>60% similarity)")
         print("  These have been marked in the Excel file.")
 
+    return 0
+
 if __name__ == "__main__":
-    main()
+    exit(main())

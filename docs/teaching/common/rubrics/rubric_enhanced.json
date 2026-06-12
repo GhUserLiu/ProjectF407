@@ -1,8 +1,10 @@
 {
+  "_comment": "v2.6.0 增强版评分标准 - 支持抄袭自动扣分、代码深度分析、图片质量检测",
   "experiment_name": "汽车档位模拟器设计",
   "experiment_code": "07_car_gear_experiment",
   "class": "汽服2302B班",
   "course_name": "汽车微处理器原理与应用",
+  "version": "2.6.0",
   "total_points": 100,
   "grading_scale": {
     "A": {"min": 90, "max": 100, "label": "优"},
@@ -16,6 +18,7 @@
       "id": "team_collaboration",
       "name": "团队协作",
       "points": 5,
+      "grading_method": "keyword",
       "description": "从报告一、团队信息与分工评估团队协作情况",
       "source_section": "一、团队信息与分工",
       "criteria": [
@@ -40,50 +43,29 @@
       "id": "team_leader_bonus",
       "name": "组长加分",
       "points": 5,
+      "grading_method": "conditional",
       "description": "担任组长的学生获得5分加分",
-      "source_section": "一、团队信息与分工",
-      "criteria": [
-        {
-          "description": "担任组长",
-          "points": 5,
-          "keywords": ["组长", "负责人"]
-        }
-      ],
-      "manual_evaluation": true,
       "conditional": true,
-      "condition": "is_team_leader",
-      "note": "仅对组长加分，自动从报告中提取组长信息"
+      "condition": "is_team_leader"
     },
     {
       "id": "attitude",
       "name": "实验态度",
       "points": 10,
+      "grading_method": "manual",
       "description": "由教师根据考勤记录评定",
-      "source_section": "教师评定",
       "default_points": 6,
-      "criteria": [
-        {
-          "description": "全勤，认真完成实验",
-          "points": 10,
-          "note": "需教师手工评定"
-        },
-        {
-          "description": "缺勤1次",
-          "points": 5,
-          "note": "需教师手工评定"
-        },
-        {
-          "description": "缺勤2次及以上",
-          "points": 0,
-          "note": "需教师手工评定"
-        }
-      ],
-      "manual_evaluation": true
+      "grading_rules": {
+        "full_attendance": 10,
+        "absent_once": 5,
+        "absent_twice_or_more": 0
+      }
     },
     {
       "id": "principle_understanding",
       "name": "实验原理与认知",
       "points": 10,
+      "grading_method": "keyword",
       "description": "从报告二、实验目的与原理评估原理理解",
       "source_section": "二、实验目的与原理",
       "criteria": [
@@ -108,6 +90,7 @@
       "id": "completion",
       "name": "实验完成度",
       "points": 35,
+      "grading_method": "keyword",
       "description": "从报告三、硬件设计与连接和五、实验结果分析评估",
       "source_section": "三（15分）+ 五（20分）",
       "criteria": [
@@ -147,40 +130,57 @@
       "id": "code_quality",
       "name": "代码质量",
       "points": 30,
-      "description": "从报告四、软件设计与实现评估代码质量",
+      "grading_method": "enhanced_code_analysis",
+      "description": "v2.6.0 增强：代码质量深度分析",
       "source_section": "四、软件设计与实现",
-      "criteria": [
-        {
-          "description": "代码流程图清晰",
+      "sub_checks": {
+        "flowchart": {
           "points": 6,
+          "check_type": "keyword",
           "keywords": ["流程图", "软件流程", "程序流程", "框图"]
         },
-        {
-          "description": "关键代码完整规范",
+        "code_completeness": {
           "points": 8,
-          "keywords": ["代码", "程序", "函数", "enum", "switch", "GPIO"]
+          "check_type": "code_presence",
+          "required_elements": ["GPIO", "HAL_GPIO", "中断", "EXTI"]
         },
-        {
-          "description": "代码注释详尽",
+        "comments": {
           "points": 8,
-          "keywords": ["注释", "说明", "解释", "关键语句"]
+          "check_type": "comment_ratio",
+          "min_ratio": 0.15,
+          "min_absolute": 5
         },
-        {
-          "description": "中断服务程序说明详细",
+        "modularity": {
           "points": 4,
-          "keywords": ["中断", "EXTI", "回调", "消抖", "HAL_GPIO_EXTI"]
+          "check_type": "function_count",
+          "min_functions": 3
         },
-        {
-          "description": "代码模块划分合理",
+        "naming": {
           "points": 4,
-          "keywords": ["模块", "结构", "成员", "负责"]
+          "check_type": "naming_convention",
+          "check_macros": true
         }
-      ]
+      }
+    },
+    {
+      "id": "image_evidence",
+      "name": "图片证据",
+      "points": 5,
+      "grading_method": "image_detection",
+      "description": "v2.6.0 新增：图片数量检测",
+      "min_images": 3,
+      "scoring_rules": {
+        "0-1张": 0,
+        "2张": 2,
+        "3张": 4,
+        "4张及以上": 5
+      }
     },
     {
       "id": "report_quality",
       "name": "实验报告质量",
       "points": 10,
+      "grading_method": "keyword",
       "description": "从报告六、问题与讨论和七、思考题回答评估",
       "source_section": "六（5分）+ 七（5分）",
       "criteria": [
@@ -207,6 +207,22 @@
       ]
     }
   ],
+  "plagiarism_detection": {
+    "enabled": true,
+    "method": "hybrid",
+    "thresholds": {
+      "warning": 80.0,
+      "severe": 85.0,
+      "critical": 90.0
+    },
+    "penalties": {
+      "warning": 10.0,
+      "severe": 30.0,
+      "critical": 100.0
+    },
+    "cross_group_bonus_penalty": 5.0,
+    "description": "自动检测抄袭并扣分：80-85%扣10分，85-90%扣30分，90%以上记0分"
+  },
   "reference_answers": {
     "gpio_pins": {
       "LED0": "PF9 (低电平有效)",

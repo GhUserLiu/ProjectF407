@@ -7,14 +7,10 @@ Report Generation Module
 
 from .report import (
     PlagiarismReport,
-    ReportConfig,
-    generate_excel_report,
-    generate_html_report
+    ReportConfig
 )
 
 __all__ = [
     'PlagiarismReport',
     'ReportConfig',
-    'generate_excel_report',
-    'generate_html_report',
 ]
