@@ -14,9 +14,16 @@ from app.models.domain import ProjectConfig, SubmissionInfo, GradingInfo
 from app.utils.workers import GradingWorker
 
 # 添加项目根目录到Python路径
-project_root = Path(__file__).parents[4]
-if str(project_root) not in sys.path:
-    sys.path.insert(0, str(project_root))
+if getattr(sys, 'frozen', False):
+    # 如果是打包后的可执行文件，使用 sys._MEIPASS
+    meipass = Path(sys._MEIPASS)
+    if str(meipass) not in sys.path:
+        sys.path.insert(0, str(meipass))
+else:
+    # 开发环境
+    project_root = Path(__file__).parents[4]
+    if str(project_root) not in sys.path:
+        sys.path.insert(0, str(project_root))
 
 
 class GradingService(QObject):
@@ -47,34 +54,52 @@ class GradingService(QObject):
             config: 项目配置
             submissions: 学生提交列表（可选，如果不提供则自动扫描）
         """
+        # 验证配置
+        if not config or not config.submissions_dir:
+            self.grading_failed.emit("无效的配置：未设置提交目录")
+            return
+
+        submissions_path = Path(config.submissions_dir)
+        if not submissions_path.exists():
+            self.grading_failed.emit(f"提交目录不存在: {config.submissions_dir}")
+            return
+
         if self._worker and self._worker.isRunning():
             self.log_message.emit("评分正在进行中，请先停止")
             return
 
         # 准备配置
         grading_config = {
-            'experiment_dir': str(config.experiment_dir),
-            'experiment_type': config.experiment_type.value,
+            'experiment_dir': str(config.experiment_dir) if config.experiment_dir else None,
+            'experiment_type': config.experiment_type.value if hasattr(config.experiment_type, 'value') else str(config.experiment_type),
             'class_name': config.class_name,
             'rubric_path': str(config.rubric_path) if config.rubric_path else None,
-            'submissions_dir': str(config.submissions_dir) if config.submissions_dir else None
+            'submissions_dir': str(config.submissions_dir)
         }
 
         # 如果没有提供提交列表，使用None让系统自动扫描
         submissions_list = submissions if submissions else None
 
-        # 创建工作线程
-        self._worker = GradingWorker(grading_config, submissions_list)
+        try:
+            # 创建工作线程
+            self._worker = GradingWorker(grading_config, submissions_list)
 
-        # 连接信号
-        self._worker.progress_updated.connect(self.progress_updated.emit)
-        self._worker.finished.connect(self._on_grading_finished)
-        self._worker.error_occurred.connect(self.grading_failed.emit)
-        self._worker.log_message.connect(self.log_message.emit)
+            # 连接信号
+            self._worker.progress_updated.connect(lambda p, m: self.progress_updated.emit(p, m))
+            self._worker.finished.connect(self._on_grading_finished)
+            self._worker.error_occurred.connect(lambda e: self.grading_failed.emit(str(e)))
+            self._worker.log_message.connect(lambda m: self.log_message.emit(str(m)))
 
-        # 开始评分
-        self.grading_started.emit()
-        self._worker.start()
+            # 开始评分
+            self.grading_started.emit()
+            self._worker.start()
+
+        except Exception as e:
+            import traceback
+            error_msg = f"启动评分失败: {str(e)}"
+            self.log_message.emit(error_msg)
+            self.grading_failed.emit(error_msg)
+            print(traceback.format_exc())
 
     def stop_grading(self) -> None:
         """停止评分"""

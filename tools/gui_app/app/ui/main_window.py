@@ -18,7 +18,6 @@ from app.config.settings import ConfigManager
 
 # 导入所有视图
 from app.ui.views.dashboard_view import DashboardView
-from app.ui.views.plagiarism_view import PlagiarismView
 from app.ui.views.grading_view import GradingView
 from app.ui.views.feedback_view import FeedbackView
 from app.ui.views.report_view import ReportView
@@ -44,7 +43,6 @@ class MainWindow(QMainWindow):
         # 视图引用
         self.views = {}
         self.dashboard_view = None
-        self.plagiarism_view = None
         self.grading_view = None
         self.feedback_view = None
         self.report_view = None
@@ -133,7 +131,6 @@ class MainWindow(QMainWindow):
         nav_items = [
             ("overview", "📊 概览"),
             ("multi_class", "🏫 多班级"),
-            ("plagiarism", "🔍 查重检测"),
             ("grading", "📝 评分评估"),
             ("feedback", "💬 反馈生成"),
             ("reports", "📄 报告输出"),
@@ -202,10 +199,6 @@ class MainWindow(QMainWindow):
         self.content_stack.addWidget(placeholder)
         self.views['multi_class'] = placeholder
 
-        placeholder = self._create_placeholder_view("查重检测")
-        self.content_stack.addWidget(placeholder)
-        self.views['plagiarism'] = placeholder
-
         placeholder = self._create_placeholder_view("评分评估")
         self.content_stack.addWidget(placeholder)
         self.views['grading'] = placeholder
@@ -271,20 +264,15 @@ class MainWindow(QMainWindow):
             }
         """)
 
-        # 新建项目
-        new_action = QAction("📄 新建项目", self)
+        # 新建项目（快速开始）
+        new_action = QAction("🚀 快速开始", self)
         new_action.triggered.connect(self._on_new_project)
         toolbar.addAction(new_action)
 
-        # 打开项目
-        open_action = QAction("📂 打开项目", self)
-        open_action.triggered.connect(self._on_open_project)
-        toolbar.addAction(open_action)
-
-        # 保存项目
-        save_action = QAction("💾 保存项目", self)
-        save_action.triggered.connect(self._on_save_project)
-        toolbar.addAction(save_action)
+        # 设置
+        settings_action = QAction("⚙️ 设置", self)
+        settings_action.triggered.connect(lambda: self._navigate_to_view("settings"))
+        toolbar.addAction(settings_action)
 
         toolbar.addSeparator()
 
@@ -323,27 +311,8 @@ class MainWindow(QMainWindow):
 
         self.project_loaded.emit(config)
         self.show_status(f"新项目已创建: {config.class_name}")
-
-    def _on_open_project(self):
-        """打开项目"""
-        file_path, _ = get_open_filename(
-            self,
-            "打开项目配置",
-            "项目配置文件 (*.json)",
-            'project',
-            self.current_project
-        )
-
-        if file_path:
-            self._load_project(Path(file_path))
-
-    def _on_save_project(self):
-        """保存项目"""
-        if self.current_project:
-            self.config_manager.save_project(self.current_project)
-            self.show_status("项目已保存")
-        else:
-            QMessageBox.warning(self, "警告", "没有打开的项目")
+        # 自动导航到设置页面
+        self._navigate_to_view("settings")
 
     def _on_refresh(self):
         """刷新"""
@@ -393,7 +362,6 @@ class MainWindow(QMainWindow):
         # 创建各个视图
         self.dashboard_view = DashboardView()
         self.multi_class_view = MultiClassView()
-        self.plagiarism_view = PlagiarismView()
         self.grading_view = GradingView()
         self.feedback_view = FeedbackView()
         self.report_view = ReportView()
@@ -402,7 +370,6 @@ class MainWindow(QMainWindow):
         # 注册视图
         self.register_view('overview', self.dashboard_view)
         self.register_view('multi_class', self.multi_class_view)
-        self.register_view('plagiarism', self.plagiarism_view)
         self.register_view('grading', self.grading_view)
         self.register_view('feedback', self.feedback_view)
         self.register_view('reports', self.report_view)
@@ -414,13 +381,9 @@ class MainWindow(QMainWindow):
             self.dashboard_view.status_changed.connect(self.show_status)
             self.dashboard_view.navigate_to.connect(self._navigate_to_view)
             self.dashboard_view.new_project.connect(self._on_new_project)
-            self.dashboard_view.open_project.connect(self._on_open_project)
 
         if self.multi_class_view:
             self.multi_class_view.status_changed.connect(self.show_status)
-
-        if self.plagiarism_view:
-            self.plagiarism_view.status_changed.connect(self.show_status)
 
         if self.grading_view:
             self.grading_view.status_changed.connect(self.show_status)
@@ -449,8 +412,6 @@ class MainWindow(QMainWindow):
         self.current_project = config
 
         # 通知所有视图配置已变化
-        if self.plagiarism_view:
-            self.plagiarism_view.set_config(config)
         if self.grading_view:
             self.grading_view.set_config(config)
         if self.feedback_view:

@@ -367,6 +367,18 @@ class PlagiarismView(QWidget):
 
     def _on_select_directory(self):
         """选择目录"""
+        # 优先定位到测试提交目录（如果存在）
+        from app.ui.file_dialog_utils import DialogStartDir
+        data_dir = DialogStartDir._get_data_dir()
+        if data_dir:
+            # 检查 teaching_demo 中的 submissions
+            teaching_subs = data_dir / 'teaching_demo' / '2026-春季' / '汽服2302B班' / '07-car-gear' / 'submissions'
+            if teaching_subs.exists() and any(teaching_subs.glob('*.zip')):
+                DialogStartDir._last_dirs['submission'] = str(teaching_subs)
+            # 检查测试数据中的 submissions
+            elif (data_dir / 'submissions').exists() and any((data_dir / 'submissions').glob('*.zip')):
+                DialogStartDir._last_dirs['submission'] = str(data_dir / 'submissions')
+
         directory = get_existing_directory(
             self,
             "选择提交目录",

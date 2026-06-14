@@ -25,7 +25,6 @@ class DashboardView(QWidget):
     status_changed = pyqtSignal(str)
     navigate_to = pyqtSignal(str)  # 导航到指定视图
     new_project = pyqtSignal()
-    open_project = pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -177,8 +176,8 @@ class DashboardView(QWidget):
 
         layout = QGridLayout()
 
-        # 新建项目
-        new_project_btn = QPushButton("📄 新建项目")
+        # 快速开始（新建项目）
+        new_project_btn = QPushButton("🚀 快速开始")
         new_project_btn.setStyleSheet("""
             QPushButton {
                 padding: 15px;
@@ -195,12 +194,12 @@ class DashboardView(QWidget):
         """)
         new_project_btn.clicked.connect(self.new_project.emit)
 
-        # 打开项目
-        open_project_btn = QPushButton("📂 打开项目")
-        open_project_btn.setStyleSheet("""
+        # 打开设置
+        settings_btn = QPushButton("⚙️ 打开设置")
+        settings_btn.setStyleSheet("""
             QPushButton {
                 padding: 15px;
-                background-color: #3498db;
+                background-color: #6c757d;
                 color: white;
                 border: none;
                 border-radius: 8px;
@@ -208,10 +207,10 @@ class DashboardView(QWidget):
                 font-size: 14px;
             }
             QPushButton:hover {
-                background-color: #2980b9;
+                background-color: #5a6268;
             }
         """)
-        open_project_btn.clicked.connect(self.open_project.emit)
+        settings_btn.clicked.connect(lambda: self.navigate_to.emit("settings"))
 
         # 开始查重
         plagiarism_btn = QPushButton("🔍 开始查重")
@@ -250,7 +249,7 @@ class DashboardView(QWidget):
         grading_btn.clicked.connect(lambda: self.navigate_to.emit("grading"))
 
         layout.addWidget(new_project_btn, 0, 0)
-        layout.addWidget(open_project_btn, 0, 1)
+        layout.addWidget(settings_btn, 0, 1)
         layout.addWidget(plagiarism_btn, 1, 0)
         layout.addWidget(grading_btn, 1, 1)
 

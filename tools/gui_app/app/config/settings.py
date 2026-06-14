@@ -130,12 +130,53 @@ class ConfigManager:
         if self.recent_projects_file.exists():
             self.recent_projects_file.unlink()
 
+    def _get_install_data_dir(self) -> Path:
+        """获取安装目录下的data目录"""
+        import sys
+        import os
+
+        # 1. 检查可执行文件所在目录
+        if getattr(sys, 'frozen', False):
+            exe_dir = Path(sys.executable).parent
+        else:
+            exe_dir = Path(__file__).parent.parent.parent.parent
+
+        # 2. 检查data目录
+        data_dir = exe_dir / 'data'
+        if data_dir.exists():
+            return data_dir
+
+        # 3. 检查Program Files中的安装目录
+        if sys.platform == 'win32':
+            program_files = os.environ.get('ProgramFiles', 'C:\\Program Files')
+            install_path = Path(program_files) / 'STM32教学管理系统'
+            if install_path.exists():
+                data_dir = install_path / 'data'
+                if data_dir.exists():
+                    return data_dir
+
+            # 4. 检查Program Files (x86)
+            program_files_x86 = os.environ.get('ProgramFiles(x86)', 'C:\\Program Files (x86)')
+            install_path_x86 = Path(program_files_x86) / 'STM32教学管理系统'
+            if install_path_x86.exists():
+                data_dir = install_path_x86 / 'data'
+                if data_dir.exists():
+                    return data_dir
+
+        # 5. 回退到当前工作目录
+        return Path.cwd()
+
     def create_default_config(self) -> ProjectConfig:
         """创建默认配置"""
+        # 获取安装目录下的data目录
+        data_dir = self._get_install_data_dir()
+
         return ProjectConfig(
             class_name="新班级",
             experiment_type=ExperimentType.CUSTOM,
-            experiment_dir=Path.cwd(),
+            experiment_dir=data_dir,
+            submissions_dir=data_dir / 'submissions',
+            output_dir=data_dir / 'results',
             suspicious_threshold=60.0,
             high_similarity_threshold=70.0,
             plagiarism_threshold=85.0,

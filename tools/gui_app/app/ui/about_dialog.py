@@ -190,13 +190,13 @@ class AboutDialog(QDialog):
         author_info = QLabel()
         author_info.setText("""
 <div style="text-align: center; padding: 20px;">
-    <h3 style="color: #2c3e50;">主开发者</h3>
+    <h3 style="color: #2c3e50;">作者</h3>
     <p style="font-size: 16px; color: #495057;">
-        <b>刘志豪</b><br>
-        <span style="color: #6c757d;">嵌入式系统工程师 · STM32教学专家</span>
+        <b>刘兆骐</b><br>
+        <span style="color: #6c757d;">山西工程科技职业大学<br>汽车工程学院 · 助教</span>
     </p>
 
-    <h3 style="color: #2c3e50; margin-top: 30px;">AI 技术支持</h3>
+    <h3 style="color: #2c3e50; margin-top: 30px;">技术支持</h3>
     <p style="font-size: 16px; color: #495057;">
         <b>Claude (Anthropic)</b><br>
         <span style="color: #6c757d;">代码生成 · 算法优化 · 测试验证</span>
@@ -216,6 +216,15 @@ class AboutDialog(QDialog):
         contact.setText("""
 <div style="text-align: center; padding: 15px; background-color: #f8f9fa; border-radius: 5px;">
     <p style="margin: 0; color: #495057;">
+        <b>联系方式：</b><br>
+        <a href="mailto:liuzhaoqi@sxgkd.edu.cn" style="color: #3498db;">
+            📧 liuzhaoqi@sxgkd.edu.cn
+        </a><br>
+        <span style="font-size: 12px; color: #6c757d;">
+            如使用中发现故障，请提供触发故障的行为及故障现象，通过邮箱与作者联系
+        </span>
+    </p>
+    <p style="margin: 10px 0 0 0; color: #495057;">
         <b>项目地址：</b><br>
         <a href="https://github.com/GhUserLiu/ProjectF407" style="color: #3498db;">
             github.com/GhUserLiu/ProjectF407
@@ -262,19 +271,14 @@ class AboutDialog(QDialog):
         # 添加班级信息
         classes = [
             {
-                "name": "2026级 机械电子01班",
-                "period": "2024-2025学年",
-                "contribution": "首批测试用户，提交了34份实验报告，帮助发现并修复了多个关键问题"
+                "name": "汽服2301B班",
+                "period": "2025-2026学年 第二学期",
+                "contribution": "首批测试用户，参与STM32嵌入式实验课程的完整测试，提交了多份实验报告，帮助发现并修复了多个关键问题"
             },
             {
-                "name": "2026级 机械电子02班",
-                "period": "2024-2025学年",
-                "contribution": "参与多班级查重测试，验证了跨班检测功能的准确性"
-            },
-            {
-                "name": "2026级 自动化01班",
-                "period": "2025-2026学年",
-                "contribution": "测试了自动评分和反馈生成功能，提供了宝贵的改进建议"
+                "name": "汽服2302B班",
+                "period": "2025-2026学年 第二学期",
+                "contribution": "参与系统全面测试，验证了查重检测、自动评分和反馈生成等功能的准确性和实用性，提供了宝贵的改进建议"
             }
         ]
 
@@ -362,7 +366,7 @@ class AboutDialog(QDialog):
     <h2 style="color: #2c3e50;">MIT License</h2>
 
     <p style="text-align: left; color: #495057; line-height: 1.6;">
-    Copyright (c) 2024-2025 刘志豪
+    Copyright (c) 2025-2026 刘兆骐
     </p>
 
     <p style="text-align: left; color: #495057; line-height: 1.6;">

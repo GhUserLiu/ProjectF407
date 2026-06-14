@@ -282,9 +282,14 @@ class MultiClassProjectConfig:
     classes: List[ClassConfig]       # 班级列表
 
     # 共享配置
-    shared_threshold: float = 60.0
+    shared_threshold: float = 60.0           # 可疑阈值
     shared_weights: SimilarityWeights = field(default_factory=SimilarityWeights)
     enable_cross_class_detection: bool = True  # 是否启用跨班级检测
+
+    # 高级检测选项
+    enable_template_filter: bool = True       # 启用模板过滤
+    enable_semantic_detection: bool = True    # 启用语义检测
+    enable_code_obfuscation_detection: bool = False  # 启用代码混淆检测
 
     # 输出配置
     output_dir: Optional[Path] = None
@@ -303,6 +308,9 @@ class MultiClassProjectConfig:
             'shared_threshold': self.shared_threshold,
             'shared_weights': self.shared_weights.to_dict(),
             'enable_cross_class_detection': self.enable_cross_class_detection,
+            'enable_template_filter': self.enable_template_filter,
+            'enable_semantic_detection': self.enable_semantic_detection,
+            'enable_code_obfuscation_detection': self.enable_code_obfuscation_detection,
             'output_dir': str(self.output_dir) if self.output_dir else None,
             'created_at': self.created_at,
             'modified_at': self.modified_at,
@@ -319,6 +327,9 @@ class MultiClassProjectConfig:
             shared_threshold=data.get('shared_threshold', 60.0),
             shared_weights=SimilarityWeights(**data.get('shared_weights', {})),
             enable_cross_class_detection=data.get('enable_cross_class_detection', True),
+            enable_template_filter=data.get('enable_template_filter', True),
+            enable_semantic_detection=data.get('enable_semantic_detection', True),
+            enable_code_obfuscation_detection=data.get('enable_code_obfuscation_detection', False),
             output_dir=Path(data['output_dir']) if data.get('output_dir') else None,
             created_at=data.get('created_at', ''),
             modified_at=data.get('modified_at', ''),

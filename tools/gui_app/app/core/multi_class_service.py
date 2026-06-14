@@ -234,8 +234,12 @@ class MultiClassService(QObject):
         self,
         project_name: str,
         class_configs: List[Dict],
-        threshold: float = 60.0,
-        enable_cross_class: bool = True
+        suspicious_threshold: float = 60.0,
+        plagiarism_threshold: float = 85.0,
+        enable_cross_class: bool = True,
+        enable_template_filter: bool = True,
+        enable_semantic: bool = True,
+        enable_code_obfuscation: bool = False
     ) -> MultiClassProjectConfig:
         """
         创建多班级项目配置
@@ -243,8 +247,12 @@ class MultiClassService(QObject):
         Args:
             project_name: 项目名称
             class_configs: 班级配置列表
-            threshold: 相似度阈值
+            suspicious_threshold: 可疑阈值
+            plagiarism_threshold: 抄袭阈值
             enable_cross_class: 是否启用跨班级检测
+            enable_template_filter: 是否启用模板过滤
+            enable_semantic: 是否启用语义检测
+            enable_code_obfuscation: 是否启用代码混淆检测
 
         Returns:
             多班级项目配置
@@ -258,9 +266,12 @@ class MultiClassService(QObject):
             project_id=project_id,
             project_name=project_name,
             classes=[],
-            shared_threshold=threshold,
+            shared_threshold=suspicious_threshold,
             shared_weights=SimilarityWeights(),
             enable_cross_class_detection=enable_cross_class,
+            enable_template_filter=enable_template_filter,
+            enable_semantic_detection=enable_semantic,
+            enable_code_obfuscation_detection=enable_code_obfuscation,
             output_dir=Path.cwd() / "multi_class_results" / project_id,
             created_at=datetime.now().isoformat()
         )

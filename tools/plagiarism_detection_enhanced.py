@@ -38,18 +38,18 @@ from tools.plagiarism.core import (
     SimilarityMethod,
     SimilarityResult
 )
-from tools.plagiarism.config import (
+from tools.plagiarism.utils.config import (
     PlagiarismConfig,
     SimilarityWeights,
     ThresholdConfig,
     FeatureConfig
 )
-from tools.plagiarism.algorithms import (
+from tools.plagiarism.core.algorithms import (
     sequence_similarity,
     cosine_similarity,
     hybrid_similarity
 )
-from tools.plagiarism.template import (
+from tools.plagiarism.utils.template import (
     TemplateExtractor,
     TemplateFilter,
     load_template_from_file,

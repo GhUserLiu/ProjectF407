@@ -11,9 +11,16 @@ from pathlib import Path
 
 
 # 添加项目根目录到Python路径，以便导入tools模块
-project_root = Path(__file__).parents[4]  # 回退到项目根目录
-if str(project_root) not in sys.path:
-    sys.path.insert(0, str(project_root))
+if getattr(sys, 'frozen', False):
+    # 如果是打包后的可执行文件，使用 sys._MEIPASS
+    meipass = Path(sys._MEIPASS)
+    if str(meipass) not in sys.path:
+        sys.path.insert(0, str(meipass))
+else:
+    # 开发环境
+    project_root = Path(__file__).parents[4]  # 回退到项目根目录
+    if str(project_root) not in sys.path:
+        sys.path.insert(0, str(project_root))
 
 
 class BaseWorker(QThread):
@@ -68,24 +75,58 @@ class PlagiarismWorker(BaseWorker):
             self.log_message.emit("开始查重检测...")
             self.progress_updated.emit(5, "初始化检测系统...")
 
+            # 检查必要的配置
+            submissions_dir = self.config.get('submissions_dir')
+            if not submissions_dir or not Path(submissions_dir).exists():
+                error_msg = f"提交目录不存在: {submissions_dir or '未设置'}"
+                self.log_message.emit(error_msg)
+                self.error_occurred.emit(error_msg)
+                return
+
             # 动态导入查重模块
-            from tools.plagiarism_detection_enhanced import EnhancedPlagiarismSystem
+            try:
+                from tools.plagiarism_detection_enhanced import EnhancedPlagiarismSystem
+            except ImportError as e:
+                error_msg = f"无法导入查重模块: {str(e)}"
+                self.log_message.emit(error_msg)
+                self.error_occurred.emit(error_msg)
+                return
 
             self.progress_updated.emit(10, "加载提交内容...")
 
             # 创建检测系统
-            system = EnhancedPlagiarismSystem(
-                experiment_dir=self.config.get('experiment_dir'),
-                experiment_type=self.config.get('experiment_type', '自定义'),
-                class_name=self.config.get('class_name', ''),
-                threshold=self.config.get('suspicious_threshold', 60.0),
-                config=self._create_plagiarism_config()
-            )
+            try:
+                system = EnhancedPlagiarismSystem(
+                    experiment_dir=self.config.get('experiment_dir'),
+                    experiment_type=self.config.get('experiment_type', '自定义'),
+                    class_name=self.config.get('class_name', ''),
+                    threshold=self.config.get('suspicious_threshold', 60.0),
+                    config=self._create_plagiarism_config()
+                )
+            except Exception as e:
+                error_msg = f"创建检测系统失败: {str(e)}"
+                self.log_message.emit(error_msg)
+                self.error_occurred.emit(error_msg)
+                return
 
             self.progress_updated.emit(30, "执行查重检测...")
 
             # 执行检测
-            self.results = system.run_detection()
+            try:
+                self.results = system.run_detection()
+                if not self.results:
+                    self.results = {
+                        'total_students': 0,
+                        'total_pairs': 0,
+                        'suspicious_count': 0,
+                        'plagiarism_count': 0,
+                        'similarity_pairs': []
+                    }
+            except Exception as e:
+                error_msg = f"检测执行失败: {str(e)}"
+                self.log_message.emit(error_msg)
+                self.error_occurred.emit(error_msg)
+                return
 
             self.progress_updated.emit(90, "生成报告...")
 
@@ -103,7 +144,7 @@ class PlagiarismWorker(BaseWorker):
 
     def _create_plagiarism_config(self):
         """创建查重配置"""
-        from tools.plagiarism.config import PlagiarismConfig, SimilarityWeights, ThresholdConfig
+        from tools.plagiarism.utils.config import PlagiarismConfig, SimilarityWeights, ThresholdConfig
 
         weights = self.config.get('weights', {})
         thresholds = self.config.get('thresholds', {})
@@ -140,23 +181,55 @@ class GradingWorker(BaseWorker):
             self.log_message.emit("开始评分评估...")
             self.progress_updated.emit(5, "初始化评分系统...")
 
+            # 检查必要的配置
+            submissions_dir = self.config.get('submissions_dir')
+            if not submissions_dir or not Path(submissions_dir).exists():
+                error_msg = f"提交目录不存在: {submissions_dir or '未设置'}"
+                self.log_message.emit(error_msg)
+                self.error_occurred.emit(error_msg)
+                return
+
             # 动态导入评分模块
-            from tools.enhanced_quality_assessment import EnhancedQualityAssessmentSystem
+            try:
+                from tools.enhanced_quality_assessment import EnhancedQualityAssessmentSystem
+            except ImportError as e:
+                error_msg = f"无法导入评分模块: {str(e)}"
+                self.log_message.emit(error_msg)
+                self.error_occurred.emit(error_msg)
+                return
 
             self.progress_updated.emit(10, "加载提交内容...")
 
             # 创建评分系统
-            system = EnhancedQualityAssessmentSystem(
-                experiment_dir=self.config.get('experiment_dir'),
-                experiment_type=self.config.get('experiment_type', '自定义'),
-                class_name=self.config.get('class_name', ''),
-                rubric_path=self.config.get('rubric_path')
-            )
+            try:
+                system = EnhancedQualityAssessmentSystem(
+                    experiment_dir=self.config.get('experiment_dir'),
+                    experiment_type=self.config.get('experiment_type', '自定义'),
+                    class_name=self.config.get('class_name', ''),
+                    rubric_path=self.config.get('rubric_path')
+                )
+            except Exception as e:
+                error_msg = f"创建评分系统失败: {str(e)}"
+                self.log_message.emit(error_msg)
+                self.error_occurred.emit(error_msg)
+                return
 
             self.progress_updated.emit(30, "执行评分评估...")
 
             # 执行评分
-            self.results = system.run_assessment()
+            try:
+                self.results = system.run_assessment()
+                if not self.results:
+                    self.results = {
+                        'total_students': 0,
+                        'students': [],
+                        'class_average': 0.0
+                    }
+            except Exception as e:
+                error_msg = f"评分执行失败: {str(e)}"
+                self.log_message.emit(error_msg)
+                self.error_occurred.emit(error_msg)
+                return
 
             self.progress_updated.emit(90, "生成报告...")
 
@@ -192,7 +265,7 @@ class FeedbackWorker(BaseWorker):
             self.log_message.emit("开始生成反馈...")
 
             # 动态导入反馈模块
-            from tools.plagiarism.unified_feedback import UnifiedFeedbackGenerator
+            from tools.plagiarism.feedback.unified_feedback import UnifiedFeedbackGenerator
 
             generator = UnifiedFeedbackGenerator()
 

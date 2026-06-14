@@ -44,7 +44,7 @@ def test_imports():
 
     # 配置模块
     try:
-        from tools.plagiarism.config import PlagiarismConfig, default_config
+        from tools.plagiarism.utils.config import PlagiarismConfig, default_config
         print("✓ tools.plagiarism.config")
         tests.append(True)
     except Exception as e:
@@ -225,7 +225,7 @@ def test_plagiarism_detector():
 
     try:
         from tools.plagiarism.core import PlagiarismDetector, SimilarityMethod
-        from tools.plagiarism.config import PlagiarismConfig
+        from tools.plagiarism.utils.config import PlagiarismConfig
 
         # 模拟提交数据
         submissions = {
@@ -310,7 +310,7 @@ def test_config_system():
     print_section("6. 测试配置系统")
 
     try:
-        from tools.plagiarism.config import PlagiarismConfig, SimilarityWeights
+        from tools.plagiarism.utils.config import PlagiarismConfig, SimilarityWeights
 
         # 测试默认配置
         config = PlagiarismConfig()

@@ -226,20 +226,56 @@ class MultiClassView(QWidget):
         detect_layout = QVBoxLayout()
         detect_label = QLabel("检测配置:")
 
-        self.threshold_label = QLabel(f"相似度阈值: 60%")
-        self.threshold_slider = QSlider(Qt.Orientation.Horizontal)
-        self.threshold_slider.setMinimum(0)
-        self.threshold_slider.setMaximum(100)
-        self.threshold_slider.setValue(60)
-        self.threshold_slider.valueChanged.connect(self._on_threshold_changed)
+        # 可疑阈值
+        suspicious_layout = QHBoxLayout()
+        suspicious_layout.addWidget(QLabel("可疑阈值:"))
+        self.suspicious_spin = QSpinBox()
+        self.suspicious_spin.setRange(0, 100)
+        self.suspicious_spin.setValue(60)
+        self.suspicious_spin.setSuffix("%")
+        self.suspicious_spin.setToolTip("超过此值将被标记为可疑")
+        suspicious_layout.addWidget(self.suspicious_spin)
+        detect_layout.addLayout(suspicious_layout)
 
+        # 抄袭阈值
+        plagiarism_layout = QHBoxLayout()
+        plagiarism_layout.addWidget(QLabel("抄袭阈值:"))
+        self.plagiarism_spin = QSpinBox()
+        self.plagiarism_spin.setRange(0, 100)
+        self.plagiarism_spin.setValue(85)
+        self.plagiarism_spin.setSuffix("%")
+        self.plagiarism_spin.setToolTip("超过此值将被标记为抄袭")
+        plagiarism_layout.addWidget(self.plagiarism_spin)
+        detect_layout.addLayout(plagiarism_layout)
+
+        # 跨班检测选项
         self.cross_class_cb = QCheckBox("启用跨班级检测")
         self.cross_class_cb.setChecked(True)
-
-        detect_layout.addWidget(detect_label)
-        detect_layout.addWidget(self.threshold_label)
-        detect_layout.addWidget(self.threshold_slider)
+        self.cross_class_cb.setToolTip("开启后将对比不同班级之间的提交")
         detect_layout.addWidget(self.cross_class_cb)
+
+        # 高级检测选项
+        advanced_group = QGroupBox("高级选项")
+        advanced_layout = QVBoxLayout()
+
+        self.filter_template_cb = QCheckBox("启用模板过滤")
+        self.filter_template_cb.setChecked(True)
+        self.filter_template_cb.setToolTip("自动过滤实验报告模板内容")
+
+        self.semantic_cb = QCheckBox("启用语义检测")
+        self.semantic_cb.setChecked(True)
+        self.semantic_cb.setToolTip("使用语义相似度检测（需要更多时间）")
+
+        self.code_obfuscation_cb = QCheckBox("启用代码混淆检测")
+        self.code_obfuscation_cb.setToolTip("检测代码混淆和变体")
+
+        advanced_layout.addWidget(self.filter_template_cb)
+        advanced_layout.addWidget(self.semantic_cb)
+        advanced_layout.addWidget(self.code_obfuscation_cb)
+        advanced_group.setLayout(advanced_layout)
+
+        detect_layout.addWidget(advanced_group)
+        detect_layout.addStretch()
 
         layout.addLayout(detect_layout)
 
@@ -697,8 +733,8 @@ class MultiClassView(QWidget):
                 self.status_changed.emit(f"选择的路径不存在: {dir_path}")
 
     def _on_threshold_changed(self, value):
-        """阈值改变"""
-        self.threshold_label.setText(f"相似度阈值: {value}%")
+        """阈值改变（已弃用，保留兼容性）"""
+        pass  # 阈值现在通过 spinbox 直接设置
 
     def _on_discover_classes(self):
         """发现班级"""
@@ -831,16 +867,21 @@ class MultiClassView(QWidget):
 
             # 创建配置
             project_name = f"{self.semester_combo.currentText()} - {self.experiment_combo.currentText()}"
-            threshold = self.threshold_slider.value()
+            suspicious_threshold = float(self.suspicious_spin.value())
+            plagiarism_threshold = float(self.plagiarism_spin.value())
             enable_cross_class = self.cross_class_cb.isChecked()
 
-            print(f"[DEBUG] 创建配置: project_name={project_name}, threshold={threshold}", file=sys.stderr)
+            print(f"[DEBUG] 创建配置: project_name={project_name}, suspicious={suspicious_threshold}, plagiarism={plagiarism_threshold}", file=sys.stderr)
 
             config = self.multi_class_service.create_config(
                 project_name=project_name,
                 class_configs=self.discovered_classes,
-                threshold=threshold,
-                enable_cross_class=enable_cross_class
+                suspicious_threshold=suspicious_threshold,
+                plagiarism_threshold=plagiarism_threshold,
+                enable_cross_class=enable_cross_class,
+                enable_template_filter=self.filter_template_cb.isChecked(),
+                enable_semantic=self.semantic_cb.isChecked(),
+                enable_code_obfuscation=self.code_obfuscation_cb.isChecked()
             )
 
             # 设置班级信息

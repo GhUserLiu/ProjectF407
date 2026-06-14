@@ -848,7 +848,7 @@ def batch_grade_with_plagiarism_check(
     # 执行抄袭检测
     try:
         from tools.plagiarism.core import PlagiarismDetector, SimilarityMethod
-        from tools.plagiarism.config import PlagiarismConfig, ThresholdConfig, SimilarityWeights
+        from tools.plagiarism.utils.config import PlagiarismConfig, ThresholdConfig, SimilarityWeights
 
         # 创建检测器
         config = PlagiarismConfig(

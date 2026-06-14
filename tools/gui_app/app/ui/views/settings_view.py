@@ -550,13 +550,21 @@ class SettingsView(QWidget):
 
         about_text = """
         <h3>STM32教学管理系统</h3>
-        <p>版本: 1.0.0</p>
+        <p>版本: 2.7.0</p>
         <p>用于STM32F407嵌入式教学的桌面GUI应用</p>
         <p>功能: 查重检测、评分评估、反馈生成、报告输出</p>
+        <hr style="margin: 10px 0;">
+        <p style="color: #6c757d; font-size: 12px;">
+        <b>技术支持：</b><br>
+        如使用中发现故障，请提供触发故障的行为及故障现象<br>
+        通过邮箱与作者联系：<br>
+        <a href="mailto:liuzhaoqi@sxgkd.edu.cn" style="color: #3498db;">liuzhaoqi@sxgkd.edu.cn</a>
+        </p>
         """
 
         about_label = QLabel(about_text)
         about_label.setWordWrap(True)
+        about_label.setOpenExternalLinks(True)
         about_layout.addWidget(about_label)
 
         about_group.setLayout(about_layout)
@@ -582,6 +590,12 @@ class SettingsView(QWidget):
 
     def _on_select_experiment_dir(self):
         """选择实验目录"""
+        # 优先定位到教学演示目录（如果存在）
+        from app.ui.file_dialog_utils import DialogStartDir
+        data_dir = DialogStartDir._get_data_dir()
+        if data_dir and (data_dir / 'teaching_demo').exists():
+            DialogStartDir._last_dirs['submission'] = str(data_dir / 'teaching_demo')
+
         directory = get_existing_directory(
             self,
             "选择实验目录",
@@ -593,6 +607,18 @@ class SettingsView(QWidget):
 
     def _on_select_submissions_dir(self):
         """选择提交目录"""
+        # 优先定位到测试提交目录（如果存在）
+        from app.ui.file_dialog_utils import DialogStartDir
+        data_dir = DialogStartDir._get_data_dir()
+        if data_dir:
+            # 检查 teaching_demo 中的 submissions
+            teaching_subs = data_dir / 'teaching_demo' / '2026-春季' / '汽服2302B班' / '07-car-gear' / 'submissions'
+            if teaching_subs.exists():
+                DialogStartDir._last_dirs['submission'] = str(teaching_subs)
+            # 检查测试数据中的 submissions
+            elif (data_dir / 'submissions').exists():
+                DialogStartDir._last_dirs['submission'] = str(data_dir / 'submissions')
+
         directory = get_existing_directory(
             self,
             "选择提交目录",
@@ -604,6 +630,12 @@ class SettingsView(QWidget):
 
     def _on_select_output_dir(self):
         """选择输出目录"""
+        # 优先定位到测试结果目录（如果存在）
+        from app.ui.file_dialog_utils import DialogStartDir
+        data_dir = DialogStartDir._get_data_dir()
+        if data_dir and (data_dir / 'results').exists():
+            DialogStartDir._last_dirs['output'] = str(data_dir / 'results')
+
         directory = get_existing_directory(
             self,
             "选择输出目录",
@@ -615,11 +647,19 @@ class SettingsView(QWidget):
 
     def _on_select_template(self):
         """选择模板文件"""
+        # 优先定位到测试模板目录（如果存在）
+        from app.ui.file_dialog_utils import DialogStartDir
+        data_dir = DialogStartDir._get_data_dir()
+        if data_dir:
+            # 检查测试数据中的 templates
+            if (data_dir / 'templates').exists() and any((data_dir / 'templates').iterdir()):
+                DialogStartDir._last_dirs['template'] = str(data_dir / 'templates')
+
         file_path, _ = get_open_filename(
             self,
             "选择模板文件",
-            "所有文件 (*.*)",
-            'rubric',
+            "Word文档 (*.docx);;Markdown文档 (*.md);;所有文件 (*.*)",
+            'template',
             self.current_config
         )
         if file_path:
@@ -627,10 +667,18 @@ class SettingsView(QWidget):
 
     def _on_select_rubric(self):
         """选择Rubric文件"""
+        # 优先定位到测试rubric目录（如果存在）
+        from app.ui.file_dialog_utils import DialogStartDir
+        data_dir = DialogStartDir._get_data_dir()
+        if data_dir:
+            # 检查测试数据中的 rubrics
+            if (data_dir / 'rubrics').exists() and any((data_dir / 'rubrics').iterdir()):
+                DialogStartDir._last_dirs['rubric'] = str(data_dir / 'rubrics')
+
         file_path, _ = get_open_filename(
             self,
             "选择Rubric文件",
-            "JSON文件 (*.json)",
+            "JSON文件 (*.json);;所有文件 (*.*)",
             'rubric',
             self.current_config
         )
@@ -697,6 +745,13 @@ class SettingsView(QWidget):
 
     def set_config(self, config: ProjectConfig):
         """设置配置"""
+        import sys
+        print(f"[DEBUG] settings_view.set_config called with config type: {type(config)}", file=sys.stderr)
+        print(f"[DEBUG] config has weights: {hasattr(config, 'weights')}", file=sys.stderr)
+        if hasattr(config, 'weights'):
+            print(f"[DEBUG] config.weights type: {type(config.weights)}", file=sys.stderr)
+            print(f"[DEBUG] config.weights value: {config.weights}", file=sys.stderr)
+
         self.current_config = config
 
         # 更新UI显示
@@ -714,14 +769,18 @@ class SettingsView(QWidget):
             self.rubric_path_edit.setText(str(config.rubric_path))
 
         # 查重设置
+        print(f"[DEBUG] Setting threshold values...", file=sys.stderr)
         self.suspicious_threshold_spin.setValue(config.suspicious_threshold)
         self.high_similarity_threshold_spin.setValue(config.high_similarity_threshold)
         self.plagiarism_threshold_spin.setValue(config.plagiarism_threshold)
 
+        print(f"[DEBUG] Setting weight values...", file=sys.stderr)
+        print(f"[DEBUG] config.weights.text type: {type(config.weights.text)}", file=sys.stderr)
         self.text_weight_spin.setValue(config.weights.text)
         self.code_weight_spin.setValue(config.weights.code)
         self.structure_weight_spin.setValue(config.weights.structure)
         self.semantic_weight_spin.setValue(config.weights.semantic)
+        print(f"[DEBUG] set_config completed", file=sys.stderr)
 
     def _on_export_config(self):
         """导出配置到文件"""
