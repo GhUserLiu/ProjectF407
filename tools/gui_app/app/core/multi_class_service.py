@@ -15,19 +15,35 @@ from PyQt6.QtCore import QObject, pyqtSignal, QThread
 # 设置正确的Python路径
 if getattr(sys, 'frozen', False):
     # 打包后的可执行文件环境
-    meipass = Path(sys._MEIPASS)
-    if str(meipass) not in sys.path:
-        sys.path.insert(0, str(meipass))
-    # 额外尝试：添加 tools 目录到 sys.path
-    tools_dir = meipass / 'tools'
-    if tools_dir.exists() and str(tools_dir) not in sys.path:
-        sys.path.insert(0, str(tools_dir))
-        print(f"[DEBUG] 添加 {tools_dir} 到 sys.path", file=sys.stderr)
+    try:
+        meipass = Path(sys._MEIPASS)
+        print(f"[DEBUG] _MEIPASS = {meipass}", file=sys.stderr)
+        print(f"[DEBUG] _MEIPASS exists = {meipass.exists()}", file=sys.stderr)
+
+        if str(meipass) not in sys.path:
+            sys.path.insert(0, str(meipass))
+
+        # 额外尝试：添加 tools 目录到 sys.path
+        tools_dir = meipass / 'tools'
+        print(f"[DEBUG] tools_dir = {tools_dir}, exists = {tools_dir.exists()}", file=sys.stderr)
+        if tools_dir.exists() and str(tools_dir) not in sys.path:
+            sys.path.insert(0, str(tools_dir))
+            print(f"[DEBUG] 添加 {tools_dir} 到 sys.path", file=sys.stderr)
+
+        # 检查 multi_class_detector 是否可访问
+        detector_path = tools_dir / 'plagiarism' / 'core' / 'multi_class_detector.py'
+        print(f"[DEBUG] multi_class_detector.py 存在: {detector_path.exists()}", file=sys.stderr)
+
+    except Exception as e:
+        print(f"[WARNING] 路径设置失败: {e}", file=sys.stderr)
+        import traceback
+        traceback.print_exc(file=sys.stderr)
 else:
     # 开发环境
     project_root = Path(__file__).parents[4]
     if str(project_root) not in sys.path:
         sys.path.insert(0, str(project_root))
+    print(f"[DEBUG] 开发环境 project_root = {project_root}", file=sys.stderr)
 
 from app.models.domain import MultiClassProjectConfig
 

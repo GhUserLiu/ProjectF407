@@ -130,7 +130,7 @@ class MainWindow(QMainWindow):
         # 添加导航项
         nav_items = [
             ("overview", "📊 概览"),
-            ("multi_class", "🏫 多班级"),
+            ("multi_class", "🔍 查重检测"),
             ("grading", "📝 评分评估"),
             ("feedback", "💬 反馈生成"),
             ("reports", "📄 报告输出"),

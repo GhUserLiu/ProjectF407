@@ -73,6 +73,7 @@ ENV/
 # ========================================
 tools/gui_app/dist/
 tools/gui_app/build/
+tools/gui_app/installer_output/
 *.spec
 
 # ========================================
