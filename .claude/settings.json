@@ -78,7 +78,9 @@
       "Bash(cd \"c:/Users/liuzh/Projects/Workspace/stm32f407/data/teaching/2026-春季/汽服2302B班/07-car-gear\" && mkdir -p results/data && mv ../scripts/data/*.json results/data/ && echo \"数据文件已移动到 results/data/\")",
       "Bash(mv scripts/*.py scripts/*.md src/tools/teaching_scripts/)",
       "Bash(cp -r scripts/*.py scripts/*.md src/tools/teaching_scripts/)",
-      "Bash(git commit -m 'refactor: 将脚本从数据目录移动到源代码目录 *)"
+      "Bash(git commit -m 'refactor: 将脚本从数据目录移动到源代码目录 *)",
+      "Bash(rm -f plagiarism_detection_enhanced.py test_plagiarism.py PLAGIARISM_MIGRATION.md INSTALL.md)",
+      "Bash(ls -la *.py)"
     ],
     "additionalDirectories": [
       "c:\\Users\\liuzh\\Projects\\Workspace\\stm32f407\\docs\\teaching\\2026-春季\\汽服2302B班\\07-car-gear\\results\\feedback\\md",
