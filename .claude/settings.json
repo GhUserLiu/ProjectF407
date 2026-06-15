@@ -59,7 +59,10 @@
       "Bash(git rm *)",
       "Bash(git commit -m 'refactor: 开始重构 - 迁移 common/ 和 projects/ 到 src/ *)",
       "Bash(git commit -m 'refactor: 迁移配置文件和资源到 data/ 目录 *)",
-      "Bash(git commit -m 'refactor: 更新路径引用和构建配置 *)"
+      "Bash(git commit -m 'refactor: 更新路径引用和构建配置 *)",
+      "Bash(rm -rf data/rubrics/rubrics)",
+      "Bash(python -c ' *)",
+      "Bash(git commit -m 'docs: 更新 CLAUDE.md 以反映新的目录结构 *)"
     ],
     "additionalDirectories": [
       "c:\\Users\\liuzh\\Projects\\Workspace\\stm32f407\\docs\\teaching\\2026-春季\\汽服2302B班\\07-car-gear\\results\\feedback\\md"

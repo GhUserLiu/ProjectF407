@@ -31,31 +31,49 @@
 
 ```
 stm32f407/
-├── projects/              # STM32 实验项目
-│   ├── _template/         # 项目模板（新建项目参考）
-│   ├── 01-turn-signal/    # 转向灯系统（简单项目示例）
-│   └── 07-car-gear/       # 汽车档位模拟器（CubeMX 项目）
+├── src/                          # 源代码目录
+│   ├── common/                   # 共享代码库
+│   │   ├── core/                # 核心 HAL 库
+│   │   ├── bsp/                 # 板级支持包
+│   │   ├── drivers/             # 外设驱动（UART、Timer）
+│   │   └── startup/             # 启动文件
+│   │
+│   ├── projects/                 # STM32 实验项目
+│   │   ├── _template/           # 项目模板（新建项目参考）
+│   │   ├── 01-turn-signal/      # 转向灯系统（简单项目示例）
+│   │   └── 07-car-gear/         # 汽车档位模拟器（CubeMX 项目）
+│   │
+│   └── tools/                    # 教学管理工具
+│       ├── plagiarism/           # 查重检测系统（核心）
+│       ├── gui_app/             # GUI 管理应用
+│       ├── security/            # 安全工具
+│       ├── teaching_scripts/    # 教学处理脚本
+│       └── *.py                 # 独立脚本
 │
-├── common/                # 共享代码库
-│   ├── core/             # 核心 HAL 库
-│   ├── bsp/              # 板级支持包
-│   ├── drivers/          # 外设驱动（UART、Timer）
-│   └── startup/          # 启动文件
+├── data/                         # 数据目录
+│   ├── config/                   # 配置文件
+│   │   ├── teaching/            # 教学系统配置
+│   │   ├── plagiarism/          # 查重工具配置
+│   │   └── security/            # 安全配置
+│   ├── rubrics/                  # 评分标准
+│   ├── templates/                # 模板文件
+│   ├── resources/                # 资源文件（图标等）
+│   └── teaching/                 # 教学业务数据
+│       └── 2026-春季/           # 按学期组织的数据
 │
-├── tools/                # 教学管理工具
-│   ├── plagiarism/       # 查重检测系统（核心）
-│   ├── gui_app/          # GUI 管理应用
-│   ├── security/         # 安全工具
-│   └── *.py              # 独立脚本
+├── outputs/                      # 运行时输出
+│   ├── analysis/                 # 分析结果
+│   ├── grading/                  # 评分结果
+│   ├── build/                    # 构建输出
+│   └── reports/                  # 生成的报告
 │
-├── docs/                 # 文档中心
-│   ├── teaching/         # 教学资料和提交
-│   ├── api/              # API 文档
-│   ├── guides/           # 开发指南
-│   └── security/         # 安全文档
+├── docs/                         # 文档中心
+│   ├── api/                      # API 文档
+│   ├── guides/                   # 开发指南
+│   └── security/                 # 安全文档
 │
-├── Makefile              # 构建系统
-└── requirements.txt      # Python 依赖
+├── Makefile                      # 构建系统
+└── requirements.txt              # Python 依赖
 ```
 
 ---
@@ -67,10 +85,10 @@ stm32f407/
 #### 新建项目
 ```bash
 # 方法1：使用模板
-cp -r projects/_template projects/02-your-project
+cp -r src/projects/_template src/projects/02-your-project
 
 # 方法2：使用脚本（如果存在）
-bash tools/scripts/new_project.sh 02 your-project
+bash src/tools/scripts/new_project.sh 02 your-project
 ```
 
 #### 构建命令
@@ -157,7 +175,7 @@ results = detector.detect(submissions)
 
 #### GUI 应用
 ```bash
-cd tools/gui_app
+cd src/tools/gui_app
 python main.py
 ```
 
@@ -174,10 +192,10 @@ python main.py
 | 配置文件 | `config.json/yaml` | `rubric.json` |
 
 ### 安全约定
-1. **路径验证**：始终使用 `tools/security/path_validator.py` 验证路径
-2. **ZIP 解压**：使用 `tools/security/zip_validator.py` 解压 ZIP 文件
-3. **XML 解析**：使用 `tools/security/xml_parser.py` 解析 XML
-4. **数据脱敏**：使用 `tools/security/anonymizer.py` 处理敏感信息
+1. **路径验证**：始终使用 `src/tools/security/path_validator.py` 验证路径
+2. **ZIP 解压**：使用 `src/tools/security/zip_validator.py` 解压 ZIP 文件
+3. **XML 解析**：使用 `src/tools/security/xml_parser.py` 解析 XML
+4. **数据脱敏**：使用 `src/tools/security/anonymizer.py` 处理敏感信息
 
 ### 文档约定
 1. **C 头文件**：使用 Doxygen 风格注释
@@ -190,22 +208,22 @@ python main.py
 
 ### 修复编译错误
 1. 检查 `Makefile` 中的项目白名单（第 25 行）
-2. 确认启动文件路径：`common/startup/startup_stm32f407xx.s`
+2. 确认启动文件路径：`src/common/startup/startup_stm32f407xx.s`
 3. 检查包含路径：`-I$(COMMON_DIR)/inc -I$(COMMON_DIR)/core`
 
 ### 添加新驱动
-1. 在 `common/drivers/` 创建对应目录
-2. 实现驱动接口（参考 `uart/` 和 `timer/`）
-3. 更新 `common/drivers/README.md`
+1. 在 `src/common/drivers/` 创建对应目录
+2. 实现驱动接口（参考 `src/common/drivers/uart/` 和 `src/common/drivers/timer/`）
+3. 更新 `src/common/drivers/README.md`
 
 ### 修改评分标准
-1. 编辑 `docs/teaching/common/rubrics/rubric.json`
+1. 编辑 `data/rubrics/rubric.json`
 2. 或使用 GUI 应用的设置页面
 
 ### 调试查重结果
-1. 检查 `docs/teaching/.../results/` 目录
+1. 检查 `data/teaching/.../results/` 目录
 2. 查看 Excel 报告的"详细结果"工作表
-3. 调整 `tools/security_config.json` 中的阈值
+3. 调整 `data/config/security/security_config.json` 中的阈值
 
 ---
 
