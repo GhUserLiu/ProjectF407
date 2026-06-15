@@ -58,7 +58,8 @@
       "Bash(rm -rf tools/__pycache__)",
       "Bash(git rm *)",
       "Bash(git commit -m 'refactor: 开始重构 - 迁移 common/ 和 projects/ 到 src/ *)",
-      "Bash(git commit -m 'refactor: 迁移配置文件和资源到 data/ 目录 *)"
+      "Bash(git commit -m 'refactor: 迁移配置文件和资源到 data/ 目录 *)",
+      "Bash(git commit -m 'refactor: 更新路径引用和构建配置 *)"
     ],
     "additionalDirectories": [
       "c:\\Users\\liuzh\\Projects\\Workspace\\stm32f407\\docs\\teaching\\2026-春季\\汽服2302B班\\07-car-gear\\results\\feedback\\md"

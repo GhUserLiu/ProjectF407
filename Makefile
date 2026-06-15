@@ -43,9 +43,9 @@ endif
 PROJECT := $(SAFE_PROJECT)
 
 # 项目目录
-PROJECT_DIR = projects/$(PROJECT)
-COMMON_DIR = common
-BUILD_DIR = build/$(PROJECT)/$(BUILD_TYPE)
+PROJECT_DIR = src/projects/$(PROJECT)
+COMMON_DIR = src/common
+BUILD_DIR = outputs/build/$(PROJECT)/$(BUILD_TYPE)
 
 # ========================================
 # 项目类型检测
@@ -268,14 +268,14 @@ list:
 	@echo "Available projects:"
 	@echo ""
 	@echo "Simple Projects:"
-	@for dir in projects/*/; do \
+	@for dir in src/projects/*/; do \
 		if [ ! -d "$$dir/cubemx" ]; then \
 			echo "  - $$(basename $$dir)"; \
 		fi; \
 	done
 	@echo ""
 	@echo "CubeMX Projects:"
-	@for dir in projects/*/; do \
+	@for dir in src/projects/*/; do \
 		if [ -d "$$dir/cubemx" ]; then \
 			echo "  - $$(basename $$dir) (CubeMX)"; \
 		fi; \

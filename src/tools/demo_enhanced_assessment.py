@@ -198,7 +198,7 @@ def demo_validation():
             })
 
         # 加载评分标准
-        rubric_path = Path("docs/teaching/common/rubrics/rubric.json")
+        rubric_path = Path("data/rubrics/rubric.json")
         with open(rubric_path, 'r', encoding='utf-8') as f:
             rubric = json.load(f)
 

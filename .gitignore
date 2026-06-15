@@ -103,13 +103,19 @@ desktop.ini
 # Project Specific
 # ========================================
 # Student submissions (optional - uncomment if needed)
-# docs/teaching/*/submissions/
-# docs/teaching/*/processed/
+# data/teaching/*/submissions/
+# data/teaching/*/processed/
 
 # Generated reports (optional)
-docs/teaching/*/results/
-docs/teaching/*/*.xlsx
-docs/teaching/*/*.html
+data/teaching/*/results/
+data/teaching/*/*.xlsx
+data/teaching/*/*.html
+
+# Outputs
+outputs/**/*.json
+outputs/**/*.xlsx
+outputs/**/*.png
+outputs/**/*.html
 
 # Model files (large)
 models/*.pkl

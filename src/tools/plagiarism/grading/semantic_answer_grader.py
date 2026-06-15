@@ -279,10 +279,10 @@ def load_reference_answers(
         {问题ID: 参考答案}
     """
     if rubric_path is None:
-        rubric_path = Path('docs/teaching/common/rubrics/rubric.json')
+        rubric_path = Path('data/rubrics/rubric.json')
 
     if not rubric_path.exists():
-        rubric_path = Path('docs/teaching/common/rubrics/rubric_enhanced.json')
+        rubric_path = Path('data/rubrics/rubric_enhanced.json')
 
     with open(rubric_path, 'r', encoding='utf-8') as f:
         rubric = json.load(f)

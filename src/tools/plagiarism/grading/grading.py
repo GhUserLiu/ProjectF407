@@ -614,7 +614,7 @@ def load_rubric_for_experiment(
         rubric 数据
     """
     if base_dir is None:
-        base_dir = Path(__file__).parent.parent.parent / 'docs/teaching/common/rubrics'
+        base_dir = Path(__file__).parent.parent.parent.parent.parent / 'data/rubrics'
 
     rubric_file = base_dir / 'rubric.json'
 

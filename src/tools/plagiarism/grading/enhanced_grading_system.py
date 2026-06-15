@@ -356,9 +356,9 @@ def enhanced_batch_grade(
     )
 
     # 查找rubric文件
-    rubric_path = Path('docs/teaching/common/rubrics/rubric_enhanced.json')
+    rubric_path = Path('data/rubrics/rubric_enhanced.json')
     if not rubric_path.exists():
-        rubric_path = Path('docs/teaching/common/rubrics/rubric.json')
+        rubric_path = Path('data/rubrics/rubric.json')
 
     # 创建系统
     system = EnhancedGradingSystem(rubric_path, config)

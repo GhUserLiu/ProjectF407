@@ -286,7 +286,7 @@ class EnhancedPlagiarismSystem:
         print("="*60)
 
         # 加载评分标准
-        rubric_path = Path(__file__).parent.parent / 'docs/teaching/common/rubrics/rubric.json'
+        rubric_path = Path(__file__).parent.parent.parent.parent / 'data/rubrics/rubric.json'
         rubric = load_rubric_for_experiment(self.experiment_type)
         print(f"加载评分标准: {rubric.get('experiment_name', '默认')}")
 
@@ -643,7 +643,7 @@ def main():
   python tools/plagiarism_detection_enhanced.py --threshold 70 --method cosine
 
   # 指定模板文件
-  python tools/plagiarism_detection_enhanced.py --template "docs/teaching/common/templates/实验报告模板.docx"
+  python tools/plagiarism_detection_enhanced.py --template "data/templates/实验报告模板.docx"
 
   # 仅执行查重
   python tools/plagiarism_detection_enhanced.py --plagiarism-only

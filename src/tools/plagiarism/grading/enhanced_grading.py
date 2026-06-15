@@ -68,7 +68,7 @@ class EnhancedGradingEngine:
             resources_path: 反馈资源配置文件路径
         """
         if rubric_path is None:
-            rubric_path = Path(__file__).parent.parent.parent / 'docs/teaching/common/rubrics/rubric.json'
+            rubric_path = Path(__file__).parent.parent.parent.parent.parent / 'data/rubrics/rubric.json'
 
         with open(rubric_path, 'r', encoding='utf-8') as f:
             self.rubric = json.load(f)

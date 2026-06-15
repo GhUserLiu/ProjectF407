@@ -3,10 +3,10 @@
   "experiment_info": {
     "name": "汽车档位模拟器设计",
     "code": "07_car_gear_experiment",
-    "task_doc": "docs/teaching/2026-春季/汽服2302B班/docs/task.md",
-    "reference_code": "projects/07-car-gear/cubemx/Core/Src/main.c",
-    "template": "docs/teaching/common/templates/实验报告模板.docx",
-    "rubric": "docs/teaching/common/rubrics/rubric.json"
+    "task_doc": "data/teaching/2026-春季/汽服2302B班/docs/task.md",
+    "reference_code": "src/projects/07-car-gear/cubemx/Core/Src/main.c",
+    "template": "data/templates/实验报告模板.docx",
+    "rubric": "data/rubrics/rubric.json"
   },
   "technical_issues": [
     {
