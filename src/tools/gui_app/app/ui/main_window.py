@@ -4,6 +4,9 @@
 提供应用的主窗口界面，包含导航菜单和内容区域
 """
 
+from pathlib import Path
+from typing import List, Optional
+
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QStackedWidget, QListWidget, QListWidgetItem, QSplitter,
@@ -18,6 +21,7 @@ from app.config.settings import ConfigManager
 
 # 导入所有视图
 from app.ui.views.dashboard_view import DashboardView
+from app.ui.views.plagiarism_view import PlagiarismView
 from app.ui.views.grading_view import GradingView
 from app.ui.views.feedback_view import FeedbackView
 from app.ui.views.report_view import ReportView
@@ -39,10 +43,12 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.config_manager = ConfigManager()
         self.current_project: ProjectConfig = None
+        self.selected_classes: List = []  # 存储Dashboard选中的班级列表
 
         # 视图引用
         self.views = {}
         self.dashboard_view = None
+        self.plagiarism_view = None
         self.grading_view = None
         self.feedback_view = None
         self.report_view = None
@@ -361,6 +367,7 @@ class MainWindow(QMainWindow):
         """创建并注册所有视图"""
         # 创建各个视图
         self.dashboard_view = DashboardView()
+        self.plagiarism_view = PlagiarismView()
         self.multi_class_view = MultiClassView()
         self.grading_view = GradingView()
         self.feedback_view = FeedbackView()
@@ -369,6 +376,7 @@ class MainWindow(QMainWindow):
 
         # 注册视图
         self.register_view('overview', self.dashboard_view)
+        self.register_view('plagiarism', self.plagiarism_view)
         self.register_view('multi_class', self.multi_class_view)
         self.register_view('grading', self.grading_view)
         self.register_view('feedback', self.feedback_view)
@@ -381,9 +389,15 @@ class MainWindow(QMainWindow):
             self.dashboard_view.status_changed.connect(self.show_status)
             self.dashboard_view.navigate_to.connect(self._navigate_to_view)
             self.dashboard_view.new_project.connect(self._on_new_project)
+            # 新增：连接Dashboard配置信号
+            self.dashboard_view.config_selected.connect(self._on_config_changed)
+            self.dashboard_view.class_switched.connect(self._on_config_changed)
 
         if self.multi_class_view:
             self.multi_class_view.status_changed.connect(self.show_status)
+
+        if self.plagiarism_view:
+            self.plagiarism_view.status_changed.connect(self.show_status)
 
         if self.grading_view:
             self.grading_view.status_changed.connect(self.show_status)
@@ -411,7 +425,13 @@ class MainWindow(QMainWindow):
         """配置变化处理"""
         self.current_project = config
 
+        # 从Dashboard获取选中的班级列表（如果有）
+        if self.dashboard_view and hasattr(self.dashboard_view, 'selected_classes'):
+            self.selected_classes = self.dashboard_view.selected_classes
+
         # 通知所有视图配置已变化
+        if self.plagiarism_view:
+            self.plagiarism_view.set_config(config)
         if self.grading_view:
             self.grading_view.set_config(config)
         if self.feedback_view:
@@ -422,6 +442,11 @@ class MainWindow(QMainWindow):
             self.settings_view.set_config(config)
         if self.dashboard_view:
             self.dashboard_view.set_config(config)
+        if self.multi_class_view:
+            self.multi_class_view.set_config(config)
+            # 如果有选中的多个班级，也传递给MultiClassView
+            if len(self.selected_classes) > 1:
+                self.multi_class_view.set_dashboard_classes(self.selected_classes)
 
     def register_view(self, view_id: str, widget):
         """注册视图"""

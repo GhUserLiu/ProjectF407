@@ -91,20 +91,24 @@ class GradingView(QWidget):
         rubric_layout = QVBoxLayout()
         rubric_label = QLabel("评分标准 (Rubric):")
         self.rubric_combo = QComboBox()
+        self.rubric_combo.setMinimumWidth(300)
         self.rubric_combo.addItem("档位实验评分标准", "car_gear")
         self.rubric_combo.addItem("转向灯实验评分标准", "turn_signal")
         self.rubric_combo.addItem("自定义", "custom")
+        # 扫描默认 rubric 目录
+        self._scan_rubrics()
 
-        self.rubric_path_label = QLabel("未选择自定义Rubric")
-        self.rubric_path_label.setStyleSheet("color: #6c757d; padding: 5px;")
+        rubric_refresh_btn = QPushButton("🔄")
+        rubric_refresh_btn.setToolTip("重新扫描Rubric文件")
+        rubric_refresh_btn.setMaximumWidth(40)
+        rubric_refresh_btn.clicked.connect(self._scan_rubrics)
 
-        rubric_btn = QPushButton("📂 选择Rubric")
-        rubric_btn.clicked.connect(self._on_select_rubric)
+        rubric_row = QHBoxLayout()
+        rubric_row.addWidget(self.rubric_combo)
+        rubric_row.addWidget(rubric_refresh_btn)
 
         rubric_layout.addWidget(rubric_label)
-        rubric_layout.addWidget(self.rubric_combo)
-        rubric_layout.addWidget(self.rubric_path_label)
-        rubric_layout.addWidget(rubric_btn)
+        rubric_layout.addLayout(rubric_row)
 
         layout.addLayout(rubric_layout)
 
@@ -371,7 +375,13 @@ class GradingView(QWidget):
         self.grading_service.grading_failed.connect(self._on_grading_failed)
 
     def _on_select_rubric(self):
-        """选择Rubric文件"""
+        """选择Rubric文件（手动添加到下拉框）"""
+        from app.ui.file_dialog_utils import DialogStartDir
+        data_dir = DialogStartDir._get_data_dir()
+        if data_dir:
+            if (data_dir / 'rubrics').exists():
+                DialogStartDir._last_dirs['rubric'] = str(data_dir / 'rubrics')
+
         file_path, _ = get_open_filename(
             self,
             "选择Rubric文件",
@@ -381,19 +391,71 @@ class GradingView(QWidget):
         )
 
         if file_path:
-            self.rubric_path_label.setText(Path(file_path).name)
-            self.rubric_path = file_path
+            file_name = Path(file_path).name
+
+            # 检查是否已存在
+            exists = False
+            for i in range(self.rubric_combo.count()):
+                if self.rubric_combo.itemData(i) == file_path:
+                    self.rubric_combo.setCurrentIndex(i)
+                    exists = True
+                    break
+
+            if not exists:
+                self.rubric_combo.addItem(file_name, file_path)
+                self.rubric_combo.setCurrentIndex(self.rubric_combo.count() - 1)
+
+    def _scan_rubrics(self):
+        """扫描可用的Rubric文件"""
+        from app.ui.file_dialog_utils import DialogStartDir
+
+        # 保存当前选择
+        current_data = self.rubric_combo.currentData()
+
+        self.rubric_combo.clear()
+        self.rubric_combo.addItem("档位实验评分标准", "car_gear")
+        self.rubric_combo.addItem("转向灯实验评分标准", "turn_signal")
+        self.rubric_combo.addItem("自定义", "custom")
+
+        # 扫描默认 rubric 目录
+        data_dir = DialogStartDir._get_data_dir()
+        if data_dir:
+            rubric_dir = data_dir / 'rubrics'
+            if rubric_dir.exists():
+                # 扫描 json 文件
+                for file in sorted(rubric_dir.glob('*.json')):
+                    self.rubric_combo.addItem(file.name, str(file))
+
+        # 恢复之前的选择
+        if current_data:
+            for i in range(self.rubric_combo.count()):
+                if self.rubric_combo.itemData(i) == current_data:
+                    self.rubric_combo.setCurrentIndex(i)
+                    break
 
     def _on_start_grading(self):
         """开始评分"""
+        if not self.current_config or not self.current_config.submissions_dir:
+            self.grading_status_label.setText("请先在概览界面选择作业目录并确认配置")
+            self.grading_status_label.setStyleSheet("color: #dc3545; padding: 5px;")
+            return
+
         self.start_btn.setEnabled(False)
         self.stop_btn.setEnabled(True)
         self.student_table.setRowCount(0)
 
         # 更新配置
         if self.current_config:
-            if self.rubric_combo.currentData() == "custom" and hasattr(self, 'rubric_path'):
-                self.current_config.rubric_path = Path(self.rubric_path)
+            # 从下拉框获取 Rubric 路径
+            rubric_data = self.rubric_combo.currentData()
+            if rubric_data and rubric_data not in ["car_gear", "turn_signal", "custom"]:
+                # 实际的文件路径
+                self.current_config.rubric_path = Path(rubric_data)
+            elif rubric_data == "custom":
+                # 如果选择自定义但没有指定文件，提示用户
+                self.status_changed.emit("请选择自定义 Rubric 文件")
+                self._reset_ui()
+                return
 
         self.grading_service.start_grading(self.current_config)
 

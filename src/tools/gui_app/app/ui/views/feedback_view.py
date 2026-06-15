@@ -110,6 +110,8 @@ class FeedbackView(QWidget):
         self.format_combo = QComboBox()
         self.format_combo.addItem("Markdown (.md)", "md")
         self.format_combo.addItem("HTML (.html)", "html")
+        self.format_combo.addItem("Word 文档 (.docx)", "docx")
+        self.format_combo.addItem("PDF 文档 (.pdf)", "pdf")
         self.format_combo.addItem("纯文本 (.txt)", "txt")
 
         format_layout.addWidget(format_label)
@@ -367,6 +369,10 @@ class FeedbackView(QWidget):
 
     def _on_generate_all(self):
         """批量生成"""
+        if not self.current_config or not self.current_config.submissions_dir:
+            self.status_changed.emit("请先在概览界面选择作业目录并确认配置")
+            return
+
         if self._worker and self._worker.isRunning():
             return
 
@@ -460,7 +466,13 @@ class FeedbackView(QWidget):
         format_type = self.format_combo.currentData()
 
         # 确定文件扩展名
-        extensions = {'md': '.md', 'html': '.html', 'txt': '.txt'}
+        extensions = {
+            'md': '.md',
+            'html': '.html',
+            'docx': '.docx',
+            'pdf': '.pdf',
+            'txt': '.txt'
+        }
         ext = extensions.get(format_type, '.md')
 
         file_path, _ = get_save_filename(
@@ -473,9 +485,156 @@ class FeedbackView(QWidget):
         )
 
         if file_path:
-            with open(file_path, 'w', encoding='utf-8') as f:
-                f.write(content)
-            self.status_changed.emit(f"反馈已保存: {file_path}")
+            try:
+                if format_type == 'docx':
+                    self._export_to_docx(content, file_path, student_id)
+                elif format_type == 'pdf':
+                    self._export_to_pdf(content, file_path, student_id)
+                else:
+                    # MD, HTML, TXT - 纯文本格式
+                    with open(file_path, 'w', encoding='utf-8') as f:
+                        if format_type == 'html':
+                            f.write(self._render_markdown(content))
+                        else:
+                            f.write(content)
+                self.status_changed.emit(f"反馈已保存: {file_path}")
+            except Exception as e:
+                self.status_changed.emit(f"导出失败: {str(e)}")
+
+    def _export_to_docx(self, content: str, file_path: Path, student_id: str):
+        """导出为 Word 文档"""
+        try:
+            from docx import Document
+            from docx.shared import Pt, RGBColor
+            from docx.enum.text import WD_ALIGN_PARAGRAPH
+
+            doc = Document()
+
+            # 添加标题
+            title = doc.add_heading('学习反馈报告', 0)
+
+            # 解析 Markdown 内容并添加到文档
+            lines = content.split('\n')
+            for line in lines:
+                line = line.strip()
+                if not line:
+                    doc.add_paragraph()
+                    continue
+
+                # 处理标题
+                if line.startswith('### '):
+                    doc.add_heading(line[4:], level=2)
+                elif line.startswith('## '):
+                    doc.add_heading(line[3:], level=1)
+                elif line.startswith('# '):
+                    doc.add_heading(line[2:], level=0)
+                # 处理列表
+                elif line.startswith('- '):
+                    doc.add_paragraph(line[2:], style='List Bullet')
+                # 处理粗体
+                elif '**' in line:
+                    p = doc.add_paragraph()
+                    parts = line.split('**')
+                    for i, part in enumerate(parts):
+                        if i % 2 == 1:  # 粗体部分
+                            run = p.add_run(part)
+                            run.bold = True
+                        else:
+                            p.add_run(part)
+                else:
+                    doc.add_paragraph(line)
+
+            doc.save(file_path)
+
+        except ImportError:
+            raise Exception("未安装 python-docx 库，无法导出 Word 文档")
+
+    def _export_to_pdf(self, content: str, file_path: Path, student_id: str):
+        """导出为 PDF 文档"""
+        try:
+            from reportlab.lib.pagesizes import A4
+            from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+            from reportlab.lib.units import cm
+            from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak
+            from reportlab.pdfbase import pdfmetrics
+            from reportlab.pdfbase.ttfonts import TTFont
+            from reportlab.lib.enums import TA_LEFT, TA_CENTER
+            from reportlab.lib import colors
+
+            # 注册中文字体（如果可用）
+            try:
+                pdfmetrics.registerFont(TTFont('SimSun', 'C:/Windows/Fonts/simsun.ttc', subfontIndex=1))
+                pdfmetrics.registerFont(TTFont('SimHei', 'C:/Windows/Fonts/simhei.ttf'))
+            except:
+                pass  # 使用默认字体
+
+            # 创建 PDF 文档
+            doc = SimpleDocTemplate(
+                str(file_path),
+                pagesize=A4,
+                rightMargin=2*cm,
+                leftMargin=2*cm,
+                topMargin=2*cm,
+                bottomMargin=2*cm
+            )
+
+            # 样式
+            styles = getSampleStyleSheet()
+            styles.add(ParagraphStyle(
+                name='CustomTitle',
+                parent=styles['Heading1'],
+                fontName='SimHei',
+                fontSize=18,
+                alignment=TA_CENTER,
+                spaceAfter=12
+            ))
+            styles.add(ParagraphStyle(
+                name='CustomHeading',
+                parent=styles['Heading2'],
+                fontName='SimSun',
+                fontSize=14,
+                spaceAfter=8
+            ))
+            styles.add(ParagraphStyle(
+                name='CustomBody',
+                parent=styles['BodyText'],
+                fontName='SimSun',
+                fontSize=10,
+                spaceAfter=6,
+                leading=14
+            ))
+
+            story = []
+            story.append(Paragraph('学习反馈报告', styles['CustomTitle']))
+            story.append(Spacer(1*cm, 1*cm))
+
+            # 解析 Markdown 内容
+            lines = content.split('\n')
+            for line in lines:
+                line = line.strip()
+                if not line:
+                    story.append(Spacer(0.3*cm, 0.3*cm))
+                    continue
+
+                # 处理标题
+                if line.startswith('### '):
+                    story.append(Paragraph(line[4:], styles['CustomHeading']))
+                elif line.startswith('## '):
+                    story.append(Paragraph(line[3:], styles['CustomHeading']))
+                elif line.startswith('# '):
+                    story.append(Paragraph(line[2:], styles['CustomTitle']))
+                # 处理列表
+                elif line.startswith('- '):
+                    story.append(Paragraph(f"• {line[2:]}", styles['CustomBody']))
+                else:
+                    # 处理粗体标记
+                    formatted_line = line.replace('**', '<b>').replace('**', '</b>')
+                    story.append(Paragraph(formatted_line, styles['CustomBody']))
+
+            doc.build(story)
+
+        except ImportError:
+            raise Exception("未安装 reportlab 库，无法导出 PDF 文档")
 
     def _render_markdown(self, text: str) -> str:
         """简单渲染Markdown"""

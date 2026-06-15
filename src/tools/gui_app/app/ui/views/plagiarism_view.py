@@ -63,7 +63,7 @@ class PlagiarismView(QWidget):
         layout.addWidget(splitter)
 
     def _create_config_section(self, parent_layout):
-        """创建配置区域"""
+        """创建配置区域（简化版 - 路径由Dashboard统一配置）"""
         group = QGroupBox("检测配置")
         group.setStyleSheet("""
             QGroupBox {
@@ -83,35 +83,6 @@ class PlagiarismView(QWidget):
         """)
 
         layout = QHBoxLayout(group)
-
-        # 文件选择
-        file_layout = QVBoxLayout()
-        file_label = QLabel("提交目录:")
-        self.file_label = QLabel("未选择")
-        self.file_label.setStyleSheet("color: #6c757d; padding: 5px;")
-        self.file_label.setFrameStyle(QFrame.Shape.Panel | QFrame.Shadow.Sunken)
-
-        select_btn = QPushButton("📁 选择目录")
-        select_btn.clicked.connect(self._on_select_directory)
-        select_btn.setStyleSheet("""
-            QPushButton {
-                padding: 8px 15px;
-                background-color: #3498db;
-                color: white;
-                border: none;
-                border-radius: 4px;
-            }
-            QPushButton:hover {
-                background-color: #2980b9;
-            }
-        """)
-
-        file_layout.addWidget(file_label)
-        file_layout.addWidget(self.file_label)
-        file_layout.addWidget(select_btn)
-        file_layout.addStretch()
-
-        layout.addLayout(file_layout)
 
         # 阈值配置
         threshold_layout = QVBoxLayout()
@@ -365,34 +336,10 @@ class PlagiarismView(QWidget):
         self.plagiarism_service.detection_failed.connect(self._on_detection_failed)
         self.plagiarism_service.log_message.connect(self._on_log_message)
 
-    def _on_select_directory(self):
-        """选择目录"""
-        # 优先定位到测试提交目录（如果存在）
-        from app.ui.file_dialog_utils import DialogStartDir
-        data_dir = DialogStartDir._get_data_dir()
-        if data_dir:
-            # 检查 teaching_demo 中的 submissions
-            teaching_subs = data_dir / 'teaching_demo' / '2026-春季' / '汽服2302B班' / '07-car-gear' / 'submissions'
-            if teaching_subs.exists() and any(teaching_subs.glob('*.zip')):
-                DialogStartDir._last_dirs['submission'] = str(teaching_subs)
-            # 检查测试数据中的 submissions
-            elif (data_dir / 'submissions').exists() and any((data_dir / 'submissions').glob('*.zip')):
-                DialogStartDir._last_dirs['submission'] = str(data_dir / 'submissions')
-
-        directory = get_existing_directory(
-            self,
-            "选择提交目录",
-            'submission',
-            self.current_config
-        )
-        if directory:
-            self.file_label.setText(directory)
-            self.file_path = directory
-
     def _on_start_detection(self):
         """开始检测"""
-        if not hasattr(self, 'file_path') or not self.file_path:
-            self._show_error("请先选择提交目录")
+        if not self.current_config or not self.current_config.submissions_dir:
+            self._show_error("请先在概览界面选择作业目录并确认配置")
             return
 
         self.start_btn.setEnabled(False)
@@ -401,10 +348,8 @@ class PlagiarismView(QWidget):
         self.result_table.setRowCount(0)
 
         # 更新配置
-        if self.current_config:
-            self.current_config.submissions_dir = Path(self.file_path)
-            self.current_config.suspicious_threshold = self.suspicious_spin.value()
-            self.current_config.plagiarism_threshold = self.plagiarism_spin.value()
+        self.current_config.suspicious_threshold = self.suspicious_spin.value()
+        self.current_config.plagiarism_threshold = self.plagiarism_spin.value()
 
         self.plagiarism_service.start_detection(self.current_config)
 
@@ -545,13 +490,9 @@ class PlagiarismView(QWidget):
         self.status_label.setText(message)
 
     def set_config(self, config: ProjectConfig):
-        """设置项目配置"""
+        """设置项目配置（从Dashboard接收）"""
         self.current_config = config
 
         # 更新UI显示配置值
         self.suspicious_spin.setValue(config.suspicious_threshold)
         self.plagiarism_spin.setValue(config.plagiarism_threshold)
-
-        if config.submissions_dir:
-            self.file_label.setText(str(config.submissions_dir))
-            self.file_path = str(config.submissions_dir)

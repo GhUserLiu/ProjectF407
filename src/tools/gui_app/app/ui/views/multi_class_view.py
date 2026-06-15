@@ -161,8 +161,8 @@ class MultiClassView(QWidget):
             self.base_path_label.setText("未选择")
 
     def _create_config_section(self, parent_layout):
-        """创建配置区域"""
-        group = QGroupBox("多班级检测配置")
+        """创建配置区域（简化版 - 接收Dashboard配置）"""
+        group = QGroupBox("多班级批量检测")
         group.setStyleSheet("""
             QGroupBox {
                 font-weight: bold;
@@ -182,45 +182,21 @@ class MultiClassView(QWidget):
 
         layout = QHBoxLayout(group)
 
-        # 基础路径配置
-        path_layout = QVBoxLayout()
-        path_label = QLabel("基础路径:")
+        # 配置提示
+        info_layout = QVBoxLayout()
+        info_label = QLabel("💡 使用概览界面选择班级和目录")
+        info_label.setStyleSheet("color: #17a2b8; font-size: 12px; padding: 5px;")
+        self.config_status_label = QLabel("未配置班级")
+        self.config_status_label.setStyleSheet("color: #6c757d; padding: 5px;")
         self.base_path_label = QLabel("未选择")
         self.base_path_label.setStyleSheet("color: #6c757d; padding: 5px;")
-        path_btn = QPushButton("📂 选择教学目录")
-        path_btn.clicked.connect(self._on_select_base_path)
+        self.base_path_label.setToolTip("当前基础路径")
+        info_layout.addWidget(info_label)
+        info_layout.addWidget(self.config_status_label)
+        info_layout.addWidget(self.base_path_label)
+        info_layout.addStretch()
 
-        path_layout.addWidget(path_label)
-        path_layout.addWidget(self.base_path_label)
-        path_layout.addWidget(path_btn)
-
-        layout.addLayout(path_layout)
-
-        # 学期和实验选择
-        selection_layout = QGridLayout()
-
-        # 学期选择
-        selection_layout.addWidget(QLabel("学期:"), 0, 0)
-        self.semester_combo = QComboBox()
-        self.semester_combo.addItem("2026-春季", "2026-春季")
-        self.semester_combo.addItem("2025-秋季", "2025-秋季")
-        self.semester_combo.addItem("2025-春季", "2025-春季")
-        selection_layout.addWidget(self.semester_combo, 0, 1)
-
-        # 实验选择
-        selection_layout.addWidget(QLabel("实验:"), 1, 0)
-        self.experiment_combo = QComboBox()
-        self.experiment_combo.addItem("07-car-gear (档位实验)", "07-car-gear")
-        self.experiment_combo.addItem("01-turn-signal (转向灯)", "01-turn-signal")
-        selection_layout.addWidget(self.experiment_combo, 1, 1)
-
-        # 班级模式
-        selection_layout.addWidget(QLabel("班级模式:"), 2, 0)
-        self.class_pattern_input = QLineEdit("*班")
-        self.class_pattern_input.setPlaceholderText("例如: *班, *B班")
-        selection_layout.addWidget(self.class_pattern_input, 2, 1)
-
-        layout.addLayout(selection_layout)
+        layout.addLayout(info_layout)
 
         # 检测配置
         detect_layout = QVBoxLayout()
@@ -283,21 +259,7 @@ class MultiClassView(QWidget):
         control_layout = QVBoxLayout()
         control_label = QLabel("操作:")
 
-        self.discover_btn = QPushButton("🔍 发现班级")
-        self.discover_btn.setStyleSheet("""
-            QPushButton {
-                padding: 8px 15px;
-                background-color: #17a2b8;
-                color: white;
-                border: none;
-                border-radius: 4px;
-            }
-            QPushButton:hover {
-                background-color: #138496;
-            }
-        """)
-
-        self.start_btn = QPushButton("🚀 开始检测")
+        self.start_btn = QPushButton("🚀 开始批量检测")
         self.start_btn.setEnabled(False)
         self.start_btn.setStyleSheet("""
             QPushButton {
@@ -334,7 +296,6 @@ class MultiClassView(QWidget):
         """)
 
         control_layout.addWidget(control_label)
-        control_layout.addWidget(self.discover_btn)
         control_layout.addWidget(self.start_btn)
         control_layout.addWidget(self.stop_btn)
         control_layout.addStretch()
@@ -1188,13 +1149,28 @@ class MultiClassView(QWidget):
         """重置UI状态"""
         self.start_btn.setEnabled(len(self.discovered_classes) > 0 if self.discovered_classes else False)
         self.stop_btn.setEnabled(False)
-        self.discover_btn.setEnabled(True)
 
-    def set_config(self, config: MultiClassProjectConfig):
-        """设置配置"""
+    def set_config(self, config):
+        """设置配置（支持 ProjectConfig 和 MultiClassProjectConfig）"""
         self.current_config = config
 
-        if config.classes:
+        # 处理不同类型的配置
+        if hasattr(config, 'classes') and config.classes:
+            # MultiClassProjectConfig
             self.discovered_classes = [c.to_dict() for c in config.classes]
             self._display_discovered_classes(self.discovered_classes)
             self.start_btn.setEnabled(True)
+            self.config_status_label.setText(f"已配置 {len(config.classes)} 个班级")
+            self.config_status_label.setStyleSheet("color: #28a745; padding: 5px;")
+        elif hasattr(config, 'class_name'):
+            # ProjectConfig - 单班级配置，忽略或转换为班级列表
+            # MultiClassView 主要用于多班级处理，单班级配置不在此处理
+            pass
+
+    def set_dashboard_classes(self, classes: list):
+        """从Dashboard接收选中的班级列表"""
+        self.discovered_classes = classes
+        self._display_discovered_classes(classes)
+        self.start_btn.setEnabled(len(classes) > 0)
+        self.config_status_label.setText(f"已配置 {len(classes)} 个班级")
+        self.config_status_label.setStyleSheet("color: #28a745; padding: 5px;")

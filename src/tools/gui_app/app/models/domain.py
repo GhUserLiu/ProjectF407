@@ -85,16 +85,68 @@ class ProjectConfig:
     plagiarism_threshold: float = 85.0
     weights: SimilarityWeights = field(default_factory=SimilarityWeights)
 
-    # 提交目录
+    # 提交目录（自动从 experiment_dir 派生）
     submissions_dir: Optional[Path] = None
 
-    # 输出目录
+    # 输出目录（自动从 experiment_dir 派生）
     output_dir: Optional[Path] = None
 
     # 元数据
     created_at: str = ""
     modified_at: str = ""
-    version: str = "1.0.0"
+    version: str = "2.0.0"
+
+    def get_paths(self):
+        """
+        获取统一路径配置
+
+        使用 tools.common.ExperimentPaths 获取标准化的目录结构
+
+        Returns:
+            ExperimentPaths: 路径配置实例
+        """
+        try:
+            from tools.common import ExperimentPaths
+            return ExperimentPaths(experiment_dir=self.experiment_dir)
+        except ImportError:
+            # 如果 common 模块不可用，回退到简单实现
+            class SimplePaths:
+                def __init__(self, experiment_dir):
+                    self.experiment_dir = experiment_dir
+                    self.submissions_dir = experiment_dir / "submissions" / "extracted"
+                    self.processed_dir = experiment_dir / "processed"
+                    self.results_dir = experiment_dir / "results"
+                    self.reports_dir = self.results_dir / "reports"
+                    self.feedback_dir = self.results_dir / "feedback"
+                    self.grading_dir = self.results_dir / "grading"
+                    self.plagiarism_dir = self.results_dir / "plagiarism"
+
+                def plagiarism_json(self):
+                    return self.plagiarism_dir / "plagiarism_results.json"
+
+                def grading_json(self):
+                    return self.grading_dir / "grading_results.json"
+
+                def evaluations_json(self):
+                    return self.processed_dir / "evaluations.json"
+
+                def extracted_content_json(self):
+                    return self.processed_dir / "extracted_content.json"
+
+            return SimplePaths(self.experiment_dir)
+
+    def update_derived_paths(self):
+        """
+        更新派生路径
+
+        根据 experiment_dir 自动设置 submissions_dir 和 output_dir
+        用于兼容旧代码
+        """
+        if not self.submissions_dir:
+            self.submissions_dir = self.experiment_dir / "submissions" / "extracted"
+
+        if not self.output_dir:
+            self.output_dir = self.experiment_dir / "results"
 
     def to_dict(self) -> Dict[str, Any]:
         """转换为字典"""
@@ -133,6 +185,46 @@ class ProjectConfig:
             created_at=data.get('created_at', ''),
             modified_at=data.get('modified_at', ''),
             version=data.get('version', '1.0.0')
+        )
+
+    @classmethod
+    def create_from_class_info(cls, class_info: Dict[str, Any]) -> 'ProjectConfig':
+        """
+        从班级信息字典创建配置
+
+        Args:
+            class_info: 班级信息字典，包含:
+                - class_name: 班级名称
+                - experiment_dir: 实验目录
+                - experiment: 实验类型字符串 (如 "07-car-gear")
+                - submissions_dir: 提交目录 (可选)
+
+        Returns:
+            ProjectConfig: 项目配置实例
+        """
+        # 映射实验字符串到枚举
+        experiment_map = {
+            "07-car-gear": ExperimentType.CAR_GEAR,
+            "01-turn-signal": ExperimentType.TURN_SIGNAL,
+            "02-pwm-led": ExperimentType.PWM_LED,
+        }
+
+        experiment_str = class_info.get('experiment', '07-car-gear')
+        experiment_type = experiment_map.get(experiment_str, ExperimentType.CAR_GEAR)
+
+        # 如果没有提供submissions_dir，从experiment_dir派生
+        submissions_dir = class_info.get('submissions_dir')
+        if not submissions_dir:
+            experiment_dir = Path(class_info['experiment_dir'])
+            submissions_dir = experiment_dir / 'submissions' / 'extracted'
+        else:
+            submissions_dir = Path(submissions_dir)
+
+        return cls(
+            class_name=class_info['class_name'],
+            experiment_type=experiment_type,
+            experiment_dir=Path(class_info['experiment_dir']),
+            submissions_dir=submissions_dir
         )
 
 
