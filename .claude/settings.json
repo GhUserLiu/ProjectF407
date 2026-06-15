@@ -74,10 +74,15 @@
       "Bash(tree汽服2301B班/07-car-gear/ -L 2)",
       "Bash(find汽服2301B班/07-car-gear/ -maxdepth 2 -type d)",
       "Bash(tree汽服2302B班/07-car-gear/ -L 2)",
-      "Bash(find汽服2302B班/07-car-gear/ -maxdepth 2 -type d)"
+      "Bash(find汽服2302B班/07-car-gear/ -maxdepth 2 -type d)",
+      "Bash(cd \"c:/Users/liuzh/Projects/Workspace/stm32f407/data/teaching/2026-春季/汽服2302B班/07-car-gear\" && mkdir -p results/data && mv ../scripts/data/*.json results/data/ && echo \"数据文件已移动到 results/data/\")",
+      "Bash(mv scripts/*.py scripts/*.md src/tools/teaching_scripts/)",
+      "Bash(cp -r scripts/*.py scripts/*.md src/tools/teaching_scripts/)",
+      "Bash(git commit -m 'refactor: 将脚本从数据目录移动到源代码目录 *)"
     ],
     "additionalDirectories": [
-      "c:\\Users\\liuzh\\Projects\\Workspace\\stm32f407\\docs\\teaching\\2026-春季\\汽服2302B班\\07-car-gear\\results\\feedback\\md"
+      "c:\\Users\\liuzh\\Projects\\Workspace\\stm32f407\\docs\\teaching\\2026-春季\\汽服2302B班\\07-car-gear\\results\\feedback\\md",
+      "C:\\Users\\liuzh\\Projects\\Workspace\\stm32f407\\data\\teaching\\2026-春季\\scripts\\data"
     ]
   }
 }
