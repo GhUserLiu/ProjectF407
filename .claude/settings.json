@@ -62,7 +62,19 @@
       "Bash(git commit -m 'refactor: 更新路径引用和构建配置 *)",
       "Bash(rm -rf data/rubrics/rubrics)",
       "Bash(python -c ' *)",
-      "Bash(git commit -m 'docs: 更新 CLAUDE.md 以反映新的目录结构 *)"
+      "Bash(git commit -m 'docs: 更新 CLAUDE.md 以反映新的目录结构 *)",
+      "Bash(mv submissions/*zip submissions/original/)",
+      "Bash(mv submissions/extracted submissions/)",
+      "Bash(mv results/* results/reports/)",
+      "Bash(mv submissions/*txt submissions/original/)",
+      "Bash(mv submissions/integrate_by_group.sh submissions/original/)",
+      "Bash(mv results/feedback results/)",
+      "Bash(mv results/*json results/grading/)",
+      "Bash(mv results/*html results/*xlsx results/reports/)",
+      "Bash(tree汽服2301B班/07-car-gear/ -L 2)",
+      "Bash(find汽服2301B班/07-car-gear/ -maxdepth 2 -type d)",
+      "Bash(tree汽服2302B班/07-car-gear/ -L 2)",
+      "Bash(find汽服2302B班/07-car-gear/ -maxdepth 2 -type d)"
     ],
     "additionalDirectories": [
       "c:\\Users\\liuzh\\Projects\\Workspace\\stm32f407\\docs\\teaching\\2026-春季\\汽服2302B班\\07-car-gear\\results\\feedback\\md"
