@@ -40,9 +40,9 @@ class GradingResult:
     class_name: str            # 班级
 
     # 评分
-    total_score: float         # 总分
-    max_score: float           # 满分
-    grade: str                 # 等级（A/B/C/D/F）
+    total_score: float = 0.0  # 总分
+    max_score: float = 100.0  # 满分
+    grade: str = "N/A"         # 等级（A/B/C/D/F）
 
     # 各类别得分
     category_scores: List[CategoryScore] = field(default_factory=list)
@@ -127,19 +127,25 @@ class AutoGradingEngine:
         compilation_score = self._grade_compilation(submission)
         if compilation_score:
             category_scores.append(compilation_score)
-            result.compilation_result = compilation_score.details.get('build_result') if compilation_score.details else None
+            # details是List[Dict]，获取第一个元素中的build_result
+            if compilation_score.details:
+                result.compilation_result = compilation_score.details[0].get('build_result')
 
         # 2. 代码质量分析（如果可用）
         code_quality_score = self._grade_code_quality(submission)
         if code_quality_score:
             category_scores.append(code_quality_score)
-            result.code_analysis = code_quality_score.details.get('analysis') if code_quality_score.details else None
+            # details是List[Dict]，获取第一个元素中的analysis
+            if code_quality_score.details:
+                result.code_analysis = code_quality_score.details[0].get('analysis')
 
         # 3. 报告内容评分（如果可用）
         report_score = self._grade_report(submission)
         if report_score:
             category_scores.append(report_score)
-            result.report_analysis = report_score.details.get('analysis') if report_score.details else None
+            # details是List[Dict]，获取第一个元素中的analysis
+            if report_score.details:
+                result.report_analysis = report_score.details[0].get('analysis')
 
         result.category_scores = category_scores
 

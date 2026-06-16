@@ -33,7 +33,7 @@ class ToolchainConfig:
 
     def get_make_command(self, project: str, target: str = "all") -> List[str]:
         """获取Make命令"""
-        return [self.make_path, f"PROJECT={project", target]
+        return [self.make_path, f"PROJECT={project}", target]
 
     def get_keil_command(self, project_path: str) -> List[str]:
         """获取Keil命令（如果启用）"""

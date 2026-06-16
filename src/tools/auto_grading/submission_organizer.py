@@ -32,7 +32,7 @@ from typing import List, Dict, Optional, Tuple
 from datetime import datetime
 
 from ..security.zip_validator import safe_extract_zip
-from ..security.path_validator import PathValidator
+# from ..security.path_validator import PathValidator  # Not needed
 
 
 @dataclass
@@ -74,7 +74,6 @@ class SubmissionOrganizer:
             base_dir: 基础目录（例如：data/teaching/2026-春季/）
         """
         self.base_dir = Path(base_dir)
-        self.path_validator = PathValidator()
 
     def process_class_submission(
         self,
@@ -215,7 +214,7 @@ class SubmissionOrganizer:
                 new_report_path = reports_dir / new_report_name
                 shutil.move(str(report_file), str(new_report_path))
                 result['report_path'] = str(new_report_path)
-                print(f"  ✓ 处理报告: {new_report_name}")
+                print(f"  [OK] 处理报告: {new_report_name}")
             else:
                 result['error'] = "未找到实验报告文件"
                 return result
@@ -228,12 +227,18 @@ class SubmissionOrganizer:
                 source_path = source_dir / source_name
                 source_path.mkdir(exist_ok=True)
 
-                # 解压源代码
-                safe_extract_zip(source_zip, source_path)
+                # 解压源代码（增加限制以应对大型项目）
+                from ..security.zip_validator import ZipLimits
+                source_limits = ZipLimits(
+                    max_file_count=5000,      # 允许更多文件
+                    max_outer_size=500*1024*1024,  # 500MB (学生可能包含大型库文件)
+                    max_inner_size=200*1024*1024   # 200MB
+                )
+                safe_extract_zip(source_zip, source_path, limits=source_limits)
                 result['source_path'] = str(source_path)
-                print(f"  ✓ 处理源代码: {source_name}")
+                print(f"  [OK] 处理源代码: {source_name}")
             else:
-                print(f"  ⚠ 未找到源代码压缩包: {student_zip.name}")
+                print(f"  [WARN] 未找到源代码压缩包: {student_zip.name}")
 
             result['success'] = True
 

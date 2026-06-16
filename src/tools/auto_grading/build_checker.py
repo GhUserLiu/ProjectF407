@@ -49,7 +49,7 @@ class BuildResult:
     project_name: str
     project_path: Path
     success: bool
-    duration: float  # 编译耗时（秒）
+    duration: float = 0.0  # 编译耗时（秒）
     error_count: int = 0
     warning_count: int = 0
     issues: List[BuildIssue] = field(default_factory=list)

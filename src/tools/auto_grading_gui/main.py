@@ -15,7 +15,7 @@ sys.path.insert(0, str(project_root))
 from PyQt6.QtWidgets import QApplication
 from PyQt6.QtCore import Qt
 
-from .ui.main_window import MainWindow
+from src.tools.auto_grading_gui.ui.main_window import MainWindow
 
 
 def main():

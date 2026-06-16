@@ -367,9 +367,11 @@ class MainWindow(QMainWindow):
 
             if len(parts) >= 2:
                 # 可能是 "班级-实验ID" 格式
-                if len(parts) >= 2:
-                    self.class_name_edit.setText(parts[0])
-                    self.experiment_id_edit.setText(parts[1])
+                # 实验ID可能包含多个连字符，如 "07-car-gear"
+                self.class_name_edit.setText(parts[0])
+                # 将剩余部分重新组合成实验ID
+                experiment_id = '-'.join(parts[1:])
+                self.experiment_id_edit.setText(experiment_id)
 
     def log(self, message):
         """输出日志"""

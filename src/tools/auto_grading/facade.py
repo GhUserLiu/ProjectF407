@@ -26,6 +26,28 @@ from .config import AutoGradingConfig
 from .submission_organizer import SubmissionOrganizer, OrganizationResult
 from .submission_processor import SubmissionProcessor, ProcessedSubmission
 from .grading_engine import AutoGradingEngine, GradingResult
+from .build_checker import BuildResult, BuildStatus
+
+
+def serialize_details(details):
+    """序列化details中的不可序列化对象"""
+    if isinstance(details, list):
+        return [serialize_details(item) for item in details]
+    elif isinstance(details, dict):
+        return {k: serialize_details(v) for k, v in details.items()}
+    elif isinstance(details, BuildResult):
+        return {
+            'status': details.status.value if isinstance(details.status, BuildStatus) else str(details.status),
+            'project_name': details.project_name,
+            'success': details.success,
+            'duration': details.duration,
+            'error_count': details.error_count,
+            'warning_count': details.warning_count,
+            'error_message': details.error_message,
+            'output': details.output
+        }
+    else:
+        return details
 
 
 @dataclass
@@ -60,8 +82,8 @@ class AutoGradingFacade:
         self.config = config or AutoGradingConfig()
 
         # 初始化子模块
-        self.organizer = SubmissionOrganizer(self.config.base_dir)
-        self.processor = SubmissionProcessor(self.config.base_dir)
+        self.organizer = SubmissionOrganizer(self.config.data_dir)
+        self.processor = SubmissionProcessor(self.config.data_dir)
         self.engine = AutoGradingEngine(self.config)
 
     def run_full_pipeline(
@@ -149,13 +171,13 @@ class AutoGradingFacade:
         print("阶段4: 生成报告")
         print("-" * 70)
 
+        result.completed_at = datetime.now()
+
         class_report = self.engine.generate_class_report(grading_results)
         self._save_reports(result, class_report)
 
         print(f"  班级报告已生成")
         print(f"  个人报告已生成")
-
-        result.completed_at = datetime.now()
 
         print()
         print("=" * 70)
@@ -244,7 +266,7 @@ class AutoGradingFacade:
                         'category_name': cs.category_name,
                         'max_points': cs.max_points,
                         'earned_points': cs.earned_points,
-                        'details': cs.details
+                        'details': serialize_details(cs.details)
                     }
                     for cs in grading_result.category_scores
                 ],
@@ -274,7 +296,7 @@ class AutoGradingFacade:
             "=" * 70,
             f"班级: {pipeline_result.class_name}",
             f"实验: {pipeline_result.experiment_id}",
-            f"批阅时间: {pipeline_result.completed_at.strftime('%Y-%m-%d %H:%M:%S')}",
+            f"批阅时间: {pipeline_result.completed_at.strftime('%Y-%m-%d %H:%M:%S') if pipeline_result.completed_at else '进行中'}",
             "",
             "统计信息",
             "-" * 70,

@@ -19,7 +19,8 @@ from dataclasses import dataclass, field
 from typing import List, Dict, Optional, Tuple
 from datetime import datetime
 
-from ..security.xml_parser import extract_text_from_docx
+from ..security.zip_validator import safe_extract_text_from_docx
+from ..security.xml_parser import extract_text_from_docx_xml
 
 
 @dataclass
@@ -61,7 +62,7 @@ class SubmissionProcessor:
 
     # 文件命名模式
     FILENAME_PATTERN = re.compile(
-        r'(.+)-(\d{11})-([一-龥]{2,4})-(.+?)'
+        r'(.+)-(\d{11})-([一-龥]{2,4})-实验报告'
     )
 
     # 源文件扩展名
@@ -219,8 +220,15 @@ class SubmissionProcessor:
                 # PDF文件需要特殊处理
                 return f"[PDF文件: {report_path.name}]"
             else:
-                # 使用docx解析器
-                return extract_text_from_docx(report_path)
+                # 读取docx文件并提取文本
+                with open(report_path, 'rb') as f:
+                    docx_data = f.read()
+                xml_content = safe_extract_text_from_docx(docx_data)
+                if xml_content:
+                    # 解析XML内容提取文本
+                    text = extract_text_from_docx_xml(xml_content)
+                    return text if text else ""
+                return ""
         except Exception as e:
             print(f"警告: 读取报告失败 {report_path.name}: {str(e)}")
             return ""

@@ -255,6 +255,98 @@ def is_safe_zip_file(
         return False, f"验证异常: {e}"
 
 
+def safe_extract_zip(
+    zip_path: Path,
+    extract_dir: Path,
+    limits: Optional[ZipLimits] = None
+) -> None:
+    """
+    安全地解压ZIP文件到指定目录
+
+    Args:
+        zip_path: ZIP文件路径
+        extract_dir: 解压目标目录
+        limits: 限制配置（可选）
+
+    Raises:
+        ZipValidationError: 如果验证失败或解压失败
+
+    安全特性:
+        - 验证ZIP文件大小
+        - 验证解压后的文件数量
+        - 检查路径遍历攻击
+        - 防止Zip炸弹攻击
+    """
+    if limits is None:
+        limits = ZipLimits()
+
+    # 验证ZIP文件安全性
+    is_safe, error_msg = is_safe_zip_file(zip_path, limits)
+    if not is_safe:
+        raise ZipValidationError(f"ZIP文件验证失败: {error_msg}")
+
+    # 创建解压目录
+    extract_dir.mkdir(parents=True, exist_ok=True)
+
+    # 安全解压
+    with zipfile.ZipFile(zip_path, 'r') as zf:
+        # 再次检查所有文件路径
+        for zinfo in zf.filelist:
+            validate_path_traversal(zinfo.filename)
+
+        # 验证文件数量
+        if len(zf.filelist) > limits.max_file_count:
+            raise ZipValidationError(
+                f"文件数量过多: {len(zf.filelist)} > {limits.max_file_count}"
+            )
+
+        # 解压所有文件
+        for zinfo in zf.filelist:
+            # 跳过目录
+            if zinfo.filename.endswith('/'):
+                continue
+
+            # 验证路径
+            validate_path_traversal(zinfo.filename)
+
+            # 检查文件名长度
+            if len(zinfo.filename) > limits.max_filename_length:
+                raise ZipValidationError(
+                    f"文件名过长: {len(zinfo.filename)} > {limits.max_filename_length}"
+                )
+
+            # 检查是否为符号链接（如果不允许）
+            if not limits.allow_symlinks:
+                # 检查是否为符号链接（兼容不同Python版本）
+                is_link = False
+                if hasattr(zinfo, 'is_symlink'):
+                    is_link = zinfo.is_symlink()
+                elif zinfo.external_attr & 0xA000:  # Unix symlink bit
+                    is_link = True
+
+                if is_link:
+                    raise ZipValidationError(f"不允许符号链接: {zinfo.filename}")
+
+            # 解压文件（处理中文文件名编码）
+            try:
+                # 尝试处理中文文件名编码
+                # Windows上ZIP文件通常用CP437编码，但中文可能是GBK
+                try:
+                    # 尝试用GBK解码文件名
+                    decoded_name = zinfo.filename.encode('cp437').decode('gbk')
+                    target_path = extract_dir / decoded_name
+                    # 创建父目录
+                    target_path.parent.mkdir(parents=True, exist_ok=True)
+                    # 写入文件
+                    with open(target_path, 'wb') as f:
+                        f.write(zf.read(zinfo))
+                except (UnicodeDecodeError, UnicodeEncodeError):
+                    # 如果编码转换失败，使用原始方式
+                    zf.extract(zinfo, extract_dir)
+            except Exception as e:
+                raise ZipValidationError(f"解压文件失败 {zinfo.filename}: {e}")
+
+
 def safe_extract_text_from_docx(
     docx_data: bytes,
     limits: Optional[ZipLimits] = None
