@@ -30,6 +30,7 @@ from PyQt6.QtGui import QAction, QIcon, QFont
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 from tools.auto_grading import AutoGradingFacade, AutoGradingConfig
 from tools.auto_grading.facade import PipelineResult
+from tools.auto_grading_gui.workers.grading_worker import GradingWorker
 
 
 class MainWindow(QMainWindow):
@@ -41,6 +42,7 @@ class MainWindow(QMainWindow):
         self.facade = AutoGradingFacade(self.config)
         self.current_result = None
         self.is_grading = False
+        self.grading_worker = None
 
         self.setup_ui()
 
@@ -407,13 +409,67 @@ class MainWindow(QMainWindow):
         # 重置进度条
         for progress_bar in self.progress_bars.values():
             progress_bar.setValue(0)
+            progress_bar.setRange(0, 100)
 
         # 记录开始时间
         self.start_time = datetime.now()
 
-        # TODO: 启动批阅线程
-        # 目前先使用模拟数据
-        self.simulate_grading()
+        # 创建并启动工作线程
+        skip_org = not self.check_organize.isChecked()
+
+        self.grading_worker = GradingWorker(
+            zip_path=Path(zip_path),
+            class_name=class_name,
+            experiment_id=experiment_id,
+            config=self.config,
+            skip_organization=skip_org
+        )
+
+        # 连接信号
+        self.grading_worker.stage_started.connect(self.on_stage_started)
+        self.grading_worker.stage_progress.connect(self.on_stage_progress)
+        self.grading_worker.stage_completed.connect(self.on_stage_completed)
+        self.grading_worker.log_message.connect(self.log)
+        self.grading_worker.grading_completed.connect(self.on_grading_completed)
+        self.grading_worker.grading_failed.connect(self.on_grading_failed)
+
+        # 启动线程
+        self.grading_worker.start()
+
+    def on_stage_started(self, stage_id: str, stage_name: str):
+        """阶段开始"""
+        if stage_id in self.progress_bars:
+            progress_bar = self.progress_bars[stage_id]
+            progress_bar.setRange(0, 100)
+            progress_bar.setValue(0)
+
+    def on_stage_progress(self, stage_id: str, current: int, total: int):
+        """阶段进度更新"""
+        if stage_id in self.progress_bars:
+            progress_bar = self.progress_bars[stage_id]
+            progress_bar.setRange(0, total)
+            progress_bar.setValue(current)
+
+    def on_stage_completed(self, stage_id: str):
+        """阶段完成"""
+        if stage_id in self.progress_bars:
+            progress_bar = self.progress_bars[stage_id]
+            progress_bar.setValue(progress_bar.maximum())
+
+    def on_grading_completed(self, result: PipelineResult):
+        """批阅完成"""
+        self.current_result = result
+        self.grading_complete()
+
+    def on_grading_failed(self, error_message: str):
+        """批阅失败"""
+        self.is_grading = False
+        self.start_btn.setEnabled(True)
+        self.cancel_btn.setEnabled(False)
+
+        self.log(f"批阅失败: {error_message}")
+
+        QMessageBox.critical(self, "错误", f"批阅失败:\n{error_message}")
 
     def cancel_grading(self):
         """取消批阅"""
@@ -427,45 +483,18 @@ class MainWindow(QMainWindow):
 
             if reply == QMessageBox.StandardButton.Yes:
                 self.is_grading = False
-                self.start_btn.setEnabled(True)
-                self.cancel_btn.setEnabled(False)
+
+                if self.grading_worker:
+                    self.grading_worker.cancel()
+
                 self.log("批阅已取消")
 
-    def simulate_grading(self):
-        """模拟批阅（开发测试用）"""
-        # 使用定时器模拟进度
-        self.current_stage = 0
-        self.stages = ["organize", "compile", "analyze", "grade"]
-        self.stage_totals = {"organize": 20, "compile": 20, "analyze": 20, "grade": 20}
+                # 等待线程结束
+                if self.grading_worker and self.grading_worker.isRunning():
+                    self.grading_worker.wait(3000)  # 等待最多3秒
 
-        self.simulation_timer = QTimer()
-        self.simulation_timer.timeout.connect(self.update_simulation)
-        self.simulation_timer.start(100)  # 100ms更新一次
-
-    def update_simulation(self):
-        """更新模拟进度"""
-        if not self.is_grading:
-            self.simulation_timer.stop()
-            return
-
-        stage_id = self.stages[self.current_stage]
-        progress_bar = self.progress_bars[stage_id]
-        current_value = progress_bar.value()
-
-        if current_value < self.stage_totals[stage_id]:
-            progress_bar.setValue(current_value + 1)
-        else:
-            # 当前阶段完成，进入下一阶段
-            self.current_stage += 1
-
-            if self.current_stage >= len(self.stages):
-                # 所有阶段完成
-                self.simulation_timer.stop()
-                self.grading_complete()
-            else:
-                # 自动开始下一阶段
-                next_stage = self.stages[self.current_stage]
-                self.progress_bars[next_stage].setValue(0)
+                self.start_btn.setEnabled(True)
+                self.cancel_btn.setEnabled(False)
 
     def grading_complete(self):
         """批阅完成"""
@@ -478,30 +507,65 @@ class MainWindow(QMainWindow):
         minutes = int(elapsed // 60)
         seconds = int(elapsed % 60)
 
-        # 更新统计
-        self.total_label.setText("总提交: 20")
-        self.avg_label.setText("平均分: 82.3")
+        # 更新统计（使用真实结果）
+        if self.current_result:
+            total = self.current_result.total_submissions
+            avg_score = 0
+
+            if self.current_result.grading_results:
+                avg_score = sum(r.total_score for r in self.current_result.grading_results) / len(self.current_result.grading_results)
+
+            self.total_label.setText(f"总提交: {total}")
+            self.avg_label.setText(f"平均分: {avg_score:.1f}")
+
         self.time_label.setText(f"用时: {minutes}:{seconds:02d}")
 
-        # 填充表格（示例数据）
+        # 填充表格（使用真实结果）
         self.fill_results_table()
 
         self.log("批阅完成！")
 
     def fill_results_table(self, results=None):
         """填充结果表格"""
-        # 示例数据
-        sample_data = [
-            ("23071140101", "张三", True, 85, 90, 87.5, "B"),
-            ("23071140102", "李四", True, 92, 88, 89.3, "B"),
-            ("23071140103", "王五", False, 78, 85, 0.0, "F"),
-            ("23071140104", "赵六", True, 88, 92, 91.0, "A"),
-            ("23071140105", "钱七", True, 80, 85, 84.0, "B"),
-        ]
+        # 使用真实结果
+        if results is None and self.current_result:
+            results = self.current_result.grading_results
 
-        self.results_table.setRowCount(len(sample_data))
+        if not results:
+            return
 
-        for row, data in enumerate(sample_data):
+        # 提取数据
+        table_data = []
+        for result in results:
+            # 提取各项得分
+            compilation_score = 0
+            code_score = 0
+            report_score = 0
+            compilation_ok = True
+
+            for cat_score in result.category_scores:
+                if cat_score.category_id == "compilation":
+                    compilation_score = cat_score.earned_points
+                    compilation_ok = compilation_score > 0
+                elif cat_score.category_id == "code_quality":
+                    code_score = cat_score.earned_points
+                elif cat_score.category_id == "report_quality":
+                    report_score = cat_score.earned_points
+
+            table_data.append((
+                result.student_id,
+                result.name,
+                compilation_ok,
+                code_score,
+                report_score,
+                result.total_score,
+                result.grade
+            ))
+
+        # 填充表格
+        self.results_table.setRowCount(len(table_data))
+
+        for row, data in enumerate(table_data):
             for col, value in enumerate(data):
                 item = QTableWidgetItem(str(value))
 
@@ -529,12 +593,57 @@ class MainWindow(QMainWindow):
 
         self.log(f"查看学生详情: {student_id}-{name}")
 
-        # TODO: 显示详细报告
-        QMessageBox.information(
-            self,
-            "学生详情",
-            f"学号: {student_id}\n姓名: {name}\n\n详细报告功能开发中..."
-        )
+        # 查找学生结果
+        student_result = None
+        if self.current_result and self.current_result.grading_results:
+            for result in self.current_result.grading_results:
+                if result.student_id == student_id and result.name == name:
+                    student_result = result
+                    break
+
+        if student_result:
+            # 显示详细报告
+            detail_text = f"""
+            <h3>{student_result.name} 的批阅详情</h3>
+            <table border="1" cellpadding="5" cellspacing="0">
+            <tr><td><b>学号:</b></td><td>{student_result.student_id}</td></tr>
+            <tr><td><b>姓名:</b></td><td>{student_result.name}</td></tr>
+            <tr><td><b>班级:</b></td><td>{student_result.class_name}</td></tr>
+            <tr><td><b>总分:</b></td><td>{student_result.total_score:.1f}/{student_result.max_score:.1f}</td></tr>
+            <tr><td><b>等级:</b></td><td><b>{student_result.grade}</b></td></tr>
+            </table>
+            <br>
+            <h4>各类别得分:</h4>
+            <table border="1" cellpadding="5" cellspacing="0">
+            <tr><th>类别</th><th>得分</th><th>满分</th></tr>
+            """
+
+            for cat_score in student_result.category_scores:
+                detail_text += f"""
+                <tr>
+                <td>{cat_score.category_name}</td>
+                <td>{cat_score.earned_points:.1f}</td>
+                <td>{cat_score.max_points:.1f}</td>
+                </tr>
+                """
+
+            detail_text += "</table>"
+
+            if student_result.strengths:
+                detail_text += "<br><h4>优点:</h4><ul>"
+                for strength in student_result.strengths:
+                    detail_text += f"<li>{strength}</li>"
+                detail_text += "</ul>"
+
+            if student_result.weaknesses:
+                detail_text += "<br><h4>不足:</h4><ul>"
+                for weakness in student_result.weaknesses:
+                    detail_text += f"<li>{weakness}</li>"
+                detail_text += "</ul>"
+
+            QMessageBox.information(self, "学生详情", detail_text)
+        else:
+            QMessageBox.warning(self, "未找到", f"未找到学生 {student_id}-{name} 的批阅结果")
 
     def view_class_report(self):
         """查看班级报告"""
