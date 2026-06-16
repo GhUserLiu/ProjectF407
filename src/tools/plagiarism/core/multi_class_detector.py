@@ -29,8 +29,20 @@ from .detector import (
     SimilarityResult
 )
 
-# 导入工具函数
-from tools.submission_utils import get_student_info
+# 导入工具函数 - 使用延迟导入以避免打包时的路径问题
+def get_student_info(*args, **kwargs):
+    """获取学生信息 - 延迟导入 wrapper"""
+    try:
+        from tools.submission.submission_utils import get_student_info as _get_student_info
+        # 替换自己为真正的函数
+        global get_student_info
+        get_student_info = _get_student_info
+        return _get_student_info(*args, **kwargs)
+    except ImportError:
+        # 如果导入失败，返回空结果
+        import sys
+        print(f"[WARNING] 无法导入 get_student_info: {sys.path}", file=sys.stderr)
+        return {}
 
 
 @dataclass

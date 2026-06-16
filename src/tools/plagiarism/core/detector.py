@@ -17,8 +17,17 @@ from enum import Enum
 try:
     import numpy as np
     HAS_NUMPY = True
-except ImportError:
+except (ImportError, RuntimeError) as e:
+    # RuntimeError: "CPU dispatcher tracer already initialized"
+    # This can happen in PyInstaller frozen environments
     HAS_NUMPY = False
+    np = None
+    import sys
+    print(f"[WARNING] NumPy not available: {e}", file=sys.stderr)
+    # 清除可能损坏的 NumPy 模块
+    modules_to_remove = [k for k in sys.modules.keys() if k.startswith('numpy')]
+    for m in modules_to_remove:
+        del sys.modules[m]
 
 
 class SimilarityMethod(Enum):

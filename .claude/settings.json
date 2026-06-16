@@ -80,11 +80,33 @@
       "Bash(cp -r scripts/*.py scripts/*.md src/tools/teaching_scripts/)",
       "Bash(git commit -m 'refactor: 将脚本从数据目录移动到源代码目录 *)",
       "Bash(rm -f plagiarism_detection_enhanced.py test_plagiarism.py PLAGIARISM_MIGRATION.md INSTALL.md)",
-      "Bash(ls -la *.py)"
+      "Bash(ls -la *.py)",
+      "Bash(git commit -m 'docs: 添加 models 目录说明 *)",
+      "Bash(git commit -m 'docs: 更新 models 目录说明，反映实际使用的模型 *)",
+      "Bash(# 删除汽服2301B班旧文件 *)",
+      "Bash(rm \"c:/Users/liuzh/Projects/Workspace/stm32f407/data/teaching/2026-春季/汽服2302B班/07-car-gear/submissions/original/\"*.zip)",
+      "Bash(rm \"c:/Users/liuzh/Projects/Workspace/stm32f407/data/teaching/2026-春季/汽服2302B班/07-car-gear/submissions/original/\"*.sh)",
+      "Bash(rm \"c:/Users/liuzh/Projects/Workspace/stm32f407/data/teaching/2026-春季/汽服2302B班/07-car-gear/submissions/original/\"*.txt)",
+      "Bash(# 清空汽服2301B班 extracted 目录 *)",
+      "Bash(# 清空汽服2302B班 extracted 目录 *)",
+      "Bash(unzip -l \"汽服2301B班-_实验报告（第七次实验 汽车档位模拟器设计）\\(附件\\).zip\")",
+      "Bash(unzip -q \"汽服2301B班-_实验报告（第七次实验 汽车档位模拟器设计）\\(附件\\).zip\" \"23071140137*.zip\")",
+      "Bash(unzip -l \"23071140137*.zip\")",
+      "Bash(python src/tools/teaching_scripts/process_attachment_zip.py 'data/teaching/2026-春季/汽服2301B班/07-car-gear/submissions/original/汽服2301B班-_实验报告（第七次实验 汽车档位模拟器设计）\\(附件\\).zip' --class 汽服2301B班)",
+      "Bash(python src/tools/teaching_scripts/process_attachment_zip.py 'data/teaching/2026-春季/汽服2302B班/07-car-gear/submissions/original/汽服2302B班-_实验报告（第七次实验 汽车档位模拟器设计）\\(附件\\).zip' --class 汽服2302B班)",
+      "Bash(python src/tools/teaching_scripts/extract_and_evaluate.py --class \"汽服2301B班\" --threshold 60)",
+      "Bash(python -m py_compile \"src/tools/gui_app/app/ui/views/dashboard_view.py\")",
+      "Bash(python -m py_compile \"src/tools/gui_app/app/ui/views/plagiarism_view.py\")",
+      "Bash(python -m py_compile \"src/tools/gui_app/app/ui/views/multi_class_view.py\")",
+      "Bash(mkdir -p \"c:/Users/liuzh/Projects/Workspace/stm32f407/src/tools/auto_grading\")"
     ],
     "additionalDirectories": [
       "c:\\Users\\liuzh\\Projects\\Workspace\\stm32f407\\docs\\teaching\\2026-春季\\汽服2302B班\\07-car-gear\\results\\feedback\\md",
-      "C:\\Users\\liuzh\\Projects\\Workspace\\stm32f407\\data\\teaching\\2026-春季\\scripts\\data"
+      "C:\\Users\\liuzh\\Projects\\Workspace\\stm32f407\\data\\teaching\\2026-春季\\scripts\\data",
+      "c:\\Users\\liuzh\\Projects\\Workspace\\stm32f407\\data\\teaching\\2026-春季\\汽服2301B班\\07-car-gear\\submissions\\original",
+      "c:\\Users\\liuzh\\Projects\\Workspace\\stm32f407\\data\\teaching\\2026-春季\\汽服2301B班\\07-car-gear\\submissions\\extracted",
+      "c:\\Users\\liuzh\\Projects\\Workspace\\stm32f407\\data\\teaching\\2026-春季\\汽服2302B班\\07-car-gear\\submissions\\extracted",
+      "c:\\Users\\liuzh\\Projects\\Workspace\\stm32f407\\src\\tools"
     ]
   }
 }

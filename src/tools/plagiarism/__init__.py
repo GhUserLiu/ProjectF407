@@ -48,11 +48,13 @@ except ImportError:
 # ========== 质量评估模块 ==========
 try:
     from .quality import (
-        QualityAssessment,
-        AdaptiveThreshold,
+        EnhancedQualityAssessor,
+        AdaptiveThresholdEngine,
         TechnicalValidator
     )
-except ImportError:
+except (ImportError, RuntimeError) as e:
+    import sys
+    print(f"[WARNING] Failed to import quality module in plagiarism __init__: {e}", file=sys.stderr)
     pass
 
 # ========== 代码分析模块 ==========

@@ -18,6 +18,9 @@ from tools.security.zip_validator import ZipLimits, validate_zip_size, safe_extr
 from tools.security.xml_parser import extract_text_from_docx_xml
 from tools.plagiarism.core.detector import PlagiarismDetector, SimilarityMethod
 
+# 导入统一路径配置
+from tools.common import ExperimentPaths
+
 def extract_student_info_2301b(extract_dir, limits=None):
     """
     从2301B班提交中提取学生信息
@@ -181,14 +184,21 @@ def simple_grading(submissions, all_results):
     return grades
 
 
-def save_results(output_dir, all_results, suspicious, grades):
+def save_results(paths: ExperimentPaths, all_results, suspicious, grades):
     """
-    保存结果
-    """
-    output_dir = Path(output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
+    保存结果（使用统一路径配置）
 
-    # 保存查重结果
+    Args:
+        paths: ExperimentPaths 实例
+        all_results: 查重结果
+        suspicious: 可疑对列表
+        grades: 评分结果
+    """
+    # 确保输出目录存在
+    paths.plagiarism_dir.mkdir(parents=True, exist_ok=True)
+    paths.grading_dir.mkdir(parents=True, exist_ok=True)
+
+    # 保存查重结果到 results/plagiarism/
     plagiarism_data = {
         'timestamp': datetime.now().isoformat(),
         'total_students': len(grades),
@@ -205,37 +215,44 @@ def save_results(output_dir, all_results, suspicious, grades):
                 'is_cross_group': r.is_cross_group
             })
 
-    with open(output_dir / 'plagiarism_results.json', 'w', encoding='utf-8') as f:
+    plagiarism_path = paths.plagiarism_json()
+    with open(plagiarism_path, 'w', encoding='utf-8') as f:
         json.dump(plagiarism_data, f, ensure_ascii=False, indent=2)
 
-    # 保存评分结果
+    # 保存评分结果到 results/grading/
     grading_data = {
         'timestamp': datetime.now().isoformat(),
         'grades': grades
     }
 
-    with open(output_dir / 'grading_results.json', 'w', encoding='utf-8') as f:
+    grading_path = paths.grading_json()
+    with open(grading_path, 'w', encoding='utf-8') as f:
         json.dump(grading_data, f, ensure_ascii=False, indent=2)
 
-    print(f"\n结果已保存到: {output_dir}")
-    print(f"  - plagiarism_results.json")
-    print(f"  - grading_results.json")
+    print(f"\n结果已保存到: {paths.results_dir}")
+    print(f"  - {plagiarism_path.relative_to(paths.experiment_dir)}")
+    print(f"  - {grading_path.relative_to(paths.experiment_dir)}")
 
 
 def main():
     """主函数"""
-    # 设置路径
-    base_dir = Path('docs/teaching/2026-春季/汽服2301B班/07-car-gear')
-    extract_dir = base_dir / 'submissions/extracted'
-    output_dir = base_dir / 'results'
+    # 使用统一路径配置
+    paths = ExperimentPaths(
+        experiment_dir=Path('data/teaching/2026-春季/汽服2301B班/07-car-gear')
+    )
+
+    # 创建必要的目录
+    paths.extracted_dir.mkdir(parents=True, exist_ok=True)
+    paths.results_dir.mkdir(parents=True, exist_ok=True)
 
     print("="*60)
     print("汽服2301B班实验报告处理系统")
     print("="*60)
+    print(f"实验目录: {paths.experiment_dir}")
 
     # 1. 提取学生信息
     print("\n提取学生信息...")
-    student_info = extract_student_info_2301b(extract_dir)
+    student_info = extract_student_info_2301b(paths.extracted_dir)
     print(f"成功提取 {len(student_info)} 份报告")
 
     if not student_info:
@@ -255,8 +272,8 @@ def main():
     # 3. 评分
     grades = simple_grading(student_info, all_results)
 
-    # 4. 保存结果
-    save_results(output_dir, all_results, suspicious, grades)
+    # 4. 保存结果（使用统一路径配置）
+    save_results(paths, all_results, suspicious, grades)
 
     print("\n" + "="*60)
     print("处理完成!")

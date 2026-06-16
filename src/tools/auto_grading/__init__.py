@@ -18,10 +18,25 @@ Auto Grading System for STM32 Teaching Projects
 """
 
 from .config import AutoGradingConfig
-from .build_checker import BuildChecker, BuildResult, BuildStatus
-from .submission_processor import SubmissionProcessor, ProcessedSubmission
-from .grading_engine import AutoGradingEngine, GradingResult
-from .facade import AutoGradingFacade
+from .submission_organizer import SubmissionOrganizer, OrganizationResult, StudentInfo
+
+__all__ = [
+    # 配置
+    "AutoGradingConfig",
+    # 提交整理
+    "SubmissionOrganizer",
+    "OrganizationResult",
+    "StudentInfo",
+    # 以下模块待实现
+    # "BuildChecker",
+    # "BuildResult",
+    # "BuildStatus",
+    # "SubmissionProcessor",
+    # "ProcessedSubmission",
+    # "AutoGradingEngine",
+    # "GradingResult",
+    # "AutoGradingFacade",
+]
 
 __version__ = "1.0.0"
 __author__ = "STM32F407 Teaching Team"

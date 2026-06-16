@@ -10,6 +10,9 @@ from pathlib import Path
 from typing import Dict, List
 from collections import defaultdict
 
+# 导入统一路径配置
+from tools.common import ExperimentPaths
+
 
 def load_plagiarism_data(json_path: Path) -> Dict:
     """加载查重报告数据"""
@@ -162,10 +165,16 @@ def update_feedback_with_similarity(
 def generate_updated_feedback_files(
     grading_data: List[Dict],
     similarity_map: Dict[str, List[Dict]],
-    output_dir: Path
+    paths: ExperimentPaths
 ) -> None:
-    """生成包含相似度信息的反馈文件"""
-    md_dir = output_dir / 'feedback' / 'md'
+    """生成包含相似度信息的反馈文件（使用统一路径配置）
+
+    Args:
+        grading_data: 评分数据
+        similarity_map: 相似度映射
+        paths: ExperimentPaths 实例
+    """
+    md_dir = paths.feedback_dir / 'md'
     md_dir.mkdir(parents=True, exist_ok=True)
 
     for student in grading_data:
@@ -254,34 +263,48 @@ def main():
     )
 
     parser.add_argument(
+        '--experiment-dir',
+        type=Path,
+        default=Path('data/teaching/2026-春季/汽服2302B班/07-car-gear'),
+        help='实验目录路径'
+    )
+
+    parser.add_argument(
         '--plagiarism-report',
         type=Path,
-        default=Path('docs/teaching/2026-春季/汽服2302B班/07-car-gear/results/查重报告.json'),
-        help='查重报告JSON路径'
+        default=None,
+        help='查重报告JSON路径（默认从实验目录查找）'
     )
 
     parser.add_argument(
         '--grading-results',
         type=Path,
-        default=Path('docs/teaching/2026-春季/汽服2302B班/07-car-gear/results/grading_results.json'),
-        help='评分结果JSON路径'
-    )
-
-    parser.add_argument(
-        '--output-dir',
-        type=Path,
-        default=Path('docs/teaching/2026-春季/汽服2302B班/07-car-gear/results'),
-        help='输出目录'
+        default=None,
+        help='评分结果JSON路径（默认从实验目录查找）'
     )
 
     args = parser.parse_args()
 
+    # 使用统一路径配置
+    paths = ExperimentPaths(experiment_dir=args.experiment_dir)
+
+    # 确定文件路径
+    if args.plagiarism_report is None:
+        plagiarism_report = paths.plagiarism_json()
+    else:
+        plagiarism_report = args.plagiarism_report
+
+    if args.grading_results is None:
+        grading_results = paths.grading_json()
+    else:
+        grading_results = args.grading_results
+
     # 加载数据
     print("加载查重报告...")
-    plagiarism_data = load_plagiarism_data(args.plagiarism_report)
+    plagiarism_data = load_plagiarism_data(plagiarism_report)
 
     print("加载评分数据...")
-    grading_data = load_grading_data(args.grading_results)
+    grading_data = load_grading_data(grading_results)
 
     # 构建相似度映射
     print("构建相似度映射...")
@@ -292,7 +315,7 @@ def main():
     update_feedback_with_similarity(
         grading_data,
         similarity_map,
-        args.grading_results
+        grading_results
     )
 
     # 生成更新的反馈文件
@@ -300,7 +323,7 @@ def main():
     generate_updated_feedback_files(
         grading_data,
         similarity_map,
-        args.output_dir
+        paths
     )
 
     print("\n✅ 完成!")

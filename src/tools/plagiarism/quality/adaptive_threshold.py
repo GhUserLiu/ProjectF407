@@ -6,12 +6,35 @@ Adaptive Threshold System
 基于数据分布动态调整相似度阈值，提高查重准确性
 """
 
-import numpy as np
-from typing import Dict, List, Tuple, Optional
+from __future__ import annotations  # 延迟类型注解求值，避免 np=None 时的问题
+
+import sys
+try:
+    import numpy as np
+    HAS_NUMPY = True
+except (ImportError, RuntimeError) as e:
+    # RuntimeError: "CPU dispatcher tracer already initialized"
+    # This can happen in PyInstaller frozen environments
+    HAS_NUMPY = False
+    np = None
+    print(f"[WARNING] NumPy not available in adaptive_threshold: {e}", file=sys.stderr)
+    # 清除可能损坏的 NumPy 模块
+    modules_to_remove = [k for k in sys.modules.keys() if k.startswith('numpy')]
+    for m in modules_to_remove:
+        del sys.modules[m]
+
+from typing import Dict, List, Tuple, Optional, TYPE_CHECKING
 from dataclasses import dataclass
 from enum import Enum
 import json
 from pathlib import Path
+
+if TYPE_CHECKING:
+    import numpy as np_typing
+    NDArray = np_typing.ndarray
+else:
+    # 运行时使用字符串类型，避免 AttributeError
+    NDArray = 'np.ndarray'
 
 
 class RiskLevel(Enum):

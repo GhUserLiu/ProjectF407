@@ -44,9 +44,20 @@ def extract_text_from_docx(docx_data, limits=None):
     安全改进:
         - 使用安全XML解析器防御XXE攻击
         - 验证ZIP文件大小和结构
+        - 检测并跳过旧的.doc格式文件
     """
     if limits is None:
         limits = ZipLimits()
+
+    # 检查是否为空的.doc文件（旧Word格式）
+    if len(docx_data) >= 8 and docx_data[:8] == b'\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1':
+        logger.warning("检测到旧版.doc格式文件，此工具仅支持.docx格式")
+        return None
+
+    # 检查是否为有效的ZIP文件（.docx是ZIP格式）
+    if len(docx_data) >= 4 and docx_data[:4] != b'PK\x03\x04':
+        logger.warning(f"文件不是有效的ZIP/docx格式（文件头: {docx_data[:4].hex()}）")
+        return None
 
     try:
         with zipfile.ZipFile(io.BytesIO(docx_data), 'r') as docx:
@@ -61,6 +72,9 @@ def extract_text_from_docx(docx_data, limits=None):
 
     except ZipValidationError as e:
         logger.warning(f"ZIP验证失败: {e}")
+        return None
+    except zipfile.BadZipFile as e:
+        logger.warning(f"文件不是有效的ZIP格式: {e}")
         return None
     except Exception as e:
         logger.error(f"提取docx文本失败: {e}")
@@ -82,6 +96,193 @@ def get_student_info(extract_dir, limits=None):
         - ZIP炸弹防护（文件大小、数量限制）
         - 路径遍历防护
         - 异常日志记录
+    """
+    if limits is None:
+        limits = ZipLimits()
+
+    student_info = {}
+
+    for zip_file in extract_dir.glob('*.zip'):
+        # 使用安全的学号提取函数
+        student_id = extract_safe_student_id(zip_file.name)
+        if not student_id:
+            continue
+
+        info = {'name': None, 'time': None, 'content': None}
+
+        try:
+            with zipfile.ZipFile(zip_file, 'r') as outer:
+                # 验证外层ZIP（防御Zip炸弹）
+                validate_zip_size(outer, limits)
+
+                files = outer.namelist()
+                if len(files) > 0 and files[0].endswith('.zip'):
+                    # 安全提取内层ZIP
+                    inner = safe_extract_inner_zip(outer, files[0], limits)
+                    inner_files = inner.namelist()
+
+                    # 从答题记录提取姓名和时间
+                    doc_files = [f for f in inner_files if '答题记录' in f and f.endswith('.doc')]
+
+                    # 如果没有找到包含"答题记录"的文件，尝试查找所有.doc文件
+                    if not doc_files:
+                        doc_files = [f for f in inner_files if f.endswith('.doc')]
+
+                    if doc_files:
+                        # 验证文件路径（防御路径遍历）
+                        validate_path_traversal(doc_files[0])
+
+                        doc_data = inner.read(doc_files[0])
+                        doc_str = str(doc_data, errors='ignore')
+
+                        pattern1 = r'<w:t>答题人：[^<]*</w:t>\s*.*?<w:t>([^<]+)</w:t>'
+                        name_match = re.search(pattern1, doc_str, re.DOTALL)
+                        if name_match:
+                            info['name'] = name_match.group(1).strip()
+
+                        pattern2 = r'<w:t>提交时间：[^<]*</w:t>\s*.*?<w:t>(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})[^<]*</w:t>'
+                        time_match = re.search(pattern2, doc_str, re.DOTALL)
+                        if time_match:
+                            info['time'] = time_match.group(1).strip()
+
+                    # 从实验报告提取内容
+                    docx_files = [f for f in inner_files if f.endswith('.docx') and '答题记录' not in f]
+                    if docx_files:
+                        # 验证文件路径
+                        validate_path_traversal(docx_files[0])
+
+                        docx_data = inner.read(docx_files[0])
+                        text = extract_text_from_docx(docx_data, limits)
+                        if text:
+                            content = re.sub(r'\s+', '', text)
+                            info['content'] = content
+
+                    if info['name'] or info['time']:
+                        student_info[student_id] = info
+
+        except ZipValidationError as e:
+            logger.error(f"ZIP验证失败 ({student_id}): {e}")
+        except Exception as e:
+            logger.error(f"处理学生ZIP失败 ({student_id}): {e}")
+
+    return student_info
+
+
+def get_student_info_from_docx(extract_dir, limits=None):
+    """
+    从已提取的docx文件中提取学生信息
+
+    Args:
+        extract_dir: 包含docx文件的目录
+        limits: ZIP限制配置（可选）
+
+    Returns:
+        {学号: {'name': 姓名, 'time': 提交时间, 'content': 报告内容}}
+
+    说明:
+        此函数用于处理已经解压的提交，文件名格式为: 学号-姓名.docx
+    """
+    if limits is None:
+        limits = ZipLimits()
+
+    student_info = {}
+
+    # 匹配学号-姓名格式的文件名
+    # 例如: 23071140102-杨凯辉.docx, 23071140201-董雨航.docx
+    filename_pattern = re.compile(r'^(\d{11})-([^-]+)\.docx$')
+
+    for docx_file in extract_dir.glob('*.docx'):
+        filename = docx_file.name
+        match = filename_pattern.match(filename)
+
+        if not match:
+            continue
+
+        student_id = match.group(1)
+        name = match.group(2)
+
+        info = {'name': name, 'time': None, 'content': None}
+
+        try:
+            # 读取docx文件内容
+            with open(docx_file, 'rb') as f:
+                docx_data = f.read()
+
+            # 验证文件大小
+            if len(docx_data) > limits.max_outer_size:
+                logger.warning(f"文件过大: {filename}")
+                continue
+
+            # 提取文本内容
+            text = extract_text_from_docx(docx_data, limits)
+            if text:
+                content = re.sub(r'\s+', '', text)
+                info['content'] = content
+                student_info[student_id] = info
+            else:
+                logger.warning(f"无法从文件中提取文本，已跳过: {filename}")
+
+        except Exception as e:
+            logger.error(f"处理docx文件失败 ({filename}): {e}")
+
+    return student_info
+
+
+def get_student_info(extract_dir, limits=None):
+    """
+    从答题记录和实验报告中提取学生信息（安全版本）
+
+    自动检测文件类型：
+    - 如果目录中包含 .zip 文件，使用 ZIP 提取模式
+    - 如果目录中包含 学号-姓名.docx 格式的文件，使用 DOCX 提取模式
+
+    Args:
+        extract_dir: 提取后的提交目录
+        limits: ZIP限制配置（可选）
+
+    Returns:
+        {学号: {'name': 姓名, 'time': 提交时间, 'content': 报告内容}}
+
+    安全改进:
+        - ZIP炸弹防护（文件大小、数量限制）
+        - 路径遍历防护
+        - 异常日志记录
+    """
+    if limits is None:
+        limits = ZipLimits()
+
+    extract_dir = Path(extract_dir)
+
+    # 检查目录中是否有 .zip 文件
+    zip_files = list(extract_dir.glob('*.zip'))
+
+    # 检查是否有 学号-姓名.docx 格式的文件
+    docx_pattern = re.compile(r'^\d{11}-[^-]+\.docx$')
+    docx_files = [f for f in extract_dir.glob('*.docx') if docx_pattern.match(f.name)]
+
+    # 如果有 zip 文件，使用 ZIP 模式
+    if zip_files:
+        return _get_student_info_from_zip(extract_dir, limits)
+
+    # 如果有 docx 文件，使用 DOCX 模式
+    if docx_files:
+        return get_student_info_from_docx(extract_dir, limits)
+
+    # 如果都没有，返回空字典
+    logger.warning(f"目录中没有找到有效的提交文件: {extract_dir}")
+    return {}
+
+
+def _get_student_info_from_zip(extract_dir, limits=None):
+    """
+    从ZIP文件中提取学生信息（内部函数）
+
+    Args:
+        extract_dir: 提取后的提交目录
+        limits: ZIP限制配置（可选）
+
+    Returns:
+        {学号: {'name': 姓名, 'time': 提交时间, 'content': 报告内容}}
     """
     if limits is None:
         limits = ZipLimits()

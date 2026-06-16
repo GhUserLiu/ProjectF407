@@ -1,6 +1,6 @@
-# STM32教学管理系统 - GUI应用
+# STM32 教学管理系统
 
-一个用于STM32F407嵌入式教学的桌面GUI应用，集成查重检测、评分评估、反馈生成等教学工具。
+一个用于 STM32F407 嵌入式教学的桌面 GUI 应用，集成查重检测、评分评估、反馈生成等教学工具。
 
 ## 功能特性
 
@@ -8,9 +8,9 @@
 
 - **📊 概览仪表盘** - 项目概览、快捷操作、状态监控
 - **🔍 查重检测** - 多算法文本/代码相似度检测，实时进度显示
-- **📝 评分评估** - 基于Rubric的智能评分系统，等级分布可视化
+- **📝 评分评估** - 基于 Rubric 的智能评分系统，等级分布可视化
 - **💬 反馈生成** - 个性化学生反馈生成，支持预览和编辑
-- **📄 报告输出** - Excel/HTML/PDF多格式报告导出
+- **📄 报告输出** - Excel/HTML/PDF 多格式报告导出
 - **⚙️ 设置管理** - 项目配置、查重参数、评分标准配置
 
 ### 查重检测功能
@@ -24,7 +24,7 @@
 
 ### 评分评估功能
 
-- ✅ 基于Rubric的评分标准
+- ✅ 基于 Rubric 的评分标准
 - ✅ 技术要点检查
 - ✅ 代码深度分析
 - ✅ 等级分布可视化
@@ -34,7 +34,7 @@
 ### 反馈生成功能
 
 - ✅ 多种反馈风格（详细、标准、简洁、鼓励、技术）
-- ✅ Markdown实时预览
+- ✅ Markdown 实时预览
 - ✅ 批量和单个生成
 - ✅ 支持自定义编辑
 - ✅ 多格式导出（MD、HTML、TXT）
@@ -58,7 +58,7 @@
 
 ```bash
 # 进入应用目录
-cd tools/gui_app
+cd src/tools/gui_app
 
 # 安装依赖
 pip install -r requirements.txt
@@ -84,7 +84,7 @@ pyinstaller build.spec --clean --noconfirm
 
 #### Linux/Mac
 ```bash
-# 使用shell脚本
+# 使用 shell 脚本
 chmod +x build.sh
 ./build.sh
 
@@ -93,7 +93,7 @@ pip install pyinstaller
 pyinstaller build.spec --clean --noconfirm
 ```
 
-打包完成后，可执行文件位于 `dist/STM32教学管理系统.exe`
+打包完成后，可执行文件位于 `dist/STM32教学管理系统/STM32教学管理系统.exe`
 
 ## 项目结构
 
@@ -101,9 +101,14 @@ pyinstaller build.spec --clean --noconfirm
 gui_app/
 ├── main.py                      # 应用入口
 ├── requirements.txt             # 依赖清单
-├── build.spec                   # PyInstaller配置
+├── build.spec                   # PyInstaller 配置
 ├── build.bat / build.sh         # 打包脚本
 ├── README.md                    # 说明文档
+├── release.py                   # 发布脚本
+├── installer.iss                # Inno Setup 安装程序配置
+├── hook-tools.py                # PyInstaller 钩子
+├── create_test_data.py          # 测试数据生成
+├── test_import.py               # 导入测试
 └── app/                         # 应用代码
     ├── config/                  # 配置管理
     │   ├── settings.py          # 配置管理器
@@ -111,23 +116,30 @@ gui_app/
     ├── core/                    # 核心服务
     │   ├── plagiarism.py        # 查重检测服务
     │   ├── grading.py           # 评分评估服务
+    │   ├── multi_class_service.py # 多班级服务
     │   └── __init__.py
     ├── models/                  # 数据模型
     │   ├── domain.py            # 领域模型
     │   └── __init__.py
+    ├── resources/               # 资源文件
+    │   ├── icon.ico             # 应用图标
+    │   ├── version.txt          # 版本信息
+    │   └── generate_icon.py     # 图标生成
     ├── ui/                      # 用户界面
     │   ├── main_window.py       # 主窗口
-    │   ├── views/               # 功能视图
-    │   │   ├── dashboard_view.py    # 概览仪表盘
-    │   │   ├── plagiarism_view.py   # 查重检测视图
-    │   │   ├── grading_view.py      # 评分评估视图
-    │   │   ├── feedback_view.py     # 反馈生成视图
-    │   │   ├── report_view.py       # 报告输出视图
-    │   │   └── settings_view.py     # 设置视图
-    │   └── widgets/             # 自定义组件
+    │   ├── file_dialog_utils.py # 文件对话框工具
+    │   ├── about_dialog.py      # 关于对话框
+    │   └── views/               # 功能视图
+    │       ├── dashboard_view.py    # 概览仪表盘
+    │       ├── plagiarism_view.py   # 查重检测视图
+    │       ├── grading_view.py      # 评分评估视图
+    │       ├── feedback_view.py     # 反馈生成视图
+    │       ├── report_view.py       # 报告输出视图
+    │       ├── multi_class_view.py  # 多班级视图
+    │       ├── settings_view.py     # 设置视图
+    │       └── __init__.py
     └── utils/                   # 工具函数
-        ├── workers.py           # 工作线程
-        └── __init__.py
+        └── workers.py           # 工作线程
 ```
 
 ## 使用说明
@@ -147,10 +159,10 @@ gui_app/
 ### 2. 查重检测
 
 1. 导航到 "🔍 查重检测" 页面
-2. 选择学生提交的ZIP文件目录
+2. 选择学生提交的 ZIP 文件目录
 3. 配置检测参数：
-   - 可疑阈值：默认60%
-   - 抄袭阈值：默认85%
+   - 可疑阈值：默认 60%
+   - 抄袭阈值：默认 85%
    - 启用模板过滤
    - 启用语义检测
 4. 点击 "🚀 开始检测"
@@ -159,9 +171,9 @@ gui_app/
 ### 3. 评分评估
 
 1. 导航到 "📝 评分评估" 页面
-2. 选择或导入Rubric评分标准
+2. 选择或导入 Rubric 评分标准
 3. 配置评分选项：
-   - Rubric评分
+   - Rubric 评分
    - 技术要点检查
    - 代码深度分析
    - 图像质量检测
@@ -194,54 +206,41 @@ gui_app/
 4. 点击 "🚀 生成报告"
 5. 选择输出目录保存报告
 
-## 界面截图
+## 目录结构约定
 
-### 主界面
-- 侧边栏导航菜单
-- 工具栏快捷操作
-- 状态栏实时提示
+应用使用统一的目录结构约定（通过 `tools.common.ExperimentPaths`）：
 
-### 概览仪表盘
-- 项目信息概览
-- 快捷操作按钮
-- 处理状态监控
-- 最近项目列表
-
-### 查重检测
-- 提交目录选择
-- 阈值和权重配置
-- 实时进度显示
-- 结果表格和统计
-
-### 评分评估
-- 学生评分列表
-- Rubric标准选择
-- 等级分布图表
-- 学生详情查看
-
-### 反馈生成
-- 学生列表导航
-- 反馈风格选择
-- Markdown实时预览
-- 源代码编辑
-
-### 报告输出
-- 多种报告类型
-- 统计数据概览
-- 一键批量导出
+```
+experiment_dir/                    # 如：汽服2301B班/07-car-gear
+├── submissions/                   # 提交文件
+│   └── extracted/                # 提取后的文件
+├── processed/                     # 处理中间数据
+│   ├── extracted_content.json
+│   └── evaluations.json
+└── results/                       # 最终输出
+    ├── reports/                   # 教师用报告
+    │   ├── 查重报告.xlsx
+    │   └── 成绩表.xlsx
+    ├── feedback/                  # 学生反馈
+    │   └── 学号_反馈.docx
+    ├── grading/                   # 评分数据
+    │   └── grading_results.json
+    └── plagiarism/                # 查重数据
+        └── plagiarism_results.json
+```
 
 ## 依赖说明
 
 主要依赖项：
 
-- **PyQt6** (6.7.0) - GUI框架
-- **openpyxl** (3.1.2) - Excel文件处理
-- **python-docx** (1.1.0) - Word文档处理
+- **PyQt6** (6.7.0) - GUI 框架
+- **openpyxl** (3.1.2) - Excel 文件处理
+- **python-docx** (1.1.0) - Word 文档处理
 - **jieba** (0.42.1) - 中文分词
 - **scikit-learn** (1.4.0) - 机器学习算法
 - **numpy** (1.26.0) - 数值计算
-- **reportlab** (4.1.0) - PDF生成
-- **markdown** (3.5.0) - Markdown处理
+- **reportlab** (4.1.0) - PDF 生成
+- **markdown** (3.5.0) - Markdown 处理
 
 ## 开发说明
 
@@ -262,24 +261,21 @@ python main.py --debug
 
 ### 样式定制
 
-应用使用QSS样式表，可以在相关组件中修改样式字符串来定制外观。
+应用使用 QSS 样式表，可以在相关组件中修改样式字符串来定制外观。
 
 ## 常见问题
 
 **Q: 打包后启动失败？**
-A: 检查是否所有依赖都包含在 `build.spec` 中，查看控制台错误信息。确保 `tools` 目录和 `docs` 目录正确包含。
+A: 检查是否所有依赖都包含在 `build.spec` 中，查看控制台错误信息。确保 `tools` 目录正确包含。
 
 **Q: 找不到学生提交文件？**
-A: 确保项目配置中的提交目录路径正确，ZIP文件命名符合规范（格式：学生姓名_学号.zip）。
+A: 确保项目配置中的提交目录路径正确，ZIP 文件命名符合规范（格式：学生姓名_学号.zip）。
 
 **Q: 查重结果不准确？**
 A: 调整相似度阈值和权重配置，上传正确的模板文件以启用模板过滤。
 
 **Q: 评分结果为空？**
-A: 确保选择了正确的Rubric文件，检查提交文件中是否包含有效的实验报告和答题记录。
-
-**Q: 如何导入现有的Rubric？**
-A: Rubric文件为JSON格式，可以通过设置页面的"Rubric文件"选项导入。
+A: 确保选择了正确的 Rubric 文件，检查提交文件中是否包含有效的实验报告和答题记录。
 
 ## 路线图
 
@@ -291,15 +287,29 @@ A: Rubric文件为JSON格式，可以通过设置页面的"Rubric文件"选项�
 - [x] 报告输出功能
 - [x] 设置管理
 - [x] 概览仪表盘
+- [x] 统一路径配置
 
 ### 计划中 📋
-- [ ] 数据可视化图表（matplotlib集成）
-- [ ] PDF报告生成优化
+- [ ] 数据可视化图表（matplotlib 集成）
+- [ ] PDF 报告生成优化
 - [ ] 多语言支持
 - [ ] 深色模式
 - [ ] 批量导入学生名单
 - [ ] 云端同步配置
 - [ ] 历史记录管理
+
+## 更新日志
+
+### v2.0.0 (2026-06-15)
+- ✅ 添加统一路径配置支持（tools.common）
+- ✅ 更新 ProjectConfig 支持新的目录结构
+- ✅ 优化 build.spec 打包配置
+- ✅ 改进文档结构
+
+### v1.0.0 (2026-06-12)
+- 🎉 首个正式发布
+- 📊 完整的查重、评分、反馈功能
+- 🖥️ PyQt6 GUI 界面
 
 ## 许可证
 
@@ -307,4 +317,4 @@ MIT License
 
 ## 联系方式
 
-如有问题或建议，请提交Issue或Pull Request。
+如有问题或建议，请提交 Issue 或 Pull Request。

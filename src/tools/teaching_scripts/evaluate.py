@@ -12,10 +12,15 @@ import argparse
 from pathlib import Path
 from typing import Dict, List, Tuple, Optional
 
+# 导入统一路径配置
+from tools.common import ExperimentPaths
+
 BASE_DIR = Path(__file__).parent.parent.parent.parent.parent  # Go up to project root
-EXPERIMENT_DIR = BASE_DIR / "docs" / "teaching" / "2026-春季" / "汽服2302B班" / "07-car-gear"
-PROCESSED_DIR = EXPERIMENT_DIR / "processed"
+DEFAULT_EXPERIMENT_DIR = BASE_DIR / "data" / "teaching" / "2026-春季" / "汽服2302B班" / "07-car-gear"
 DATA_DIR = Path(__file__).parent.parent / "rubrics"
+
+# 全局路径配置
+paths: ExperimentPaths = None
 
 ENABLE_ENHANCED_FEEDBACK = False
 ENABLE_ENHANCED_GRADING = False
@@ -225,8 +230,8 @@ def _aggregate_scores(keyword_score: float, semantic_score: float, max_points: f
         return round(aggregated, 1)
 
 
-def apply_enhanced_grading(extracted_data, evaluations, processed_dir, rubric_path):
-    """应用增强精准评分"""
+def apply_enhanced_grading(extracted_data, evaluations, paths: ExperimentPaths, rubric_path):
+    """应用增强精准评分（使用统一路径配置）"""
     try:
         tools_path = BASE_DIR / "tools" / "plagiarism"
         if str(tools_path) not in sys.path:
@@ -282,7 +287,7 @@ def apply_enhanced_grading(extracted_data, evaluations, processed_dir, rubric_pa
 
             print(f"  {student_id}: {eval_data['original_total_score']:.1f} -> {enhanced.adjusted_score:.1f} (-{enhanced.total_deduction:.1f})")
 
-        enhanced_output_path = processed_dir / "enhanced_grading_details.json"
+        enhanced_output_path = paths.processed_dir / "enhanced_grading_details.json"
         with open(enhanced_output_path, 'w', encoding='utf-8') as f:
             json.dump([
                 {
@@ -306,7 +311,7 @@ def apply_enhanced_grading(extracted_data, evaluations, processed_dir, rubric_pa
                 for r in enhanced_results
             ], f, ensure_ascii=False, indent=2)
 
-        output_path = processed_dir / "evaluations.json"
+        output_path = paths.evaluations_json()
         with open(output_path, 'w', encoding='utf-8') as f:
             json.dump(evaluations, f, ensure_ascii=False, indent=2)
 
@@ -331,18 +336,22 @@ def apply_enhanced_grading(extracted_data, evaluations, processed_dir, rubric_pa
 
 
 def main():
-    global ENABLE_ENHANCED_FEEDBACK, ENABLE_ENHANCED_GRADING, ENABLE_SEMANTIC_SCORING
+    global ENABLE_ENHANCED_FEEDBACK, ENABLE_ENHANCED_GRADING, ENABLE_SEMANTIC_SCORING, paths
 
     parser = argparse.ArgumentParser(description='评估学生实验报告')
     parser.add_argument('--enhanced', '-e', action='store_true', help='启用增强反馈生成')
     parser.add_argument('--enhanced-grading', '-g', action='store_true', help='启用增强精准评分')
     parser.add_argument('--semantic', '-s', action='store_true', help='启用语义相似度评分')
-    parser.add_argument('--experiment-dir', type=str, default=None, help='实验目录路径')
+    parser.add_argument('--experiment-dir', type=str, default=str(DEFAULT_EXPERIMENT_DIR), help='实验目录路径')
     args = parser.parse_args()
 
     ENABLE_ENHANCED_FEEDBACK = args.enhanced or args.enhanced_grading
     ENABLE_ENHANCED_GRADING = args.enhanced_grading
     ENABLE_SEMANTIC_SCORING = args.semantic
+
+    # 使用统一路径配置
+    experiment_dir = Path(args.experiment_dir)
+    paths = ExperimentPaths(experiment_dir=experiment_dir)
 
     # 初始化语义评分引擎（如果启用）
     semantic_engine = None
@@ -359,12 +368,7 @@ def main():
             print(f"Warning: Error initializing semantic scoring: {e}")
             ENABLE_SEMANTIC_SCORING = False
 
-    if args.experiment_dir:
-        global EXPERIMENT_DIR, PROCESSED_DIR
-        EXPERIMENT_DIR = Path(args.experiment_dir)
-        PROCESSED_DIR = EXPERIMENT_DIR / "processed"
-
-    print("Evaluating student reports...")
+    print(f"Evaluating student reports for: {experiment_dir}")
 
     if ENABLE_ENHANCED_FEEDBACK:
         print("Enhanced feedback enabled!")
@@ -372,9 +376,9 @@ def main():
     if ENABLE_ENHANCED_GRADING:
         print("Enhanced precision grading enabled!")
 
-    content_path = PROCESSED_DIR / "extracted_content.json"
+    content_path = paths.extracted_content_json()
     if not content_path.exists():
-        print("Error: extracted_content.json not found. Run extract_content.py first.")
+        print(f"Error: {content_path} not found. Run extract_content.py first.")
         return
 
     with open(content_path, 'r', encoding='utf-8') as f:
@@ -384,7 +388,7 @@ def main():
     with open(rubric_path, 'r', encoding='utf-8') as f:
         rubric = json.load(f)
 
-    quality_path = PROCESSED_DIR / "quality_assessment.json"
+    quality_path = paths.processed_dir / "quality_assessment.json"
     quality_data = None
     if quality_path.exists():
         with open(quality_path, 'r', encoding='utf-8') as f:
@@ -408,7 +412,8 @@ def main():
 
         print(f"  {eval_result['student_id']}: {eval_result['total_score']}分 ({eval_result['grade_label']}){method_str}")
 
-    output_path = PROCESSED_DIR / "evaluations.json"
+    output_path = paths.evaluations_json()
+    output_path.parent.mkdir(parents=True, exist_ok=True)
     with open(output_path, 'w', encoding='utf-8') as f:
         json.dump(evaluations, f, ensure_ascii=False, indent=2)
 
@@ -455,7 +460,7 @@ def main():
 
             if ENABLE_ENHANCED_GRADING:
                 print("\nApplying enhanced precision grading...")
-                apply_enhanced_grading(extracted_data, evaluations, PROCESSED_DIR, rubric_path)
+                apply_enhanced_grading(extracted_data, evaluations, paths, rubric_path)
 
         except ImportError as e:
             print(f"Warning: Could not import enhanced feedback module: {e}")

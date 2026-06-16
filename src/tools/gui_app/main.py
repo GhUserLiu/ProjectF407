@@ -30,6 +30,31 @@ else:
     if str(project_root) not in sys.path:
         sys.path.insert(0, str(project_root))
 
+# IMPORTANT: 设置 NumPy 环境变量在任何导入之前
+# 这必须在导入任何使用 NumPy 的模块之前完成
+import os
+# 设置多个 NumPy 相关的环境变量
+os.environ['NUMPY_DISABLE_CPU_FEATURES'] = '1'
+os.environ['MKL_DEBUG_CPU_TYPE'] = '5'
+os.environ['OMP_NUM_THREADS'] = '1'
+os.environ['OPENBLAS_NUM_THREADS'] = '1'
+
+# 尝试导入 NumPy 确保它只初始化一次
+# 如果失败，我们会在导入 plagiarism 模块时重试
+try:
+    import numpy as np
+    print(f"[INFO] NumPy {np.__version__} loaded successfully", file=sys.stderr)
+except ImportError as ie:
+    print(f"[WARNING] NumPy import failed: {ie}", file=sys.stderr)
+except Exception as e:
+    # 捕获 CPU dispatcher 错误但继续运行
+    print(f"[WARNING] NumPy initialization issue (will retry later): {type(e).__name__}", file=sys.stderr)
+    # 清除可能损坏的 NumPy 模块
+    import sys
+    modules_to_remove = [k for k in sys.modules.keys() if k.startswith('numpy')]
+    for m in modules_to_remove:
+        del sys.modules[m]
+
 from app.ui.main_window import MainWindow
 
 

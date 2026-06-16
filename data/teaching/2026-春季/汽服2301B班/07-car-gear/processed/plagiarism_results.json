@@ -1,0 +1,78 @@
+{
+  "total_students": 27,
+  "suspicious_count": 5,
+  "threshold": 60.0,
+  "adaptive_report": null,
+  "suspicious_pairs": [
+    {
+      "student_id": "23071140113",
+      "student_name": "史英镔",
+      "similar_to": "23071140116",
+      "similar_name": "边潩韵",
+      "overall_similarity": 98.94,
+      "is_cross_group": false,
+      "details": {
+        "text_similarity": 98.24,
+        "code_similarity": 100.0,
+        "structure_similarity": 100.0,
+        "semantic_similarity": 0.0
+      }
+    },
+    {
+      "student_id": "23071140125",
+      "student_name": "靳皓杰",
+      "similar_to": "23071140135",
+      "similar_name": "薛松涛",
+      "overall_similarity": 100.0,
+      "is_cross_group": false,
+      "details": {
+        "text_similarity": 100.0,
+        "code_similarity": 100.0,
+        "structure_similarity": 0.0,
+        "semantic_similarity": 0.0
+      }
+    },
+    {
+      "student_id": "23071140125",
+      "student_name": "靳皓杰",
+      "similar_to": "23071140136",
+      "similar_name": "李志飞",
+      "overall_similarity": 99.59,
+      "is_cross_group": false,
+      "details": {
+        "text_similarity": 99.31,
+        "code_similarity": 100.0,
+        "structure_similarity": 0.0,
+        "semantic_similarity": 0.0
+      }
+    },
+    {
+      "student_id": "23071140135",
+      "student_name": "薛松涛",
+      "similar_to": "23071140136",
+      "similar_name": "李志飞",
+      "overall_similarity": 99.59,
+      "is_cross_group": false,
+      "details": {
+        "text_similarity": 99.31,
+        "code_similarity": 100.0,
+        "structure_similarity": 0.0,
+        "semantic_similarity": 0.0
+      }
+    },
+    {
+      "student_id": "23071140137",
+      "student_name": "倪鹏达",
+      "similar_to": "23071140139",
+      "similar_name": "蔺华俊",
+      "overall_similarity": 87.88,
+      "is_cross_group": false,
+      "details": {
+        "text_similarity": 96.3,
+        "code_similarity": 75.26,
+        "structure_similarity": 50.0,
+        "semantic_similarity": 0.0
+      }
+    }
+  ]
+}

@@ -42,6 +42,9 @@ class DialogStartDir:
         if cls._install_dir:
             return cls._install_dir
 
+        # 初始化 exe_dir 以避免 UnboundLocalError
+        exe_dir = None
+
         try:
             # 1. 优先检查 PyInstaller 临时目录（打包后的数据在这里）
             if getattr(sys, 'frozen', False):
@@ -85,6 +88,10 @@ class DialogStartDir:
                         current = parent
                 except:
                     exe_dir = Path.cwd()
+
+            # 如果 exe_dir 仍为 None，使用当前工作目录
+            if exe_dir is None:
+                exe_dir = Path.cwd()
 
             # 检查是否存在 data 目录
             data_dir = exe_dir / 'data'

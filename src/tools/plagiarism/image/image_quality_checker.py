@@ -14,12 +14,27 @@ from typing import List, Dict, Tuple, Optional
 from enum import Enum
 from pathlib import Path
 
-try:
-    from PIL import Image
-    import numpy as np
-    PILLOW_AVAILABLE = True
-except ImportError:
-    PILLOW_AVAILABLE = False
+# Lazy import PIL and NumPy to avoid PyInstaller conflicts
+# They will be imported only when actually needed
+PILLOW_AVAILABLE = True  # Assume available, will verify on first use
+_pil_Image = None
+_np = None
+
+def _get_pil_modules():
+    """Lazy import PIL and NumPy to avoid initialization conflicts"""
+    global _pil_Image, _np, PILLOW_AVAILABLE
+    if _pil_Image is None:
+        try:
+            from PIL import Image as _PIL_Image
+            import numpy as _numpy
+            _pil_Image = _PIL_Image
+            _np = _numpy
+            PILLOW_AVAILABLE = True
+        except ImportError:
+            PILLOW_AVAILABLE = False
+            _pil_Image = False
+            _np = False
+    return _pil_Image, _np
 
 
 class ImageQuality(Enum):
@@ -92,7 +107,9 @@ class ImageQualityChecker:
         Returns:
             图像分析结果
         """
-        if not PILLOW_AVAILABLE:
+        # Get PIL modules lazily
+        Image, np = _get_pil_modules()
+        if not PILLOW_AVAILABLE or Image is None:
             return ImageAnalysisResult(
                 image_count=0,
                 total_score=50,
@@ -123,7 +140,7 @@ class ImageQualityChecker:
                 if "image" in rel.target_ref:
                     try:
                         image_data = rel.target_part.blob
-                        img = Image.open(io.BytesIO(image_data))
+                        img = Image.open(io.BytesIO(image_data))  # Image from lazy import
                         images.append(img)
                     except Exception as e:
                         issues.append(ImageIssue(
@@ -204,12 +221,12 @@ class ImageQualityChecker:
                 details=[]
             )
 
-    def _check_single_image(self, img: Image.Image, index: int) -> Dict:
+    def _check_single_image(self, img, index: int) -> Dict:
         """
         检查单张图片质量
 
         Args:
-            img: PIL图片对象
+            img: PIL图片对象 (lazy imported Image.Image)
             index: 图片索引
 
         Returns:
@@ -244,7 +261,9 @@ class ImageQualityChecker:
         try:
             # 转换为灰度图
             gray_img = img.convert('L')
-            if PILLOW_AVAILABLE and 'np' in globals():
+            # Get np from lazy import
+            _, np = _get_pil_modules()
+            if PILLOW_AVAILABLE and np is not None:
                 img_array = np.array(gray_img)
                 laplacian_var = np.var(img_array)
 
@@ -515,7 +534,9 @@ def check_images_from_directory(
     Returns:
         图片分析结果
     """
-    if not PILLOW_AVAILABLE:
+    # Get PIL modules lazily
+    Image, np = _get_pil_modules()
+    if not PILLOW_AVAILABLE or Image is None:
         return ImageAnalysisResult(
             image_count=0,
             total_score=0,
@@ -563,7 +584,7 @@ def check_images_from_directory(
 
     for i, img_file in enumerate(image_files, 1):
         try:
-            img = Image.open(img_file)
+            img = Image.open(img_file)  # Image from lazy import
             result = checker._check_single_image(img, i)
             result['filename'] = img_file.name
             details.append(result)

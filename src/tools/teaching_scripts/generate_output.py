@@ -14,14 +14,16 @@ from docx.shared import Pt, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from typing import Set, Dict, Any, Optional
 
+# 导入统一路径配置
+from tools.common import ExperimentPaths
+
 BASE_DIR = Path(__file__).parent.parent.parent.parent.parent  # Go up to project root
 # 默认使用最新的实验目录，可通过命令行参数覆盖
-EXPERIMENT_DIR = BASE_DIR / "docs" / "teaching" / "2026-春季" / "汽服2302B班" / "07-car-gear"
-PROCESSED_DIR = EXPERIMENT_DIR / "processed"
+DEFAULT_EXPERIMENT_DIR = BASE_DIR / "data" / "teaching" / "2026-春季" / "汽服2302B班" / "07-car-gear"
 DATA_DIR = Path(__file__).parent.parent / "rubrics"
-OUTPUT_DIR = EXPERIMENT_DIR
-TEACHER_OUTPUT = OUTPUT_DIR / "results"
-STUDENT_OUTPUT = OUTPUT_DIR / "feedback"
+
+# 全局路径配置（将在 main 中初始化）
+paths: ExperimentPaths = None
 
 
 def load_plagiarism_students(plagiarism_threshold: float = 80.0) -> Set[str]:
@@ -34,14 +36,16 @@ def load_plagiarism_students(plagiarism_threshold: float = 80.0) -> Set[str]:
     Returns:
         抄袭学生学号集合
     """
+    global paths
     plagiarism_students = set()
 
     # 尝试从多个可能的路径加载查重结果
     possible_paths = [
-        PROCESSED_DIR / "plagiarism_results.json",
-        PROCESSED_DIR / "quality_assessment.json",
-        OUTPUT_DIR / "results" / "查重报告.json",
-        OUTPUT_DIR / "results" / "grading_results.json"
+        paths.processed_dir / "plagiarism_results.json",
+        paths.processed_dir / "quality_assessment.json",
+        paths.plagiarism_dir / "查重报告.json",
+        paths.grading_dir / "grading_results.json",
+        paths.plagiarism_json()  # 标准路径
     ]
 
     for path in possible_paths:
@@ -437,7 +441,8 @@ def create_teacher_excel(evaluations, rubric, quality_data=None, plagiarism_thre
     ws4.column_dimensions['A'].width = 80
 
     # Save
-    output_path = TEACHER_OUTPUT / "汽服2302B班_07_档位实验_评分表.xlsx"
+    output_path = paths.grading_excel("汽服2302B班", "07_档位实验")
+    output_path.parent.mkdir(parents=True, exist_ok=True)
     wb.save(output_path)
     print(f"  Saved: {output_path}")
 
@@ -710,7 +715,8 @@ def create_student_feedback(evaluations, rubric, quality_data=None, plagiarism_t
                 doc.add_paragraph(f"✓ {item}")
 
         # Save document
-        output_path = STUDENT_OUTPUT / f"{eval['student_id']}_反馈.docx"
+        output_path = paths.student_feedback_docx(eval['student_id'])
+        output_path.parent.mkdir(parents=True, exist_ok=True)
         doc.save(output_path)
 
     print(f"  Created {len(evaluations)} feedback documents")
@@ -718,29 +724,28 @@ def create_student_feedback(evaluations, rubric, quality_data=None, plagiarism_t
 def main():
     """主函数，支持命令行参数"""
     parser = argparse.ArgumentParser(description='生成输出文件（教师评分表和学生反馈）')
-    parser.add_argument('--experiment-dir', type=str, help='实验目录路径')
+    parser.add_argument('--experiment-dir', type=str, default=str(DEFAULT_EXPERIMENT_DIR),
+                        help='实验目录路径')
     parser.add_argument('--plagiarism-threshold', type=float, default=80.0,
                         help='抄袭判定阈值（相似度百分比，默认80）')
     parser.add_argument('--force-plagiarism', type=str, help='强制指定抄袭学生（逗号分隔的学号）')
     args = parser.parse_args()
 
-    # 更新全局路径
-    global EXPERIMENT_DIR, PROCESSED_DIR, OUTPUT_DIR, TEACHER_OUTPUT, STUDENT_OUTPUT
-    if args.experiment_dir:
-        EXPERIMENT_DIR = Path(args.experiment_dir)
-        PROCESSED_DIR = EXPERIMENT_DIR / "processed"
-        OUTPUT_DIR = EXPERIMENT_DIR
-        TEACHER_OUTPUT = OUTPUT_DIR / "results"
-        STUDENT_OUTPUT = OUTPUT_DIR / "feedback"
-
-    print("Generating output files...")
+    # 使用统一路径配置
+    global paths
+    experiment_dir = Path(args.experiment_dir)
+    paths = ExperimentPaths(experiment_dir=experiment_dir)
 
     # Create output directories
-    TEACHER_OUTPUT.mkdir(parents=True, exist_ok=True)
-    STUDENT_OUTPUT.mkdir(parents=True, exist_ok=True)
+    paths.reports_dir.mkdir(parents=True, exist_ok=True)
+    paths.feedback_dir.mkdir(parents=True, exist_ok=True)
+
+    print(f"Generating output files for: {experiment_dir}")
+    print(f"Reports: {paths.reports_dir}")
+    print(f"Feedback: {paths.feedback_dir}")
 
     # Load evaluations
-    eval_path = PROCESSED_DIR / "evaluations.json"
+    eval_path = paths.evaluations_json()
     if not eval_path.exists():
         print("Error: evaluations.json not found. Run evaluate.py first.")
         return 1
@@ -754,7 +759,7 @@ def main():
         rubric = json.load(f)
 
     # Load quality assessment data if available
-    quality_path = PROCESSED_DIR / "quality_assessment.json"
+    quality_path = paths.processed_dir / "quality_assessment.json"
     quality_data = None
     if quality_path.exists():
         with open(quality_path, 'r', encoding='utf-8') as f:
@@ -776,8 +781,8 @@ def main():
     create_student_feedback(evaluations, rubric, quality_data, args.plagiarism_threshold)
 
     print("\nOutput generation complete!")
-    print(f"Teacher Excel: {TEACHER_OUTPUT}")
-    print(f"Student Feedbacks: {STUDENT_OUTPUT}")
+    print(f"Teacher Excel: {paths.reports_dir}")
+    print(f"Student Feedbacks: {paths.feedback_dir}")
 
     # Print plagiarism summary if available
     if quality_data and quality_data.get('plagiarism_data', {}).get('suspicious_pairs'):

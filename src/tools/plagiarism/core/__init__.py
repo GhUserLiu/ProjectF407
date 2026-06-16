@@ -12,9 +12,22 @@ from .detector import (
     TextPreprocessor
 )
 
+from .multi_class_detector import (
+    MultiClassDetector,
+    MultiClassDetectionResult,
+    ClassDetectionResult,
+    create_multi_class_config
+)
+
 __all__ = [
+    # 基础检测
     'PlagiarismDetector',
     'SimilarityResult',
     'SimilarityMethod',
     'TextPreprocessor',
+    # 多班级检测
+    'MultiClassDetector',
+    'MultiClassDetectionResult',
+    'ClassDetectionResult',
+    'create_multi_class_config',
 ]

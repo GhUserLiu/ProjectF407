@@ -85,7 +85,7 @@ class PlagiarismWorker(BaseWorker):
 
             # 动态导入查重模块
             try:
-                from tools.plagiarism_detection_enhanced import EnhancedPlagiarismSystem
+                from tools.plagiarism.core.detector import PlagiarismDetector, SimilarityMethod
             except ImportError as e:
                 error_msg = f"无法导入查重模块: {str(e)}"
                 self.log_message.emit(error_msg)
@@ -94,34 +94,59 @@ class PlagiarismWorker(BaseWorker):
 
             self.progress_updated.emit(10, "加载提交内容...")
 
-            # 创建检测系统
+            # 准备提交数据
+            submissions_dir = Path(self.config.get('submissions_dir', ''))
+
+            # 从 tools.submission.submission_utils 导入 get_student_info
             try:
-                system = EnhancedPlagiarismSystem(
-                    experiment_dir=self.config.get('experiment_dir'),
-                    experiment_type=self.config.get('experiment_type', '自定义'),
-                    class_name=self.config.get('class_name', ''),
-                    threshold=self.config.get('suspicious_threshold', 60.0),
-                    config=self._create_plagiarism_config()
-                )
-            except Exception as e:
-                error_msg = f"创建检测系统失败: {str(e)}"
+                from tools.submission.submission_utils import get_student_info
+                student_info = get_student_info(submissions_dir)
+            except ImportError:
+                # 如果无法导入，尝试直接从目录扫描
+                error_msg = "无法加载学生信息，请确保 submission_utils 模块可用"
                 self.log_message.emit(error_msg)
                 self.error_occurred.emit(error_msg)
                 return
 
-            self.progress_updated.emit(30, "执行查重检测...")
-
-            # 执行检测
-            try:
-                self.results = system.run_detection()
-                if not self.results:
-                    self.results = {
-                        'total_students': 0,
-                        'total_pairs': 0,
-                        'suspicious_count': 0,
-                        'plagiarism_count': 0,
-                        'similarity_pairs': []
+            # 转换为检测器需要的格式
+            submissions = {}
+            for student_id, info in student_info.items():
+                content = info.get('content', '')
+                if content:
+                    submissions[student_id] = {
+                        'name': info.get('name', ''),
+                        'text': content
                     }
+
+            if not submissions:
+                error_msg = f"未找到有效的学生提交: {submissions_dir}"
+                self.log_message.emit(error_msg)
+                self.error_occurred.emit(error_msg)
+                return
+
+            self.progress_updated.emit(30, f"加载了 {len(submissions)} 份提交，开始检测...")
+
+            # 创建检测器并执行检测
+            try:
+                detector = PlagiarismDetector(
+                    method=SimilarityMethod.HYBRID,
+                    threshold=self.config.get('suspicious_threshold', 60.0)
+                )
+
+                all_results, suspicious, adaptive_report = detector.detect(submissions)
+
+                # 转换结果格式
+                self.results = {
+                    'total_students': len(submissions),
+                    'total_pairs': sum(len(results) for results in all_results.values()) // 2,
+                    'suspicious_count': len(suspicious),
+                    'plagiarism_count': len([r for r in suspicious if r.overall_similarity >= self.config.get('plagiarism_threshold', 85.0)]),
+                    'similarity_pairs': self._convert_similarity_pairs(suspicious, submissions)
+                }
+
+                if adaptive_report:
+                    self.results['adaptive_report'] = adaptive_report
+
             except Exception as e:
                 error_msg = f"检测执行失败: {str(e)}"
                 self.log_message.emit(error_msg)
@@ -142,27 +167,27 @@ class PlagiarismWorker(BaseWorker):
             self.error_occurred.emit(error_msg)
             print(traceback.format_exc())
 
-    def _create_plagiarism_config(self):
-        """创建查重配置"""
-        from tools.plagiarism.utils.config import PlagiarismConfig, SimilarityWeights, ThresholdConfig
-
-        weights = self.config.get('weights', {})
-        thresholds = self.config.get('thresholds', {})
-
-        return PlagiarismConfig(
-            weights=SimilarityWeights(
-                text=weights.get('text', 0.5),
-                code=weights.get('code', 0.3),
-                structure=weights.get('structure', 0.1),
-                semantic=weights.get('semantic', 0.1)
-            ),
-            thresholds=ThresholdConfig(
-                suspicious=self.config.get('suspicious_threshold', 60.0),
-                high_similarity=self.config.get('high_similarity_threshold', 70.0),
-                plagiarism=self.config.get('plagiarism_threshold', 85.0)
-            )
-        )
-
+    def _convert_similarity_pairs(self, suspicious_results, submissions):
+        """将 SimilarityResult 对象转换为字典格式"""
+        pairs = []
+        for result in suspicious_results:
+            metadata = result.metadata or {}
+            pairs.append({
+                'student_id_1': result.student_id,
+                'name_1': metadata.get('name1', submissions.get(result.student_id, {}).get('name', '')),
+                'student_id_2': result.similar_to,
+                'name_2': metadata.get('name2', submissions.get(result.similar_to, {}).get('name', '')),
+                'overall_similarity': result.overall_similarity,
+                'text_similarity': result.text_similarity,
+                'code_similarity': result.code_similarity,
+                'structure_similarity': result.structure_similarity,
+                'is_cross_group': result.is_cross_group,
+                'shared_paragraphs': result.shared_paragraphs,
+                'shared_code_blocks': result.shared_code_blocks,
+                'semantic_similarity': result.semantic_similarity,
+                'is_paraphrase': result.is_paraphrase
+            })
+        return pairs
 
 class GradingWorker(BaseWorker):
     """评分评估工作线程"""

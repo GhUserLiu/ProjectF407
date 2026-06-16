@@ -1,0 +1,562 @@
+[
+  {
+    "student_id": "23071140102",
+    "name": "杨凯辉",
+    "scores": {
+      "team_collaboration": 5,
+      "principle_understanding": 10,
+      "completion": 35,
+      "code_quality": 15,
+      "report_quality": 10
+    },
+    "total_score": 75,
+    "final_score": 75,
+    "is_plagiarism": false,
+    "plagiarism_info": [],
+    "word_count": 9086,
+    "submission_status": "submitted",
+    "missing": false
+  },
+  {
+    "student_id": "23071140103",
+    "name": "刘怡睿",
+    "scores": {
+      "team_collaboration": 5,
+      "principle_understanding": 10,
+      "completion": 35,
+      "code_quality": 15,
+      "report_quality": 10
+    },
+    "total_score": 75,
+    "final_score": 75,
+    "is_plagiarism": false,
+    "plagiarism_info": [],
+    "word_count": 5817,
+    "submission_status": "submitted",
+    "missing": false
+  },
+  {
+    "student_id": "23071140104",
+    "name": "张馨梓",
+    "scores": {
+      "team_collaboration": 5,
+      "principle_understanding": 10,
+      "completion": 35,
+      "code_quality": 15,
+      "report_quality": 10
+    },
+    "total_score": 75,
+    "final_score": 75,
+    "is_plagiarism": false,
+    "plagiarism_info": [],
+    "word_count": 6327,
+    "submission_status": "submitted",
+    "missing": false
+  },
+  {
+    "student_id": "23071140111",
+    "name": "张馨月",
+    "scores": {
+      "team_collaboration": 5,
+      "principle_understanding": 10,
+      "completion": 35,
+      "code_quality": 15,
+      "report_quality": 10
+    },
+    "total_score": 75,
+    "final_score": 75,
+    "is_plagiarism": false,
+    "plagiarism_info": [],
+    "word_count": 8076,
+    "submission_status": "submitted",
+    "missing": false
+  },
+  {
+    "student_id": "23071140112",
+    "name": "王启鸣",
+    "scores": {
+      "team_collaboration": 5,
+      "principle_understanding": 10,
+      "completion": 25,
+      "code_quality": 0,
+      "report_quality": 5
+    },
+    "total_score": 45,
+    "final_score": 45,
+    "is_plagiarism": false,
+    "plagiarism_info": [],
+    "word_count": 364,
+    "submission_status": "submitted",
+    "missing": false
+  },
+  {
+    "student_id": "23071140113",
+    "name": "史英镔",
+    "scores": {
+      "team_collaboration": 5,
+      "principle_understanding": 10,
+      "completion": 35,
+      "code_quality": 15,
+      "report_quality": 10
+    },
+    "total_score": 75,
+    "final_score": 0,
+    "is_plagiarism": true,
+    "plagiarism_info": [
+      {
+        "student_id": "23071140113",
+        "student_name": "史英镔",
+        "similar_to": "23071140116",
+        "similar_name": "边潩韵",
+        "overall_similarity": 98.94,
+        "is_cross_group": false,
+        "details": {
+          "text_similarity": 98.24,
+          "code_similarity": 100.0,
+          "structure_similarity": 100.0,
+          "semantic_similarity": 0.0
+        }
+      }
+    ],
+    "word_count": 10926,
+    "submission_status": "submitted",
+    "missing": false
+  },
+  {
+    "student_id": "23071140114",
+    "name": "张博",
+    "scores": {
+      "team_collaboration": 5,
+      "principle_understanding": 10,
+      "completion": 35,
+      "code_quality": 15,
+      "report_quality": 10
+    },
+    "total_score": 75,
+    "final_score": 75,
+    "is_plagiarism": false,
+    "plagiarism_info": [],
+    "word_count": 10062,
+    "submission_status": "submitted",
+    "missing": false
+  },
+  {
+    "student_id": "23071140115",
+    "name": "彭嘉豪",
+    "scores": {
+      "team_collaboration": 5,
+      "principle_understanding": 7,
+      "completion": 25,
+      "code_quality": 0,
+      "report_quality": 5
+    },
+    "total_score": 42,
+    "final_score": 42,
+    "is_plagiarism": false,
+    "plagiarism_info": [],
+    "word_count": 562,
+    "submission_status": "submitted",
+    "missing": false
+  },
+  {
+    "student_id": "23071140116",
+    "name": "边潩韵",
+    "scores": {
+      "team_collaboration": 5,
+      "principle_understanding": 10,
+      "completion": 35,
+      "code_quality": 15,
+      "report_quality": 10
+    },
+    "total_score": 75,
+    "final_score": 75,
+    "is_plagiarism": false,
+    "plagiarism_info": [],
+    "word_count": 10934,
+    "submission_status": "submitted",
+    "missing": false
+  },
+  {
+    "student_id": "23071140117",
+    "name": "任柯嘉",
+    "scores": {
+      "team_collaboration": 2,
+      "principle_understanding": 7,
+      "completion": 10,
+      "code_quality": 0,
+      "report_quality": 5
+    },
+    "total_score": 24,
+    "final_score": 24,
+    "is_plagiarism": false,
+    "plagiarism_info": [],
+    "word_count": 217,
+    "submission_status": "submitted",
+    "missing": false
+  },
+  {
+    "student_id": "23071140119",
+    "name": "畅绍坤",
+    "scores": {
+      "team_collaboration": 5,
+      "principle_understanding": 10,
+      "completion": 35,
+      "code_quality": 15,
+      "report_quality": 10
+    },
+    "total_score": 75,
+    "final_score": 75,
+    "is_plagiarism": false,
+    "plagiarism_info": [],
+    "word_count": 5118,
+    "submission_status": "submitted",
+    "missing": false
+  },
+  {
+    "student_id": "23071140120",
+    "name": "张银川",
+    "scores": {
+      "team_collaboration": 2,
+      "principle_understanding": 10,
+      "completion": 25,
+      "code_quality": 0,
+      "report_quality": 5
+    },
+    "total_score": 42,
+    "final_score": 42,
+    "is_plagiarism": false,
+    "plagiarism_info": [],
+    "word_count": 488,
+    "submission_status": "submitted",
+    "missing": false
+  },
+  {
+    "student_id": "23071140121",
+    "name": "成安旭",
+    "scores": {
+      "team_collaboration": 5,
+      "principle_understanding": 10,
+      "completion": 35,
+      "code_quality": 0,
+      "report_quality": 5
+    },
+    "total_score": 55,
+    "final_score": 55,
+    "is_plagiarism": false,
+    "plagiarism_info": [],
+    "word_count": 1012,
+    "submission_status": "submitted",
+    "missing": false
+  },
+  {
+    "student_id": "23071140122",
+    "name": "鲁嘉豪",
+    "scores": {
+      "team_collaboration": 2,
+      "principle_understanding": 7,
+      "completion": 25,
+      "code_quality": 0,
+      "report_quality": 5
+    },
+    "total_score": 39,
+    "final_score": 39,
+    "is_plagiarism": false,
+    "plagiarism_info": [],
+    "word_count": 268,
+    "submission_status": "submitted",
+    "missing": false
+  },
+  {
+    "student_id": "23071140123",
+    "name": "胡宇洋",
+    "scores": {
+      "team_collaboration": 2,
+      "principle_understanding": 4,
+      "completion": 0,
+      "code_quality": 0,
+      "report_quality": 0
+    },
+    "total_score": 6,
+    "final_score": 6,
+    "is_plagiarism": false,
+    "plagiarism_info": [],
+    "word_count": 0,
+    "submission_status": "submitted",
+    "missing": false
+  },
+  {
+    "student_id": "23071140124",
+    "name": "武耀辉",
+    "scores": {
+      "team_collaboration": 5,
+      "principle_understanding": 10,
+      "completion": 35,
+      "code_quality": 15,
+      "report_quality": 10
+    },
+    "total_score": 75,
+    "final_score": 75,
+    "is_plagiarism": false,
+    "plagiarism_info": [],
+    "word_count": 8257,
+    "submission_status": "submitted",
+    "missing": false
+  },
+  {
+    "student_id": "23071140125",
+    "name": "靳皓杰",
+    "scores": {
+      "team_collaboration": 5,
+      "principle_understanding": 10,
+      "completion": 35,
+      "code_quality": 15,
+      "report_quality": 10
+    },
+    "total_score": 75,
+    "final_score": 0,
+    "is_plagiarism": true,
+    "plagiarism_info": [
+      {
+        "student_id": "23071140125",
+        "student_name": "靳皓杰",
+        "similar_to": "23071140135",
+        "similar_name": "薛松涛",
+        "overall_similarity": 100.0,
+        "is_cross_group": false,
+        "details": {
+          "text_similarity": 100.0,
+          "code_similarity": 100.0,
+          "structure_similarity": 0.0,
+          "semantic_similarity": 0.0
+        }
+      },
+      {
+        "student_id": "23071140125",
+        "student_name": "靳皓杰",
+        "similar_to": "23071140136",
+        "similar_name": "李志飞",
+        "overall_similarity": 99.59,
+        "is_cross_group": false,
+        "details": {
+          "text_similarity": 99.31,
+          "code_similarity": 100.0,
+          "structure_similarity": 0.0,
+          "semantic_similarity": 0.0
+        }
+      }
+    ],
+    "word_count": 8977,
+    "submission_status": "submitted",
+    "missing": false
+  },
+  {
+    "student_id": "23071140129",
+    "name": "秦子聪",
+    "scores": {
+      "team_collaboration": 2,
+      "principle_understanding": 10,
+      "completion": 25,
+      "code_quality": 15,
+      "report_quality": 10
+    },
+    "total_score": 62,
+    "final_score": 62,
+    "is_plagiarism": false,
+    "plagiarism_info": [],
+    "word_count": 6236,
+    "submission_status": "submitted",
+    "missing": false
+  },
+  {
+    "student_id": "23071140134",
+    "name": "聂智聪",
+    "scores": {
+      "team_collaboration": 5,
+      "principle_understanding": 10,
+      "completion": 35,
+      "code_quality": 0,
+      "report_quality": 10
+    },
+    "total_score": 60,
+    "final_score": 60,
+    "is_plagiarism": false,
+    "plagiarism_info": [],
+    "word_count": 2143,
+    "submission_status": "submitted",
+    "missing": false
+  },
+  {
+    "student_id": "23071140135",
+    "name": "薛松涛",
+    "scores": {
+      "team_collaboration": 5,
+      "principle_understanding": 10,
+      "completion": 35,
+      "code_quality": 15,
+      "report_quality": 10
+    },
+    "total_score": 75,
+    "final_score": 0,
+    "is_plagiarism": true,
+    "plagiarism_info": [
+      {
+        "student_id": "23071140135",
+        "student_name": "薛松涛",
+        "similar_to": "23071140136",
+        "similar_name": "李志飞",
+        "overall_similarity": 99.59,
+        "is_cross_group": false,
+        "details": {
+          "text_similarity": 99.31,
+          "code_similarity": 100.0,
+          "structure_similarity": 0.0,
+          "semantic_similarity": 0.0
+        }
+      }
+    ],
+    "word_count": 9002,
+    "submission_status": "submitted",
+    "missing": false
+  },
+  {
+    "student_id": "23071140136",
+    "name": "李志飞",
+    "scores": {
+      "team_collaboration": 5,
+      "principle_understanding": 10,
+      "completion": 35,
+      "code_quality": 15,
+      "report_quality": 10
+    },
+    "total_score": 75,
+    "final_score": 75,
+    "is_plagiarism": false,
+    "plagiarism_info": [],
+    "word_count": 9091,
+    "submission_status": "submitted",
+    "missing": false
+  },
+  {
+    "student_id": "23071140137",
+    "name": "倪鹏达",
+    "scores": {
+      "team_collaboration": 5,
+      "principle_understanding": 10,
+      "completion": 35,
+      "code_quality": 15,
+      "report_quality": 10
+    },
+    "total_score": 75,
+    "final_score": 0,
+    "is_plagiarism": true,
+    "plagiarism_info": [
+      {
+        "student_id": "23071140137",
+        "student_name": "倪鹏达",
+        "similar_to": "23071140139",
+        "similar_name": "蔺华俊",
+        "overall_similarity": 87.88,
+        "is_cross_group": false,
+        "details": {
+          "text_similarity": 96.3,
+          "code_similarity": 75.26,
+          "structure_similarity": 50.0,
+          "semantic_similarity": 0.0
+        }
+      }
+    ],
+    "word_count": 15238,
+    "submission_status": "submitted",
+    "missing": false
+  },
+  {
+    "student_id": "23071140138",
+    "name": "范才兴",
+    "scores": {
+      "team_collaboration": 5,
+      "principle_understanding": 10,
+      "completion": 35,
+      "code_quality": 0,
+      "report_quality": 10
+    },
+    "total_score": 60,
+    "final_score": 60,
+    "is_plagiarism": false,
+    "plagiarism_info": [],
+    "word_count": 2200,
+    "submission_status": "submitted",
+    "missing": false
+  },
+  {
+    "student_id": "23071140139",
+    "name": "蔺华俊",
+    "scores": {
+      "team_collaboration": 5,
+      "principle_understanding": 10,
+      "completion": 35,
+      "code_quality": 15,
+      "report_quality": 10
+    },
+    "total_score": 75,
+    "final_score": 75,
+    "is_plagiarism": false,
+    "plagiarism_info": [],
+    "word_count": 15050,
+    "submission_status": "submitted",
+    "missing": false
+  },
+  {
+    "student_id": "23071140140",
+    "name": "张磊",
+    "scores": {
+      "team_collaboration": 5,
+      "principle_understanding": 10,
+      "completion": 35,
+      "code_quality": 0,
+      "report_quality": 10
+    },
+    "total_score": 60,
+    "final_score": 60,
+    "is_plagiarism": false,
+    "plagiarism_info": [],
+    "word_count": 2147,
+    "submission_status": "submitted",
+    "missing": false
+  },
+  {
+    "student_id": "23071140128",
+    "name": "闫建铭",
+    "scores": {
+      "team_collaboration": 2,
+      "principle_understanding": 4,
+      "completion": 0,
+      "code_quality": 0,
+      "report_quality": 0
+    },
+    "total_score": 6,
+    "final_score": 6,
+    "is_plagiarism": false,
+    "plagiarism_info": [],
+    "word_count": 0,
+    "submission_status": "wrong_format",
+    "missing": false
+  },
+  {
+    "student_id": "23071140141",
+    "name": "李全",
+    "scores": {
+      "team_collaboration": 2,
+      "principle_understanding": 4,
+      "completion": 0,
+      "code_quality": 0,
+      "report_quality": 0
+    },
+    "total_score": 6,
+    "final_score": 6,
+    "is_plagiarism": false,
+    "plagiarism_info": [],
+    "word_count": 0,
+    "submission_status": "wrong_format",
+    "missing": false
+  }
+]

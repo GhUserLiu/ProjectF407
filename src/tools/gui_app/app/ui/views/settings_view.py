@@ -218,20 +218,30 @@ class SettingsView(QWidget):
         template_layout = QGridLayout()
 
         template_layout.addWidget(QLabel("报告模板:"), 0, 0)
-        self.template_path_edit = QLineEdit()
-        self.template_path_edit.setPlaceholderText("实验报告模板文件（可选）")
-        template_btn = QPushButton("📂 浏览")
-        template_btn.clicked.connect(self._on_select_template)
-        template_layout.addWidget(self.template_path_edit, 0, 1)
-        template_layout.addWidget(template_btn, 0, 2)
+        self.template_combo = QComboBox()
+        self.template_combo.setMinimumWidth(300)
+        self.template_combo.addItem("— 无 —", "")
+        # 扫描默认模板目录
+        self._scan_templates()
+        template_refresh_btn = QPushButton("🔄")
+        template_refresh_btn.setToolTip("重新扫描模板文件")
+        template_refresh_btn.setMaximumWidth(40)
+        template_refresh_btn.clicked.connect(self._scan_templates)
+        template_layout.addWidget(self.template_combo, 0, 1)
+        template_layout.addWidget(template_refresh_btn, 0, 2)
 
         template_layout.addWidget(QLabel("Rubric文件:"), 1, 0)
-        self.rubric_path_edit = QLineEdit()
-        self.rubric_path_edit.setPlaceholderText("评分标准文件（可选）")
-        rubric_btn = QPushButton("📂 浏览")
-        rubric_btn.clicked.connect(self._on_select_rubric)
-        template_layout.addWidget(self.rubric_path_edit, 1, 1)
-        template_layout.addWidget(rubric_btn, 1, 2)
+        self.rubric_combo = QComboBox()
+        self.rubric_combo.setMinimumWidth(300)
+        self.rubric_combo.addItem("— 无 —", "")
+        # 扫描默认 rubric 目录
+        self._scan_rubrics()
+        rubric_refresh_btn = QPushButton("🔄")
+        rubric_refresh_btn.setToolTip("重新扫描Rubric文件")
+        rubric_refresh_btn.setMaximumWidth(40)
+        rubric_refresh_btn.clicked.connect(self._scan_rubrics)
+        template_layout.addWidget(self.rubric_combo, 1, 1)
+        template_layout.addWidget(rubric_refresh_btn, 1, 2)
 
         template_group.setLayout(template_layout)
         layout.addWidget(template_group)
@@ -645,14 +655,66 @@ class SettingsView(QWidget):
         if directory:
             self.output_dir_edit.setText(directory)
 
+    def _scan_templates(self):
+        """扫描可用的模板文件"""
+        from app.ui.file_dialog_utils import DialogStartDir
+
+        # 保存当前选择
+        current_data = self.template_combo.currentData()
+
+        self.template_combo.clear()
+        self.template_combo.addItem("— 无 —", "")
+
+        # 扫描默认模板目录
+        data_dir = DialogStartDir._get_data_dir()
+        if data_dir:
+            template_dir = data_dir / 'templates'
+            if template_dir.exists():
+                # 扫描 docx 和 md 文件
+                for file in sorted(template_dir.glob('*.docx')):
+                    self.template_combo.addItem(f"{file.name} (Word)", str(file))
+                for file in sorted(template_dir.glob('*.md')):
+                    self.template_combo.addItem(f"{file.name} (Markdown)", str(file))
+
+        # 恢复之前的选择
+        if current_data:
+            for i in range(self.template_combo.count()):
+                if self.template_combo.itemData(i) == current_data:
+                    self.template_combo.setCurrentIndex(i)
+                    break
+
+    def _scan_rubrics(self):
+        """扫描可用的Rubric文件"""
+        from app.ui.file_dialog_utils import DialogStartDir
+
+        # 保存当前选择
+        current_data = self.rubric_combo.currentData()
+
+        self.rubric_combo.clear()
+        self.rubric_combo.addItem("— 无 —", "")
+
+        # 扫描默认 rubric 目录
+        data_dir = DialogStartDir._get_data_dir()
+        if data_dir:
+            rubric_dir = data_dir / 'rubrics'
+            if rubric_dir.exists():
+                # 扫描 json 文件
+                for file in sorted(rubric_dir.glob('*.json')):
+                    self.rubric_combo.addItem(file.name, str(file))
+
+        # 恢复之前的选择
+        if current_data:
+            for i in range(self.rubric_combo.count()):
+                if self.rubric_combo.itemData(i) == current_data:
+                    self.rubric_combo.setCurrentIndex(i)
+                    break
+
     def _on_select_template(self):
-        """选择模板文件"""
-        # 优先定位到测试模板目录（如果存在）
+        """手动选择模板文件（添加到下拉框）"""
         from app.ui.file_dialog_utils import DialogStartDir
         data_dir = DialogStartDir._get_data_dir()
         if data_dir:
-            # 检查测试数据中的 templates
-            if (data_dir / 'templates').exists() and any((data_dir / 'templates').iterdir()):
+            if (data_dir / 'templates').exists():
                 DialogStartDir._last_dirs['template'] = str(data_dir / 'templates')
 
         file_path, _ = get_open_filename(
@@ -663,16 +725,31 @@ class SettingsView(QWidget):
             self.current_config
         )
         if file_path:
-            self.template_path_edit.setText(file_path)
+            # 添加到下拉框并选中
+            file_name = Path(file_path).name
+            if file_path.endswith('.docx'):
+                file_name = f"{file_name} (Word)"
+            elif file_path.endswith('.md'):
+                file_name = f"{file_name} (Markdown)"
+
+            # 检查是否已存在
+            exists = False
+            for i in range(self.template_combo.count()):
+                if self.template_combo.itemData(i) == file_path:
+                    self.template_combo.setCurrentIndex(i)
+                    exists = True
+                    break
+
+            if not exists:
+                self.template_combo.addItem(file_name, file_path)
+                self.template_combo.setCurrentIndex(self.template_combo.count() - 1)
 
     def _on_select_rubric(self):
-        """选择Rubric文件"""
-        # 优先定位到测试rubric目录（如果存在）
+        """手动选择Rubric文件（添加到下拉框）"""
         from app.ui.file_dialog_utils import DialogStartDir
         data_dir = DialogStartDir._get_data_dir()
         if data_dir:
-            # 检查测试数据中的 rubrics
-            if (data_dir / 'rubrics').exists() and any((data_dir / 'rubrics').iterdir()):
+            if (data_dir / 'rubrics').exists():
                 DialogStartDir._last_dirs['rubric'] = str(data_dir / 'rubrics')
 
         file_path, _ = get_open_filename(
@@ -683,7 +760,19 @@ class SettingsView(QWidget):
             self.current_config
         )
         if file_path:
-            self.rubric_path_edit.setText(file_path)
+            file_name = Path(file_path).name
+
+            # 检查是否已存在
+            exists = False
+            for i in range(self.rubric_combo.count()):
+                if self.rubric_combo.itemData(i) == file_path:
+                    self.rubric_combo.setCurrentIndex(i)
+                    exists = True
+                    break
+
+            if not exists:
+                self.rubric_combo.addItem(file_name, file_path)
+                self.rubric_combo.setCurrentIndex(self.rubric_combo.count() - 1)
 
     def _on_reset(self):
         """重置为默认值"""
@@ -692,8 +781,9 @@ class SettingsView(QWidget):
         self.experiment_dir_edit.clear()
         self.submissions_dir_edit.clear()
         self.output_dir_edit.clear()
-        self.template_path_edit.clear()
-        self.rubric_path_edit.clear()
+        # 重置下拉框到默认值（第一项"— 无 —"）
+        self.template_combo.setCurrentIndex(0)
+        self.rubric_combo.setCurrentIndex(0)
 
         # 查重设置
         self.suspicious_threshold_spin.setValue(60)
@@ -723,10 +813,13 @@ class SettingsView(QWidget):
                 self.current_config.submissions_dir = Path(self.submissions_dir_edit.text())
             if self.output_dir_edit.text():
                 self.current_config.output_dir = Path(self.output_dir_edit.text())
-            if self.template_path_edit.text():
-                self.current_config.template_path = Path(self.template_path_edit.text())
-            if self.rubric_path_edit.text():
-                self.current_config.rubric_path = Path(self.rubric_path_edit.text())
+            # 从下拉框获取选择的模板和 Rubric 文件路径
+            template_path = self.template_combo.currentData()
+            if template_path:
+                self.current_config.template_path = Path(template_path)
+            rubric_path = self.rubric_combo.currentData()
+            if rubric_path:
+                self.current_config.rubric_path = Path(rubric_path)
 
             # 查重设置
             self.current_config.suspicious_threshold = self.suspicious_threshold_spin.value()
@@ -763,10 +856,21 @@ class SettingsView(QWidget):
             self.submissions_dir_edit.setText(str(config.submissions_dir))
         if config.output_dir:
             self.output_dir_edit.setText(str(config.output_dir))
+
+        # 更新模板和 Rubric 下拉框选择
         if config.template_path:
-            self.template_path_edit.setText(str(config.template_path))
+            template_path_str = str(config.template_path)
+            for i in range(self.template_combo.count()):
+                if self.template_combo.itemData(i) == template_path_str:
+                    self.template_combo.setCurrentIndex(i)
+                    break
+
         if config.rubric_path:
-            self.rubric_path_edit.setText(str(config.rubric_path))
+            rubric_path_str = str(config.rubric_path)
+            for i in range(self.rubric_combo.count()):
+                if self.rubric_combo.itemData(i) == rubric_path_str:
+                    self.rubric_combo.setCurrentIndex(i)
+                    break
 
         # 查重设置
         print(f"[DEBUG] Setting threshold values...", file=sys.stderr)
@@ -804,8 +908,8 @@ class SettingsView(QWidget):
                         "experiment_dir": self.experiment_dir_edit.text(),
                         "submissions_dir": self.submissions_dir_edit.text(),
                         "output_dir": self.output_dir_edit.text(),
-                        "template_path": self.template_path_edit.text(),
-                        "rubric_path": self.rubric_path_edit.text(),
+                        "template_path": self.template_combo.currentData() or "",
+                        "rubric_path": self.rubric_combo.currentData() or "",
                     },
                     "plagiarism": {
                         "suspicious_threshold": self.suspicious_threshold_spin.value(),
@@ -881,8 +985,44 @@ class SettingsView(QWidget):
                 self.experiment_dir_edit.setText(project.get("experiment_dir", ""))
                 self.submissions_dir_edit.setText(project.get("submissions_dir", ""))
                 self.output_dir_edit.setText(project.get("output_dir", ""))
-                self.template_path_edit.setText(project.get("template_path", ""))
-                self.rubric_path_edit.setText(project.get("rubric_path", ""))
+
+                # 从配置文件加载模板路径
+                template_path = project.get("template_path", "")
+                if template_path:
+                    # 检查是否在下拉框中
+                    found = False
+                    for i in range(self.template_combo.count()):
+                        if self.template_combo.itemData(i) == template_path:
+                            self.template_combo.setCurrentIndex(i)
+                            found = True
+                            break
+                    # 如果不在下拉框中，添加并选择
+                    if not found:
+                        from pathlib import Path as FilePath
+                        file_name = FilePath(template_path).name
+                        if template_path.endswith('.docx'):
+                            file_name = f"{file_name} (Word)"
+                        elif template_path.endswith('.md'):
+                            file_name = f"{file_name} (Markdown)"
+                        self.template_combo.addItem(file_name, template_path)
+                        self.template_combo.setCurrentIndex(self.template_combo.count() - 1)
+
+                # 从配置文件加载 Rubric 路径
+                rubric_path = project.get("rubric_path", "")
+                if rubric_path:
+                    # 检查是否在下拉框中
+                    found = False
+                    for i in range(self.rubric_combo.count()):
+                        if self.rubric_combo.itemData(i) == rubric_path:
+                            self.rubric_combo.setCurrentIndex(i)
+                            found = True
+                            break
+                    # 如果不在下拉框中，添加并选择
+                    if not found:
+                        from pathlib import Path as FilePath
+                        file_name = FilePath(rubric_path).name
+                        self.rubric_combo.addItem(file_name, rubric_path)
+                        self.rubric_combo.setCurrentIndex(self.rubric_combo.count() - 1)
 
                 exp_type = project.get("experiment_type", "档位实验")
                 for i in range(self.experiment_type_combo.count()):
@@ -982,8 +1122,8 @@ class SettingsView(QWidget):
                     "experiment_dir": self.experiment_dir_edit.text(),
                     "submissions_dir": self.submissions_dir_edit.text(),
                     "output_dir": self.output_dir_edit.text(),
-                    "template_path": self.template_path_edit.text(),
-                    "rubric_path": self.rubric_path_edit.text(),
+                    "template_path": self.template_combo.currentData() or "",
+                    "rubric_path": self.rubric_combo.currentData() or "",
                 },
                 "plagiarism": {
                     "suspicious_threshold": self.suspicious_threshold_spin.value(),
@@ -1032,13 +1172,16 @@ class SettingsView(QWidget):
                 if out_dir.exists():
                     existing_paths.append(("output", out_dir))
 
-            if self.template_path_edit.text():
-                template = Path(self.template_path_edit.text())
+            # 从下拉框获取模板和 Rubric 文件路径
+            template_path = self.template_combo.currentData()
+            if template_path:
+                template = Path(template_path)
                 if template.exists():
                     existing_paths.append(("template", template))
 
-            if self.rubric_path_edit.text():
-                rubric = Path(self.rubric_path_edit.text())
+            rubric_path = self.rubric_combo.currentData()
+            if rubric_path:
+                rubric = Path(rubric_path)
                 if rubric.exists():
                     existing_paths.append(("rubric", rubric))
 
