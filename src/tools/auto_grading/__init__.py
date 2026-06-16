@@ -19,6 +19,10 @@ Auto Grading System for STM32 Teaching Projects
 
 from .config import AutoGradingConfig
 from .submission_organizer import SubmissionOrganizer, OrganizationResult, StudentInfo
+from .build_checker import BuildChecker, BuildResult, BuildStatus
+from .submission_processor import SubmissionProcessor, ProcessedSubmission, ProjectInfo
+from .grading_engine import AutoGradingEngine, GradingResult, CategoryScore
+from .facade import AutoGradingFacade
 
 __all__ = [
     # 配置
@@ -27,15 +31,20 @@ __all__ = [
     "SubmissionOrganizer",
     "OrganizationResult",
     "StudentInfo",
-    # 以下模块待实现
-    # "BuildChecker",
-    # "BuildResult",
-    # "BuildStatus",
-    # "SubmissionProcessor",
-    # "ProcessedSubmission",
-    # "AutoGradingEngine",
-    # "GradingResult",
-    # "AutoGradingFacade",
+    # 编译检查
+    "BuildChecker",
+    "BuildResult",
+    "BuildStatus",
+    # 提交处理
+    "SubmissionProcessor",
+    "ProcessedSubmission",
+    "ProjectInfo",
+    # 评分引擎
+    "AutoGradingEngine",
+    "GradingResult",
+    "CategoryScore",
+    # 统一入口
+    "AutoGradingFacade",
 ]
 
 __version__ = "1.0.0"
