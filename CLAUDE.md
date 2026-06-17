@@ -45,7 +45,7 @@ stm32f407/
 │   │
 │   └── tools/                    # 教学管理工具
 │       ├── plagiarism/           # 查重检测系统（核心）
-│       ├── gui_app/             # GUI 管理应用
+│       ├── auto_grading_gui/    # 自动化批阅GUI应用
 │       ├── security/            # 安全工具
 │       ├── teaching_scripts/    # 教学处理脚本
 │       └── *.py                 # 独立脚本
@@ -173,10 +173,10 @@ detector = PlagiarismDetector(
 results = detector.detect(submissions)
 ```
 
-#### GUI 应用
+#### 自动化批阅GUI应用
+
 ```bash
-cd src/tools/gui_app
-python main.py
+python src/tools/auto_grading_gui/main.py
 ```
 
 ---

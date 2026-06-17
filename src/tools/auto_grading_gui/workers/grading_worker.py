@@ -183,14 +183,16 @@ class ObservableFacade:
 
         # 阶段2: 处理提交数据
         self.log_message.emit("阶段2: 处理提交数据")
-        self.stage_started.emit("process", "处理提交")
+        self.stage_started.emit("compile", "编译检查")  # 使用compile stage_id
+        self.stage_progress.emit("compile", 1, 10)
 
         submissions = self.facade.processor.process_class_submissions(
             class_name,
             experiment_id
         )
 
-        self.stage_completed.emit("process")
+        self.stage_progress.emit("compile", 10, 10)
+        self.stage_completed.emit("compile")
 
         result.total_submissions = len(submissions)
         self.log_message.emit(f"  处理完成: {len(submissions)} 个提交")
@@ -201,7 +203,7 @@ class ObservableFacade:
 
         # 阶段3: 批量评分
         self.log_message.emit("阶段3: 批量评分")
-        self.stage_started.emit("grading", "批量评分")
+        self.stage_started.emit("analyze", "代码分析")  # 使用analyze stage_id
 
         grading_results = []
         total = len(submissions)
@@ -211,29 +213,32 @@ class ObservableFacade:
                 break
 
             self.log_message.emit(f"评分 ({i+1}/{total}): {submission.student_id}-{submission.name}")
-            self.stage_progress.emit("grading", i + 1, total)
+            self.stage_progress.emit("analyze", i + 1, total)
 
             grading_result = self.facade.engine.grade_submission(submission)
             grading_results.append(grading_result)
 
             self.log_message.emit(f"  得分: {grading_result.total_score:.1f}/{grading_result.max_score:.1f} ({grading_result.grade})")
 
-        self.stage_completed.emit("grading")
+        self.stage_progress.emit("analyze", total, total)
+        self.stage_completed.emit("analyze")
 
         result.grading_results = grading_results
         result.successful_graded = len(grading_results)
 
         # 阶段4: 生成报告
         self.log_message.emit("阶段4: 生成报告")
-        self.stage_started.emit("report", "生成报告")
+        self.stage_started.emit("grade", "报告评分")  # 使用grade stage_id
+        self.stage_progress.emit("grade", 1, 10)
 
         if grading_results:
             class_report = self.facade.engine.generate_class_report(grading_results)
             self.facade._save_reports(result, class_report)
             self.log_message.emit(f"  班级报告已生成")
             self.log_message.emit(f"  个人报告已生成")
+            self.stage_progress.emit("grade", 10, 10)
 
-        self.stage_completed.emit("report")
+        self.stage_completed.emit("grade")
 
         result.completed_at = datetime.now()
 

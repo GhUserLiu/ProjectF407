@@ -129,7 +129,7 @@ class SecurityConfig:
 class AutoGradingConfig:
     """自动化批阅系统主配置"""
     # 项目根目录
-    project_root: Path = field(default_factory=lambda: Path(__file__).parent.parent.parent.parent.parent)
+    project_root: Path = field(default_factory=lambda: Path.cwd())
 
     # 工具链配置
     toolchain: ToolchainConfig = field(default_factory=ToolchainConfig)

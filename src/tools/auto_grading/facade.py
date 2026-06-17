@@ -279,7 +279,34 @@ class AutoGradingFacade:
             with open(individual_path, 'w', encoding='utf-8') as f:
                 json.dump(individual_report, f, ensure_ascii=False, indent=2)
 
-        # 保存汇总报告
+        # 保存汇总报告（JSON格式，供GUI使用）
+        summary_json_path = output_dir / "批阅汇总.json"
+        summary_data = {
+            'class_name': pipeline_result.class_name,
+            'experiment_id': pipeline_result.experiment_id,
+            'completed_at': pipeline_result.completed_at.isoformat() if pipeline_result.completed_at else None,
+            'statistics': {
+                'total_submissions': pipeline_result.total_submissions,
+                'successful_graded': pipeline_result.successful_graded,
+                'average_score': class_report.get('average_score', 0),
+                'max_score': class_report.get('max_score', 100),
+                'grade_distribution': class_report.get('grade_distribution', {})
+            },
+            'grading_results': [
+                {
+                    'student_id': gr.student_id,
+                    'name': gr.name,
+                    'total_score': gr.total_score,
+                    'grade': gr.grade
+                }
+                for gr in pipeline_result.grading_results
+            ]
+        }
+
+        with open(summary_json_path, 'w', encoding='utf-8') as f:
+            json.dump(summary_data, f, ensure_ascii=False, indent=2)
+
+        # 保存汇总报告（文本格式）
         summary_path = output_dir / "批阅汇总.txt"
         self._save_summary_report(pipeline_result, class_report, summary_path)
 

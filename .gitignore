@@ -71,9 +71,8 @@ ENV/
 # ========================================
 # GUI Application
 # ========================================
-tools/gui_app/dist/
-tools/gui_app/build/
-tools/gui_app/installer_output/
+tools/auto_grading_gui/dist/
+tools/auto_grading_gui/build/
 *.spec
 
 # ========================================

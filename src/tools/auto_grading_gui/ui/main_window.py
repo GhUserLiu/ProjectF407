@@ -15,6 +15,8 @@ import sys
 from pathlib import Path
 from datetime import datetime
 
+from .class_report_dialog import ClassReportDialog
+
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QGroupBox, QLabel, QPushButton, QLineEdit,
@@ -651,12 +653,27 @@ class MainWindow(QMainWindow):
         """查看班级报告"""
         self.log("打开班级报告...")
 
-        # TODO: 打开实际的报告文件
-        QMessageBox.information(
-            self,
-            "班级报告",
-            "班级报告功能开发中...\n\n报告将保存在:\noutputs/grading/班级/实验/"
-        )
+        # 获取班级和实验ID
+        class_name = self.class_name_edit.text().strip()
+        experiment_id = self.experiment_id_edit.text().strip()
+
+        if not class_name or not experiment_id:
+            QMessageBox.warning(self, "警告", "请先填写班级和实验ID")
+            return
+
+        # 检查报告是否存在
+        report_dir = Path("outputs/grading") / class_name / experiment_id
+        if not report_dir.exists():
+            QMessageBox.warning(
+                self,
+                "报告不存在",
+                f"未找到批阅报告。\n请先执行批阅操作。\n\n期望路径：\n{str(report_dir)}"
+            )
+            return
+
+        # 打开班级报告对话框
+        dialog = ClassReportDialog(class_name, experiment_id, self)
+        dialog.exec()
 
     def export_class_report(self):
         """导出班级报告"""
@@ -669,8 +686,68 @@ class MainWindow(QMainWindow):
         """导出所有个人报告"""
         self.log("导出所有个人报告...")
 
-        # TODO: 批量导出功能
-        QMessageBox.information(self, "导出", "批量导出功能开发中...")
+        # 获取班级和实验ID
+        class_name = self.class_name_edit.text().strip()
+        experiment_id = self.experiment_id_edit.text().strip()
+
+        if not class_name or not experiment_id:
+            QMessageBox.warning(self, "警告", "请先填写班级和实验ID")
+            return
+
+        # 检查报告是否存在
+        report_dir = Path("outputs/grading") / class_name / experiment_id
+        individuals_dir = report_dir / "individual_reports"
+
+        if not individuals_dir.exists():
+            QMessageBox.warning(self, "警告", f"未找到个人报告目录\n{individuals_dir}")
+            return
+
+        # 选择导出目录
+        export_dir = QFileDialog.getExistingDirectory(
+            self,
+            "选择导出目录",
+            str(Path.cwd() / "exports")
+        )
+
+        if not export_dir:
+            return
+
+        export_path = Path(export_dir)
+
+        # 统计信息
+        total = 0
+        success = 0
+        failed = 0
+
+        # 复制所有个人报告
+        for report_file in individuals_dir.glob("*-评分.json"):
+            total += 1
+
+            try:
+                # 读取报告
+                with open(report_file, 'r', encoding='utf-8') as f:
+                    data = f.read()
+
+                # 写入到导出目录
+                dest_file = export_path / report_file.name
+                with open(dest_file, 'w', encoding='utf-8') as f:
+                    f.write(data)
+
+                success += 1
+
+            except Exception as e:
+                failed += 1
+                self.log(f"导出失败 {report_file.name}: {e}")
+
+        self.log(f"导出完成: {success}/{total} 个报告")
+        if failed > 0:
+            self.log(f"失败: {failed} 个")
+
+        QMessageBox.information(
+            self,
+            "导出完成",
+            f"成功导出 {success}/{total} 个个人报告\n\n导出位置:\n{export_path}"
+        )
 
     def show_about(self):
         """显示关于对话框"""
