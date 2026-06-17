@@ -82,8 +82,12 @@ class AutoGradingFacade:
         self.config = config or AutoGradingConfig()
 
         # 初始化子模块
-        self.organizer = SubmissionOrganizer(self.config.data_dir)
-        self.processor = SubmissionProcessor(self.config.data_dir)
+        # 输入侧也统一到学期树下：data/teaching/<学期>/<班级>/<实验>/
+        # 与 get_output_dir（results/grading）落在同一棵实验树，
+        # 避免在 data/<班级>/ 下滋生游离目录（多学期/多项目可并存）
+        input_base = self.config.teaching_dir / self.config.semester
+        self.organizer = SubmissionOrganizer(input_base)
+        self.processor = SubmissionProcessor(input_base)
         self.engine = AutoGradingEngine(self.config)
 
     def run_full_pipeline(

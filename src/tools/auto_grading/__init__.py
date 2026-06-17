@@ -50,19 +50,5 @@ __all__ = [
 __version__ = "1.0.0"
 __author__ = "STM32F407 Teaching Team"
 
-__all__ = [
-    # 配置
-    "AutoGradingConfig",
-    # 编译检查
-    "BuildChecker",
-    "BuildResult",
-    "BuildStatus",
-    # 提交处理
-    "SubmissionProcessor",
-    "ProcessedSubmission",
-    # 评分引擎
-    "AutoGradingEngine",
-    "GradingResult",
-    # 统一入口
-    "AutoGradingFacade",
-]
+# 注意：__all__ 仅在上面定义一次。此前此处存在重复定义（覆盖了上面的完整版本，
+# 导致 SubmissionOrganizer/OrganizationResult/StudentInfo/CategoryScore 等无法导出），已删除。

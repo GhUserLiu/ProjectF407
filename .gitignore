@@ -71,8 +71,8 @@ ENV/
 # ========================================
 # GUI Application
 # ========================================
-tools/auto_grading_gui/dist/
-tools/auto_grading_gui/build/
+tools/teaching_management_gui/dist/
+tools/teaching_management_gui/build/
 *.spec
 
 # ========================================
@@ -85,6 +85,9 @@ tools/auto_grading_gui/build/
 *.pid
 *.seed
 *.pid.lock
+# 临时调试/诊断脚本（不纳入版本管理）
+/debug_*.py
+/temp_*.py
 
 # ========================================
 # OS Generated
@@ -104,6 +107,11 @@ desktop.ini
 # Student submissions (optional - uncomment if needed)
 # data/teaching/*/submissions/
 # data/teaching/*/processed/
+
+# 学生原始提交压缩包（大文件，不入库）
+data/teaching/**/*.zip
+/*.汽服*.zip
+/汽服*.zip
 
 # Generated reports (optional)
 data/teaching/*/results/

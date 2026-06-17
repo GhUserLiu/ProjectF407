@@ -16,13 +16,20 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Configuration
 BASE_DIR = Path(__file__).parent.parent.parent.parent
+# 路径统一走 src/tools/common/path_config.py（与 auto_grading、GUI 保持一致）
+sys.path.insert(0, str(BASE_DIR / "src"))
+from tools.common.path_config import get_experiment_paths
+
 # 默认使用最新的实验目录，可通过命令行参数覆盖
-EXPERIMENT_DIR = BASE_DIR / "assignments" / "2026-春季" / "汽服2302B班" / "07-car-gear"
-EXTRACT_DIR = EXPERIMENT_DIR / "submissions"
-PROCESSED_DIR = EXPERIMENT_DIR / "processed"
-OUTPUT_DIR = EXPERIMENT_DIR
-TEACHER_OUTPUT = OUTPUT_DIR / "results"
-STUDENT_OUTPUT = OUTPUT_DIR / "feedback"
+_default_paths = get_experiment_paths(
+    "2026-春季", "汽服2302B班", "07-car-gear", project_root=BASE_DIR
+)
+EXPERIMENT_DIR = _default_paths.experiment_dir
+EXTRACT_DIR = _default_paths.submissions_dir
+PROCESSED_DIR = _default_paths.processed_dir
+OUTPUT_DIR = _default_paths.results_dir
+TEACHER_OUTPUT = _default_paths.reports_dir       # results/reports
+STUDENT_OUTPUT = _default_paths.feedback_dir      # results/feedback
 
 def setup_directories():
     """Create necessary directories"""

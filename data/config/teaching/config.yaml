@@ -166,25 +166,25 @@ workflow:
       dependencies: ["evaluate", "plagiarism"]
       outputs: ["gradebook.xlsx"]
 
-# 路径配置
+# 路径配置（与 src/tools/common/path_config.py 的实际目录布局对齐）
 paths:
   # 项目根目录
   project_root: "../.."
 
-  # 教学文档目录
-  teaching_dir: "docs/teaching"
+  # 教学数据目录（按 学期/班级/实验 组织）
+  teaching_dir: "data/teaching"
 
-  # 通用脚本目录
-  common_scripts: "docs/teaching/common/scripts"
+  # 通用脚本目录（统一路径配置）
+  common_scripts: "src/tools/common"
 
   # 工具目录
-  tools_dir: "tools/plagiarism"
+  tools_dir: "src/tools/plagiarism"
 
   # 模板目录
-  templates_dir: "docs/teaching/common/templates"
+  templates_dir: "data/templates"
 
   # 评分标准目录
-  rubrics_dir: "docs/teaching/common/rubrics"
+  rubrics_dir: "data/rubrics"
 
 # 日志配置
 logging:

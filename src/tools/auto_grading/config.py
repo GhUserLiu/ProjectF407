@@ -8,7 +8,7 @@ Auto Grading System Configuration
 - 工具链路径
 - 超时设置
 - 项目白名单
-- 评分权重
+- 输出路径（统一走 path_config）
 """
 
 from pathlib import Path
@@ -86,21 +86,15 @@ class ProjectConfig:
 
 @dataclass
 class GradingConfig:
-    """评分配置"""
-    # 编译检查权重
-    compilation_weight: float = 0.1  # 10%
+    """评分配置（保留字段以备后续扩展）
 
-    # 代码质量权重
-    code_quality_weight: float = 0.2  # 20%
-
-    # 报告质量权重（由rubric.json控制）
-    report_quality_weight: float = 0.7  # 70%
-
-    # 代码分析阈值
-    code_quality_threshold: float = 60.0  # 代码质量低于60分扣分
-
-    # 编译失败扣分
-    compilation_failure_penalty: float = 10.0
+    说明：当前总分 = 各 rubric category 的 earned_points 之和
+    （见 grading_engine.AutoGradingEngine.grade_submission 的累加逻辑），
+    rubric.json 的 categories 为唯一分值来源。
+    历史上此处的 compilation/code_quality/report_quality 权重字段
+    从未被使用，已删除以消除配置与实现脱节。
+    """
+    pass
 
 
 @dataclass
@@ -130,6 +124,9 @@ class AutoGradingConfig:
     """自动化批阅系统主配置"""
     # 项目根目录
     project_root: Path = field(default_factory=lambda: Path.cwd())
+
+    # 当前学期（用于按学期定位实验目录）
+    semester: str = "2026-春季"
 
     # 工具链配置
     toolchain: ToolchainConfig = field(default_factory=ToolchainConfig)
@@ -169,9 +166,26 @@ class AutoGradingConfig:
         class_dir = self.get_class_dir(semester, class_name)
         return class_dir / experiment_id / "submissions"
 
-    def get_output_dir(self, class_name: str, experiment_id: str) -> Path:
-        """获取输出目录"""
-        return self.outputs_dir / "grading" / class_name / experiment_id
+    def get_experiment_paths(self, class_name: str, experiment_id: str, semester: Optional[str] = None):
+        """获取实验路径配置（复用 path_config 的 ExperimentPaths）
+
+        统一产物路径：data/teaching/<学期>/<班级>/<实验>/results/{reports,feedback,grading,plagiarism}/
+        """
+        from tools.common.path_config import get_experiment_paths
+        return get_experiment_paths(
+            semester or self.semester,
+            class_name,
+            experiment_id,
+            project_root=self.project_root,
+        )
+
+    def get_output_dir(self, class_name: str, experiment_id: str, semester: Optional[str] = None) -> Path:
+        """获取批阅产物输出目录（统一走 path_config）。
+
+        返回 results/grading 子目录，与 teaching_scripts 链路完全一致，
+        消除历史上 outputs/grading 与 data/teaching/.../results 两套路径的分叉。
+        """
+        return self.get_experiment_paths(class_name, experiment_id, semester).grading_dir
 
 
 # 默认配置实例

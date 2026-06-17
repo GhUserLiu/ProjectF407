@@ -83,19 +83,20 @@ class BuildChecker:
         self._check_toolchain()
 
     def _check_toolchain(self):
-        """检查工具链是否可用"""
-        # 检查make
-        if not shutil.which(self.config.toolchain.make_path):
-            raise RuntimeError(f"Make命令不可用: {self.config.toolchain.make_path}")
+        """检查工具链是否可用（静默）。
 
-        # 检查arm-none-eabi-gcc
-        if not shutil.which(f"{self.config.toolchain.arm_none_eabi_prefix}gcc"):
-            print(f"警告: arm-none-eabi-gcc不可用，仅支持Keil项目")
-
-        # 检查Keil（如果启用）
-        if self.config.toolchain.keil_enabled:
-            if not Path(self.config.toolchain.keil_uv4_path).exists():
-                print(f"警告: Keil UV4不可用: {self.config.toolchain.keil_uv4_path}")
+        仅把可用性记录为属性，不打印、不在构造期抛异常——GUI 与库的启动
+        不应被"可选的工具链"阻断。真正编译时由 check_build 执行；工具链缺失
+        会优雅返回 BuildResult(ERROR)，不会崩溃。UI 中每名学生的"编译"列
+        会以 ✓/✗ 反映编译情况，用户可据此判断是否需要安装 make/MinGW。
+        """
+        self.make_available = bool(shutil.which(self.config.toolchain.make_path))
+        self.gcc_available = bool(
+            shutil.which(f"{self.config.toolchain.arm_none_eabi_prefix}gcc")
+        )
+        self.keil_available = False
+        if self.config.toolchain.keil_enabled and self.config.toolchain.keil_uv4_path:
+            self.keil_available = Path(self.config.toolchain.keil_uv4_path).exists()
 
     def check_build(
         self,
@@ -130,6 +131,17 @@ class BuildChecker:
         # 自动检测项目类型
         if toolchain == 'auto':
             toolchain = self._detect_project_type(project_path)
+
+        # 工具链不可用时优雅跳过（给出清晰原因，而非抛 FileNotFoundError）。
+        # make_available 等属性在 _check_toolchain 中静默记录。
+        if toolchain == 'gcc' and not getattr(self, 'make_available', True):
+            return BuildResult(
+                status=BuildStatus.SKIPPED,
+                project_name=project_name or project_path.name,
+                project_path=project_path,
+                success=False,
+                error_message="未安装 make / arm-none-eabi-gcc，编译检查已跳过"
+            )
 
         try:
             if toolchain == 'gcc':

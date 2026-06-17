@@ -9,6 +9,8 @@ from pathlib import Path
 # 添加项目根目录到 Python 路径
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
+# 源码位于 src/ 下（包名为 tools.*），需将 src 也加入路径
+sys.path.insert(0, str(project_root / "src"))
 
 
 @pytest.fixture

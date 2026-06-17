@@ -204,11 +204,11 @@ build_cubemx:
 clean:
 ifeq ($(IS_CUBEMX),)
 	@echo "Cleaning simple project..."
-	rm -rf build/$(PROJECT)
+	rm -rf build/$(PROJECT) outputs/build/$(PROJECT)
 else
 	@echo "Cleaning CubeMX project..."
 	-cd $(PROJECT_DIR)/cubemx && $(MAKE) clean
-	rm -rf build/$(PROJECT)
+	rm -rf build/$(PROJECT) outputs/build/$(PROJECT)
 endif
 
 # ========================================
