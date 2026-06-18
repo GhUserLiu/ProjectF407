@@ -21,6 +21,7 @@ from PyQt6.QtCore import Qt, QSize, QMargins, QPoint
 from PyQt6.QtGui import QFont, QColor, QPalette, QPixmap
 
 from tools.teaching_management_gui.path_helper import grading_dir as resolve_grading_dir
+from tools.teaching_management_gui.class_analysis import analyze
 
 
 class ClassReportDialog(QDialog):
@@ -35,51 +36,22 @@ class ClassReportDialog(QDialog):
         self.class_report: Dict = {}
         self._data_loaded = False
         self._updating_ui = False
-        self._is_dragging = False
+        self.analysis = None  # ClassAnalysis，由 load_report_data 计算
 
-        # 使用最基本的窗口配置，避免复杂的标志组合
-        # 只设置必要的标志：可调整大小的窗口
-        # 移除最大化按钮，防止Windows的自动最大化功能
-        self.setWindowFlags(
-            Qt.WindowType.Window |
-            Qt.WindowType.WindowCloseButtonHint |
-            Qt.WindowType.WindowMinimizeButtonHint  # 只保留最小化按钮
-        )
-
-        # 设置窗口模态
+        # 标准、可自由缩放/最大化的对话框。
+        # 此前曾用"去掉最大化按钮 + setMaximumSize + 自定义拖拽检测 + 拦截
+        # WM_GETMINMAXINFO"来"阻止自动最大化"，但那套非标准配置反而导致
+        # 拖动时 Windows 反复重算最大化尺寸并把窗口钉在屏幕顶部（吸附 bug），
+        # 且 nativeEvent 在 PyQt6 下还会崩溃。现已全部移除，改用系统默认行为：
+        # 拖到顶部走标准 Aero Snap（干净地最大化），不会卡在顶部受限尺寸。
         self.setWindowModality(Qt.WindowModality.ApplicationModal)
 
-        # 设置窗口大小
+        # 设置窗口大小（仅设最小尺寸，不设最大尺寸，允许自由缩放/最大化）
         self.resize(1200, 800)
         self.setMinimumSize(800, 600)
-        # 设置最大大小，防止自动最大化
-        self.setMaximumSize(2000, 1200)
-
-        # 覆盖 native event 来检测拖拽状态
-        self._drag_start_pos = None
 
         self.init_ui()
         self.load_report_data()
-
-    def mousePressEvent(self, event):
-        """记录鼠标按下位置，用于检测拖拽"""
-        if event.button() == Qt.MouseButton.LeftButton:
-            self._drag_start_pos = event.position().toPoint()
-        super().mousePressEvent(event)
-
-    def mouseReleaseEvent(self, event):
-        """清除拖拽状态"""
-        if event.button() == Qt.MouseButton.LeftButton:
-            self._drag_start_pos = None
-            self._is_dragging = False
-        super().mouseReleaseEvent(event)
-
-    def moveEvent(self, event):
-        """处理移动事件，检测是否在拖拽"""
-        if self._drag_start_pos is not None:
-            self._is_dragging = True
-        super().moveEvent(event)
-
 
     def init_ui(self):
         """初始化UI"""
@@ -109,31 +81,39 @@ class ClassReportDialog(QDialog):
         """)
 
         layout = QVBoxLayout()
-        layout.setSpacing(15)
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(10)
         self.setLayout(layout)
 
+        # 内容放入滚动区：避免对话框整体高于屏幕、被 Windows 钉在屏幕顶部
+        # （此前拖动时"吸附到顶部"的根因即内容超高、窗口无法下移）。
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setStyleSheet("QScrollArea{background:transparent;}")
+
+        inner = QWidget()
+        inner_layout = QVBoxLayout(inner)
+        inner_layout.setSpacing(15)
+        inner_layout.setContentsMargins(0, 0, 0, 0)
+
         # 标题区域
-        title_widget = self.create_title_section()
-        layout.addWidget(title_widget)
+        inner_layout.addWidget(self.create_title_section())
 
         # 统计卡片
-        stats_widget = self.create_stats_section()
-        layout.addWidget(stats_widget)
+        inner_layout.addWidget(self.create_stats_section())
 
-        # 主要内容区域（使用水平布局）
+        # 主要内容区域（水平：图表 | 排名表）
         content_layout = QHBoxLayout()
+        content_layout.addWidget(self.create_charts_section(), 4)
+        content_layout.addWidget(self.create_table_section(), 6)
+        inner_layout.addLayout(content_layout)
+        inner_layout.addStretch()
 
-        # 左侧：图表
-        charts_widget = self.create_charts_section()
-        content_layout.addWidget(charts_widget, 4)
+        scroll.setWidget(inner)
+        layout.addWidget(scroll, 1)
 
-        # 右侧：排名表
-        table_widget = self.create_table_section()
-        content_layout.addWidget(table_widget, 6)
-
-        layout.addLayout(content_layout)
-
-        # 关闭按钮
+        # 关闭按钮（固定在滚动区下方，始终可见）
         close_btn = QPushButton("关闭")
         close_btn.setFixedWidth(120)
         close_btn.clicked.connect(self.accept)
@@ -670,6 +650,9 @@ class ClassReportDialog(QDialog):
             # 按分数排序
             self.grading_results.sort(key=lambda x: x.get('total_score', 0), reverse=True)
 
+            # 统一计算班级分析（与"教师分析报告"共用，避免重复计算）
+            self.analysis = analyze(self.grading_results, self.class_name, self.experiment_id)
+
             # 更新UI
             self.update_stats()
             self.update_charts()
@@ -685,145 +668,50 @@ class ClassReportDialog(QDialog):
                 self.setGeometry(saved_geometry)
 
     def update_stats(self):
-        """更新统计信息"""
-        if not self.class_report and not self.grading_results:
-            print("[ClassReportDialog] 没有数据可更新统计")
+        """更新统计信息（数据来自 self.analysis，与教师分析报告共用计算）"""
+        a = self.analysis
+        if a is None or a.n == 0:
             return
 
-        stats = self.class_report.get('statistics', {})
+        self.overall_stats["total"].setText(str(a.n))
+        self.overall_stats["avg"].setText(f"{a.avg:.1f}")
+        self.overall_stats["pass"].setText(f"{a.pass_rate:.1f}%")
 
-        # 总人数
-        total = len(self.grading_results)
-        self.overall_stats["total"].setText(str(total))
-
-        # 平均分
-        average = stats.get('average_score', 0)
-        try:
-            avg_value = float(average)
-            self.overall_stats["avg"].setText(f"{avg_value:.1f}")
-        except (ValueError, TypeError):
-            self.overall_stats["avg"].setText("0.0")
-
-        # 及格率
-        if self.grading_results:
-            scores = []
-            for r in self.grading_results:
-                try:
-                    score = float(r.get('total_score', 0))
-                    scores.append(score)
-                except (ValueError, TypeError):
-                    scores.append(0.0)
-
-            passed = sum(1 for s in scores if s >= 60)
-            pass_rate = (passed / total * 100) if total > 0 else 0
-            self.overall_stats["pass"].setText(f"{pass_rate:.1f}%")
-
-            # 详细统计
-            if total > 0:
-                max_score = max(scores) if scores else 0
-                min_score = min(scores) if scores else 0
-
-                self.detail_stats["max"].setText(f"{max_score:.1f}")
-                self.detail_stats["min"].setText(f"{min_score:.1f}")
-
-                # 中位数
-                scores_sorted = sorted(scores)
-                n = len(scores_sorted)
-                if n % 2 == 0:
-                    median = (scores_sorted[n//2 - 1] + scores_sorted[n//2]) / 2
-                else:
-                    median = scores_sorted[n//2]
-                self.detail_stats["median"].setText(f"{median:.1f}")
-
-                # 标准差
-                if n > 1:
-                    variance = sum((x - avg_value) ** 2 for x in scores) / n
-                    std_dev = variance ** 0.5 if variance >= 0 else 0
-                    self.detail_stats["std"].setText(f"{std_dev:.1f}")
-                else:
-                    self.detail_stats["std"].setText("0.0")
-
-                # 优秀率
-                excellent = sum(1 for s in scores if s >= 80)
-                excellent_rate = (excellent / total * 100) if total > 0 else 0
-                self.detail_stats["excellent"].setText(f"{excellent_rate:.0f}%")
-
-                # 及格率
-                self.detail_stats["pass"].setText(f"{pass_rate:.0f}%")
+        self.detail_stats["max"].setText(f"{a.max_score:.1f}")
+        self.detail_stats["min"].setText(f"{a.min_score:.1f}")
+        self.detail_stats["median"].setText(f"{a.median:.1f}")
+        self.detail_stats["std"].setText(f"{a.std:.1f}")
+        self.detail_stats["excellent"].setText(f"{a.excellent_rate:.0f}%")
+        self.detail_stats["pass"].setText(f"{a.pass_rate:.0f}%")
 
     def update_charts(self):
-        """更新图表"""
-        if not self.grading_results:
+        """更新图表（数据来自 self.analysis）"""
+        a = self.analysis
+        if a is None or a.n == 0:
             return
+        total = a.n
 
-        total = len(self.grading_results)
-        if total == 0:
-            return
-
-        # 更新分数分布
-        score_ranges = {
-            "0-59": 0,
-            "60-69": 0,
-            "70-79": 0,
-            "80-89": 0,
-            "90-100": 0,
-        }
-
-        for result in self.grading_results:
-            score = result.get('total_score', 0)
-            if score < 60:
-                score_ranges["0-59"] += 1
-            elif score < 70:
-                score_ranges["60-69"] += 1
-            elif score < 80:
-                score_ranges["70-79"] += 1
-            elif score < 90:
-                score_ranges["80-89"] += 1
-            else:
-                score_ranges["90-100"] += 1
-
+        # 分段分布
         for range_name, (progress_bar, count_label, percent_label, color) in self.score_bars.items():
-            count = score_ranges.get(range_name, 0)
+            count = a.score_range_distribution.get(range_name, 0)
             percentage = (count / total * 100) if total > 0 else 0
-
-            # 使用 setValue 而不是 setFixedWidth
             progress_bar.setValue(int(percentage))
             count_label.setText(f"{count}人")
             percent_label.setText(f"{percentage:.0f}%")
 
-            # 样式已在创建时设置，这里不需要重复设置
-
-        # 更新评分类别
-        category_scores = {
-            "build": [],
-            "code": [],
-            "report": []
-        }
-
-        for result in self.grading_results:
-            for category_score in result.get('category_scores', []):
-                category_id = category_score.get('category_id', '')
-                earned_points = category_score.get('earned_points', 0)
-                max_points = category_score.get('max_points', 1)
-
-                # 映射category_id到key
-                key_map = {
-                    "compilation": "build",
-                    "code_quality": "code",
-                    "report_quality": "report"
-                }
-
-                mapped_key = key_map.get(category_id)
-                if mapped_key and mapped_key in category_scores:
-                    percentage_score = (earned_points / max_points * 100) if max_points > 0 else 0
-                    category_scores[mapped_key].append(percentage_score)
+        # 各维度（analysis 按 category_id 聚合，映射到 build/code/report）
+        cat_map = {"compilation": "build", "code_quality": "code", "report_quality": "report"}
+        cat_rate = {k: None for k in ("build", "code", "report")}
+        for c in a.category_analysis:
+            key = cat_map.get(c["id"])
+            if key:
+                cat_rate[key] = c["rate"] * 100
 
         for key, (progress_bar, score_label) in self.cat_bars.items():
-            scores = category_scores.get(key, [])
-            if scores:
-                avg_score = sum(scores) / len(scores)
-                progress_bar.setValue(int(avg_score))
-                score_label.setText(f"{avg_score:.0f}")
+            val = cat_rate.get(key)
+            if val is not None:
+                progress_bar.setValue(int(val))
+                score_label.setText(f"{val:.0f}")
             else:
                 progress_bar.setValue(0)
                 score_label.setText("--")

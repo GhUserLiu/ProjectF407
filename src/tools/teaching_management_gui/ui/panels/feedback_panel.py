@@ -1,14 +1,17 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-反馈生成面板（批量版）
+反馈生成面板（批量 + 双模式）
 Feedback Generation Panel
 
-输入取自「数据源」页（多班级），遍历所有已选班级读取批阅结果并生成反馈。
+两种输出：
+- 学生反馈：每个学生的丰富文本，解释评分依据、失分点与可提升方向；
+- 教师分析报告：班级成绩统计、等级分布、各维度薄弱分析、排名、共性问题。
+
+输入取自「数据源」页（多班级），批量生成。
 """
 
 import sys
-import json
 from pathlib import Path
 from datetime import datetime
 
@@ -24,8 +27,11 @@ from PyQt6.QtGui import QFont
 
 from tools.teaching_management_gui.data_source import shared
 from tools.teaching_management_gui.path_helper import (
-    grading_dir as resolve_grading_dir,
     feedback_dir as resolve_feedback_dir,
+)
+from tools.teaching_management_gui.feedback_reports import (
+    build_student_feedback,
+    build_teacher_report,
 )
 
 try:
@@ -35,8 +41,26 @@ except ImportError:
     HAS_DOCX = False
 
 
+def _write_docx(path: Path, title: str, text: str):
+    """把多行文本写成 Word（标题 + 列表/段落）。"""
+    doc = _DocxDocument()
+    doc.add_heading(title, level=1)
+    for line in text.splitlines():
+        if line.startswith("# "):
+            continue  # 主标题已加
+        if line.startswith("## "):
+            doc.add_heading(line[3:].strip(), level=2)
+        elif line.startswith("| "):
+            doc.add_paragraph(line)  # 表格行按段落保留
+        elif line.startswith("- "):
+            doc.add_paragraph(line[2:], style="List Bullet")
+        elif line.strip():
+            doc.add_paragraph(line)
+    doc.save(path)
+
+
 class FeedbackPanel(QWidget):
-    """反馈生成面板"""
+    """反馈生成面板（教师分析报告 / 学生反馈）"""
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -46,6 +70,12 @@ class FeedbackPanel(QWidget):
         self.setup_ui()
         shared().entries_changed.connect(self._refresh_data_source_status)
         self._refresh_data_source_status()
+        self._on_mode_changed()  # 初始化子选项可见性
+        # 学生模式下，切换详细度/包含项时自动刷新预览
+        self.feedback_type.currentIndexChanged.connect(self._auto_preview)
+        self.include_strengths.toggled.connect(self._auto_preview)
+        self.include_weaknesses.toggled.connect(self._auto_preview)
+        self.include_suggestions.toggled.connect(self._auto_preview)
 
     # ---------------- UI ----------------
     def setup_ui(self):
@@ -56,9 +86,10 @@ class FeedbackPanel(QWidget):
         layout.addWidget(self._create_log_panel())
 
     def _create_config_panel(self):
-        group = QGroupBox("数据源与反馈参数")
+        group = QGroupBox("数据源与反馈设置")
         v = QVBoxLayout()
 
+        # 数据源状态
         ds_row = QHBoxLayout()
         self.ds_status = QLabel()
         self.ds_status.setWordWrap(True)
@@ -68,32 +99,47 @@ class FeedbackPanel(QWidget):
         ds_row.addWidget(go_btn)
         v.addLayout(ds_row)
 
-        row = QHBoxLayout()
-        row.addWidget(QLabel("反馈类型:"))
+        # 模式：教师分析报告 / 学生反馈
+        mode_row = QHBoxLayout()
+        mode_row.addWidget(QLabel("反馈类型:"))
+        self.mode_combo = QComboBox()
+        self.mode_combo.addItem("学生反馈（解释评分与提升方向）", "student")
+        self.mode_combo.addItem("教师分析报告（班级成绩分析）", "teacher")
+        self.mode_combo.currentIndexChanged.connect(self._on_mode_changed)
+        mode_row.addWidget(self.mode_combo)
+        mode_row.addStretch()
+        v.addLayout(mode_row)
+
+        # 学生反馈子选项
+        self.student_opts = QWidget()
+        so = QVBoxLayout(self.student_opts)
+        so.setContentsMargins(0, 0, 0, 0)
+        r1 = QHBoxLayout()
+        r1.addWidget(QLabel("详细度:"))
         self.feedback_type = QComboBox()
-        self.feedback_type.addItem("详细反馈（含建议）")
+        self.feedback_type.addItem("详细反馈")
         self.feedback_type.addItem("简洁反馈")
-        self.feedback_type.addItem("成绩单")
-        row.addWidget(self.feedback_type)
-        row.addStretch()
-        v.addLayout(row)
-
-        opts = QHBoxLayout()
-        self.include_strengths = QCheckBox("包含优点")
+        r1.addWidget(self.feedback_type)
+        r1.addStretch()
+        so.addLayout(r1)
+        r2 = QHBoxLayout()
+        self.include_strengths = QCheckBox("包含亮点")
         self.include_strengths.setChecked(True)
-        self.include_weaknesses = QCheckBox("包含不足")
+        self.include_weaknesses = QCheckBox("包含失分点")
         self.include_weaknesses.setChecked(True)
-        self.include_suggestions = QCheckBox("包含改进建议")
+        self.include_suggestions = QCheckBox("包含提升建议")
         self.include_suggestions.setChecked(True)
-        opts.addWidget(self.include_strengths)
-        opts.addWidget(self.include_weaknesses)
-        opts.addWidget(self.include_suggestions)
-        opts.addStretch()
-        v.addLayout(opts)
+        r2.addWidget(self.include_strengths)
+        r2.addWidget(self.include_weaknesses)
+        r2.addWidget(self.include_suggestions)
+        r2.addStretch()
+        so.addLayout(r2)
+        v.addWidget(self.student_opts)
 
+        # 按钮
         btn_row = QHBoxLayout()
         btn_row.addStretch()
-        self.preview_btn = QPushButton("预览反馈")
+        self.preview_btn = QPushButton("预览")
         self.preview_btn.setMinimumHeight(38)
         self.preview_btn.clicked.connect(self.preview_feedback)
         btn_row.addWidget(self.preview_btn)
@@ -113,19 +159,23 @@ class FeedbackPanel(QWidget):
         group.setLayout(v)
         return group
 
+    def _on_mode_changed(self):
+        is_student = self.mode_combo.currentData() == "student"
+        self.student_opts.setVisible(is_student)
+
     def _create_preview_panel(self):
-        group = QGroupBox("反馈预览")
+        group = QGroupBox("预览")
         v = QVBoxLayout()
         row = QHBoxLayout()
-        row.addWidget(QLabel("选择学生:"))
+        row.addWidget(QLabel("选择:"))
         self.student_combo = QComboBox()
-        self.student_combo.addItem("请先点击「预览反馈」加载…")
+        self.student_combo.addItem("点击「预览」加载…")
         row.addWidget(self.student_combo, 1)
         v.addLayout(row)
         self.preview_text = QTextEdit()
         self.preview_text.setReadOnly(True)
         self.preview_text.setFont(QFont("Microsoft YaHei", 10))
-        self.preview_text.setPlaceholderText("点击「预览反馈」查看内容…")
+        self.preview_text.setPlaceholderText("点击「预览」查看内容…")
         v.addWidget(self.preview_text)
         group.setLayout(v)
         return group
@@ -161,146 +211,147 @@ class FeedbackPanel(QWidget):
             ts = datetime.now().strftime("%H:%M:%S")
             self.log_text.append(f"[{ts}] {message}")
 
-    # ---------------- 加载 / 构建 ----------------
+    def _is_teacher_mode(self) -> bool:
+        return self.mode_combo.currentData() == "teacher"
+
+    def _auto_preview(self, *args):
+        """选项变化时自动刷新预览（仅学生模式且已加载报告时）。"""
+        if self.reports and not self._is_teacher_mode():
+            self.preview_feedback()
+
+    # ---------------- 加载 ----------------
     def _load_all_reports(self):
-        """跨班级加载所有个人报告，返回 [(report_dict, class_name), ...]。"""
+        """跨班级加载所有个人报告：返回 [(report_dict, class_name, experiment_id), ...]。
+
+        复用 class_analysis.load_class_reports，与班级报告对话框共用同一加载器。
+        """
+        from tools.teaching_management_gui.class_analysis import load_class_reports
         semester = shared().semester()
         reports = []
         for e in shared().entries():
-            individuals = resolve_grading_dir(e.class_name, e.experiment_id, semester) / "个人报告"
-            if not individuals.exists():
-                self.log(f"未找到个人报告：{individuals}（{e.class_name}，请先在「评分」中批阅）")
+            cls_reports = load_class_reports(e.class_name, e.experiment_id, semester)
+            if not cls_reports:
+                self.log(f"未找到个人报告（{e.class_name}，请先在「评分」中批阅）")
                 continue
-            for f in sorted(individuals.glob("*-评分.json")):
-                try:
-                    reports.append((json.loads(f.read_text(encoding="utf-8")), e.class_name))
-                except Exception as ex:
-                    self.log(f"读取失败 {f.name}: {ex}")
+            for r in cls_reports:
+                reports.append((r, e.class_name, e.experiment_id))
         self.reports = reports
-        # 刷新下拉（带班级前缀）
+        return reports
+
+    def _populate_student_combo(self, reports):
         self.student_combo.blockSignals(True)
         self.student_combo.clear()
-        for rep, cls in reports:
+        for rep, cls, _exp in reports:
             self.student_combo.addItem(
                 f"[{cls}] {rep.get('name', '?')}({rep.get('student_id', '?')}) - {rep.get('grade', '')}"
             )
         self.student_combo.blockSignals(False)
-        return reports
 
-    def _build_feedback_text(self, report: dict, class_name: str = "") -> str:
-        ftype = self.feedback_type.currentText()
-        inc_s = self.include_strengths.isChecked()
-        inc_w = self.include_weaknesses.isChecked()
-        inc_g = self.include_suggestions.isChecked()
+    def _classes_of(self, reports):
+        seen = []
+        for _r, cls, exp in reports:
+            if (cls, exp) not in seen:
+                seen.append((cls, exp))
+        return seen
 
-        name = report.get("name", "同学")
-        sid = report.get("student_id", "")
-        total = report.get("total_score", 0)
-        max_score = report.get("max_score", 100)
-        grade = report.get("grade", "N/A")
-
-        lines = [
-            f"{name} 同学（学号 {sid}，{class_name}）：",
-            "",
-            f"本次实验批阅结果：总分 {total}/{max_score}（等级 {grade}）",
-        ]
-        cat_scores = report.get("category_scores", [])
-        if ftype == "成绩单":
-            lines.extend(["", "【各项得分】"])
-            for cs in cat_scores:
-                lines.append(f"- {cs.get('category_name', cs.get('category_id', ''))}："
-                             f"{cs.get('earned_points', 0)}/{cs.get('max_points', 0)}")
-            return "\n".join(lines)
-
-        if ftype.startswith("详细"):
-            lines.extend(["", "【各项得分】"])
-            for cs in cat_scores:
-                lines.append(f"- {cs.get('category_name', cs.get('category_id', ''))}："
-                             f"{cs.get('earned_points', 0)}/{cs.get('max_points', 0)}")
-
-        strengths = report.get("strengths", []) or []
-        weaknesses = report.get("weaknesses", []) or []
-        suggestions = report.get("suggestions", []) or []
-        if ftype.startswith("简洁"):
-            strengths, weaknesses, suggestions = strengths[:2], weaknesses[:2], suggestions[:2]
-        if inc_s and strengths:
-            lines.extend(["", "【优点】", *[f"- {s}" for s in strengths]])
-        if inc_w and weaknesses:
-            lines.extend(["", "【不足】", *[f"- {s}" for s in weaknesses]])
-        if inc_g and suggestions:
-            lines.extend(["", "【改进建议】", *[f"- {s}" for s in suggestions]])
-        lines.extend(["", "祝你学习进步！"])
-        return "\n".join(lines)
-
-    # ---------------- 预览 / 生成 ----------------
+    # ---------------- 预览 ----------------
     def preview_feedback(self):
-        try:
-            reports = self._load_all_reports()
-        except Exception as e:
-            QMessageBox.warning(self, "提示", str(e))
-            return
-        if not reports:
+        if not self._load_all_reports():
             QMessageBox.warning(self, "提示", "未读取到任何个人报告，请先在「评分」中批阅。")
             return
-        idx = max(self.student_combo.currentIndex(), 0)
-        rep, cls = reports[idx]
-        self.preview_text.setPlainText(self._build_feedback_text(rep, cls))
-        self.log(f"已预览 [{cls}] {rep.get('name', '')} 的反馈")
+        if self._is_teacher_mode():
+            # 预览第一个班级的教师分析报告
+            classes = self._classes_of(self.reports)
+            cls, exp = classes[0]
+            cls_reports = [r for r, c, _e in self.reports if c == cls]
+            self._populate_student_combo([(r, c, e) for r, c, e in self.reports])  # 占位
+            self.preview_text.setPlainText(build_teacher_report(cls, exp, cls_reports))
+            self.log(f"预览教师分析报告：{cls}（共 {len(cls_reports)} 人）")
+        else:
+            self._populate_student_combo(self.reports)
+            idx = max(self.student_combo.currentIndex(), 0)
+            rep, cls, exp = self.reports[idx]
+            self.preview_text.setPlainText(build_student_feedback(
+                rep, cls, exp,
+                include_strengths=self.include_strengths.isChecked(),
+                include_weaknesses=self.include_weaknesses.isChecked(),
+                include_suggestions=self.include_suggestions.isChecked(),
+                concise=(self.feedback_type.currentText().startswith("简洁")),
+            ))
+            self.log(f"预览学生反馈：[{cls}] {rep.get('name', '')}")
 
+    # ---------------- 生成 ----------------
     def generate_feedback(self):
-        semester = shared().semester()
-        entries = shared().entries()
-        if not entries:
-            QMessageBox.warning(self, "警告", "请先到「数据源」页选择班级")
-            return
-        try:
-            self._load_all_reports()
-        except Exception as e:
-            QMessageBox.warning(self, "提示", str(e))
-            return
-        if not self.reports:
+        if not self._load_all_reports():
             QMessageBox.warning(self, "提示", "未读取到任何个人报告，请先在「评分」中批阅。")
             return
-
         self.is_generating = True
         self.generate_btn.setEnabled(False)
         self.preview_btn.setEnabled(False)
-        self.log(f"开始批量生成反馈：覆盖 {len(entries)} 个班级、{len(self.reports)} 名学生")
-
+        semester = shared().semester()
         success = 0
-        for rep, cls in self.reports:
+
+        try:
+            if self._is_teacher_mode():
+                success = self._generate_teacher_reports(semester)
+            else:
+                success = self._generate_student_feedback(semester)
+        finally:
+            self.is_generating = False
+            self.generate_btn.setEnabled(True)
+            self.preview_btn.setEnabled(True)
+
+        if not HAS_DOCX:
+            self.log("提示：未安装 python-docx，仅生成 Markdown。")
+        QMessageBox.information(self, "完成", f"已生成 {success} 份反馈/报告")
+
+    def _generate_student_feedback(self, semester) -> int:
+        inc_s = self.include_strengths.isChecked()
+        inc_w = self.include_weaknesses.isChecked()
+        inc_g = self.include_suggestions.isChecked()
+        concise = self.feedback_type.currentText().startswith("简洁")
+        success = 0
+        self.log(f"批量生成学生反馈：{len(self.reports)} 名学生")
+        # 每个班级一个学生反馈子目录
+        for rep, cls, exp in self.reports:
             try:
-                text = self._build_feedback_text(rep, cls)
+                text = build_student_feedback(rep, cls, exp, inc_s, inc_w, inc_g, concise)
+                out_dir = resolve_feedback_dir(cls, exp, semester) / "学生反馈"
+                out_dir.mkdir(parents=True, exist_ok=True)
                 sid = rep.get("student_id", "unknown")
                 name = rep.get("name", "")
-                # 该生所在实验/班级对应的反馈目录
-                exp_id = next((e.experiment_id for e in entries if e.class_name == cls), "")
-                out_dir = resolve_feedback_dir(cls, exp_id, semester)
-                out_dir.mkdir(parents=True, exist_ok=True)
                 base = f"{sid}_{name}_反馈" if name else f"{sid}_反馈"
                 (out_dir / f"{base}.md").write_text(text, encoding="utf-8")
                 if HAS_DOCX:
-                    doc = _DocxDocument()
-                    doc.add_heading(f"{name or sid} 实验反馈", level=1)
-                    for line in text.splitlines():
-                        if line.startswith("- "):
-                            doc.add_paragraph(line[2:], style="List Bullet")
-                        elif line.startswith("【") and line.endswith("】"):
-                            doc.add_heading(line.strip("【】"), level=2)
-                        elif line.strip():
-                            doc.add_paragraph(line)
-                    doc.save(out_dir / f"{base}.docx")
+                    _write_docx(out_dir / f"{base}.docx", f"{name or sid} 实验反馈", text)
                 success += 1
             except Exception as e:
                 self.log(f"生成失败 {rep.get('name', '')}: {e}")
+        self.log(f"学生反馈完成：{success}/{len(self.reports)}")
+        return success
 
-        self.log(f"反馈生成完成：{success}/{len(self.reports)}")
-        if not HAS_DOCX:
-            self.log("提示：未安装 python-docx，仅生成 Markdown。")
-        self.is_generating = False
-        self.generate_btn.setEnabled(True)
-        self.preview_btn.setEnabled(True)
-        QMessageBox.information(self, "完成", f"已生成 {success}/{len(self.reports)} 份反馈")
+    def _generate_teacher_reports(self, semester) -> int:
+        success = 0
+        classes = self._classes_of(self.reports)
+        self.log(f"批量生成教师分析报告：{len(classes)} 个班级")
+        for cls, exp in classes:
+            cls_reports = [r for r, c, _e in self.reports if c == cls]
+            if not cls_reports:
+                continue
+            try:
+                text = build_teacher_report(cls, exp, cls_reports)
+                out_dir = resolve_feedback_dir(cls, exp, semester) / "教师报告"
+                out_dir.mkdir(parents=True, exist_ok=True)
+                base = f"{cls}_{exp}_教师分析报告"
+                (out_dir / f"{base}.md").write_text(text, encoding="utf-8")
+                if HAS_DOCX:
+                    _write_docx(out_dir / f"{base}.docx", f"{cls} 教学分析报告", text)
+                success += 1
+                self.log(f"  {cls}：已生成（{len(cls_reports)} 人）")
+            except Exception as e:
+                self.log(f"  {cls} 生成失败: {e}")
+        self.log(f"教师分析报告完成：{success}/{len(classes)}")
+        return success
 
     def export_report(self):
         """供主窗口「导出报告」菜单调用。"""
