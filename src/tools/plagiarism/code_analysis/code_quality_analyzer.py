@@ -403,7 +403,7 @@ class CodeQualityAnalyzer:
                         (node.body and isinstance(node.body[0], ast.Expr) and
                          isinstance(node.body[0].value, ast.Constant))):
                         documented_functions += 1
-        except:
+        except Exception:
             total_functions = 0
             documented_functions = 0
 
@@ -470,7 +470,7 @@ class CodeQualityAnalyzer:
         """分析模块化程度"""
         try:
             tree = ast.parse(code)
-        except:
+        except Exception:
             return ModularityMetric(0, 0, 0, 0)
 
         functions = []
@@ -536,7 +536,7 @@ class CodeQualityAnalyzer:
                                  and ast.get_docstring(node))
             func_doc_ratio = (documented_funcs / max(total_funcs, 1) * 100
                              if total_funcs > 0 else 0)
-        except:
+        except Exception:
             func_doc_ratio = 0
             total_funcs = 0
 

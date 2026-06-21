@@ -277,7 +277,7 @@ class ImageQualityChecker:
                     score -= 15
                 elif laplacian_var > 500:
                     strengths.append(f"图片{index}清晰度高")
-        except:
+        except Exception:
             pass
 
         # 3. 检查图片格式
@@ -312,7 +312,7 @@ class ImageQualityChecker:
                     suggestion="请使用原始大小的图片"
                 ))
                 score -= 10
-        except:
+        except Exception:
             pass
 
         # 5. 检查宽高比（截图检查）

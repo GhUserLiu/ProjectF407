@@ -108,7 +108,7 @@ def extract_student_zips(zip_path):
                                 nzf.extractall(student_extract_dir)
                             # Remove the nested zip after extraction
                             nz.unlink()
-                        except:
+                        except Exception:
                             pass
                     # Re-check for docx files
                     docx_files = list(student_extract_dir.rglob("*.docx"))

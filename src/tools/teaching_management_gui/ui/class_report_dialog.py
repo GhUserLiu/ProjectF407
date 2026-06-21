@@ -773,7 +773,7 @@ class ClassReportDialog(QDialog):
                 else:
                     score_item.setBackground(QColor("#e74c3c"))
                     score_item.setForeground(QColor("white"))
-            except:
+            except Exception:
                 pass  # 保持默认样式
 
             self.table.setItem(row, 3, score_item)

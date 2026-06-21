@@ -59,7 +59,7 @@ class ChineseTextProcessor:
                 # 尝试加载自定义词典（如果有）
                 try:
                     self.jieba.load_userdict('tools/plagiarism/jieba_userdict.txt')
-                except:
+                except Exception:
                     pass  # 使用默认词典
                 self.jieba_loaded = True
             except ImportError:
