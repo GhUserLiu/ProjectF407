@@ -21,42 +21,16 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout,
     QGroupBox, QLabel, QPushButton,
     QComboBox, QCheckBox, QTextEdit, QMessageBox,
+    QProgressBar,
 )
-from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 
 from tools.teaching_management_gui.data_source import shared
-from tools.teaching_management_gui.path_helper import (
-    feedback_dir as resolve_feedback_dir,
-)
 from tools.teaching_management_gui.feedback_reports import (
     build_student_feedback,
     build_teacher_report,
 )
-
-try:
-    from docx import Document as _DocxDocument
-    HAS_DOCX = True
-except ImportError:
-    HAS_DOCX = False
-
-
-def _write_docx(path: Path, title: str, text: str):
-    """把多行文本写成 Word（标题 + 列表/段落）。"""
-    doc = _DocxDocument()
-    doc.add_heading(title, level=1)
-    for line in text.splitlines():
-        if line.startswith("# "):
-            continue  # 主标题已加
-        if line.startswith("## "):
-            doc.add_heading(line[3:].strip(), level=2)
-        elif line.startswith("| "):
-            doc.add_paragraph(line)  # 表格行按段落保留
-        elif line.startswith("- "):
-            doc.add_paragraph(line[2:], style="List Bullet")
-        elif line.strip():
-            doc.add_paragraph(line)
-    doc.save(path)
+from tools.teaching_management_gui.workers.feedback_worker import FeedbackWorker
 
 
 class FeedbackPanel(QWidget):
@@ -66,6 +40,7 @@ class FeedbackPanel(QWidget):
         super().__init__(parent)
         self.is_generating = False
         self.reports = []   # [(report_dict, class_name), ...]
+        self.feedback_worker = None
 
         self.setup_ui()
         shared().entries_changed.connect(self._refresh_data_source_status)
@@ -153,8 +128,18 @@ class FeedbackPanel(QWidget):
         )
         self.generate_btn.clicked.connect(self.generate_feedback)
         btn_row.addWidget(self.generate_btn)
+        self.cancel_btn = QPushButton("取消")
+        self.cancel_btn.setMinimumHeight(38)
+        self.cancel_btn.setEnabled(False)
+        self.cancel_btn.clicked.connect(self.cancel_feedback)
+        btn_row.addWidget(self.cancel_btn)
         btn_row.addStretch()
         v.addLayout(btn_row)
+
+        # 进度条（生成时显示）
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setVisible(False)
+        v.addWidget(self.progress_bar)
 
         group.setLayout(v)
         return group
@@ -280,7 +265,7 @@ class FeedbackPanel(QWidget):
             ))
             self.log(f"预览学生反馈：[{cls}] {rep.get('name', '')}")
 
-    # ---------------- 生成 ----------------
+    # ---------------- 生成（后台线程）----------------
     def generate_feedback(self):
         if not self._load_all_reports():
             QMessageBox.warning(self, "提示", "未读取到任何个人报告，请先在「评分」中批阅。")
@@ -288,70 +273,58 @@ class FeedbackPanel(QWidget):
         self.is_generating = True
         self.generate_btn.setEnabled(False)
         self.preview_btn.setEnabled(False)
-        semester = shared().semester()
-        success = 0
+        self.cancel_btn.setEnabled(True)
+        self.progress_bar.setVisible(True)
+        self.progress_bar.setRange(0, 1)
+        self.progress_bar.setValue(0)
 
-        try:
-            if self._is_teacher_mode():
-                success = self._generate_teacher_reports(semester)
-            else:
-                success = self._generate_student_feedback(semester)
-        finally:
-            self.is_generating = False
-            self.generate_btn.setEnabled(True)
-            self.preview_btn.setEnabled(True)
+        mode = "teacher" if self._is_teacher_mode() else "student"
+        self.feedback_worker = FeedbackWorker(
+            mode=mode,
+            reports=self.reports,
+            semester=shared().semester(),
+            include_strengths=self.include_strengths.isChecked(),
+            include_weaknesses=self.include_weaknesses.isChecked(),
+            include_suggestions=self.include_suggestions.isChecked(),
+            concise=self.feedback_type.currentText().startswith("简洁"),
+        )
+        self.feedback_worker.log_message.connect(self.log)
+        self.feedback_worker.progress.connect(self.on_feedback_progress)
+        self.feedback_worker.feedback_completed.connect(self.on_feedback_completed)
+        self.feedback_worker.feedback_failed.connect(self.on_feedback_failed)
+        self.feedback_worker.feedback_cancelled.connect(self.on_feedback_cancelled)
+        self.feedback_worker.start()
 
-        if not HAS_DOCX:
-            self.log("提示：未安装 python-docx，仅生成 Markdown。")
+    def cancel_feedback(self):
+        if self.feedback_worker and self.feedback_worker.isRunning():
+            self.feedback_worker.cancel()
+
+    def on_feedback_progress(self, current, total):
+        self.progress_bar.setRange(0, max(total, 1))
+        self.progress_bar.setValue(current)
+
+    def _finish_generation(self):
+        self.is_generating = False
+        self.generate_btn.setEnabled(True)
+        self.preview_btn.setEnabled(True)
+        self.cancel_btn.setEnabled(False)
+        self.progress_bar.setVisible(False)
+        self.feedback_worker = None
+        self._refresh_data_source_status()
+
+    def on_feedback_completed(self, success, total):
+        self._finish_generation()
+        self.log(f"生成完成：{success}/{total}")
         QMessageBox.information(self, "完成", f"已生成 {success} 份反馈/报告")
 
-    def _generate_student_feedback(self, semester) -> int:
-        inc_s = self.include_strengths.isChecked()
-        inc_w = self.include_weaknesses.isChecked()
-        inc_g = self.include_suggestions.isChecked()
-        concise = self.feedback_type.currentText().startswith("简洁")
-        success = 0
-        self.log(f"批量生成学生反馈：{len(self.reports)} 名学生")
-        # 每个班级一个学生反馈子目录
-        for rep, cls, exp in self.reports:
-            try:
-                text = build_student_feedback(rep, cls, exp, inc_s, inc_w, inc_g, concise)
-                out_dir = resolve_feedback_dir(cls, exp, semester) / "学生反馈"
-                out_dir.mkdir(parents=True, exist_ok=True)
-                sid = rep.get("student_id", "unknown")
-                name = rep.get("name", "")
-                base = f"{sid}_{name}_反馈" if name else f"{sid}_反馈"
-                (out_dir / f"{base}.md").write_text(text, encoding="utf-8")
-                if HAS_DOCX:
-                    _write_docx(out_dir / f"{base}.docx", f"{name or sid} 实验反馈", text)
-                success += 1
-            except Exception as e:
-                self.log(f"生成失败 {rep.get('name', '')}: {e}")
-        self.log(f"学生反馈完成：{success}/{len(self.reports)}")
-        return success
+    def on_feedback_failed(self, message):
+        self._finish_generation()
+        self.log(f"生成失败: {message}")
+        QMessageBox.critical(self, "错误", f"生成失败:\n{message}")
 
-    def _generate_teacher_reports(self, semester) -> int:
-        success = 0
-        classes = self._classes_of(self.reports)
-        self.log(f"批量生成教师分析报告：{len(classes)} 个班级")
-        for cls, exp in classes:
-            cls_reports = [r for r, c, _e in self.reports if c == cls]
-            if not cls_reports:
-                continue
-            try:
-                text = build_teacher_report(cls, exp, cls_reports)
-                out_dir = resolve_feedback_dir(cls, exp, semester) / "教师报告"
-                out_dir.mkdir(parents=True, exist_ok=True)
-                base = f"{cls}_{exp}_教师分析报告"
-                (out_dir / f"{base}.md").write_text(text, encoding="utf-8")
-                if HAS_DOCX:
-                    _write_docx(out_dir / f"{base}.docx", f"{cls} 教学分析报告", text)
-                success += 1
-                self.log(f"  {cls}：已生成（{len(cls_reports)} 人）")
-            except Exception as e:
-                self.log(f"  {cls} 生成失败: {e}")
-        self.log(f"教师分析报告完成：{success}/{len(classes)}")
-        return success
+    def on_feedback_cancelled(self):
+        self._finish_generation()
+        self.log("已取消反馈生成")
 
     def export_report(self):
         """供主窗口「导出报告」菜单调用。"""
