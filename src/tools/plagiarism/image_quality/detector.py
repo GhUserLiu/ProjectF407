@@ -158,6 +158,9 @@ class ImageQualityAssessor:
         # 确定图片类型
         image_type = content_type.image_type
 
+        # 结果只含度量数据、不再持有 image 对象，关闭以释放文件句柄（批量循环下避免 Windows 文件锁/句柄泄漏）
+        image.close()
+
         return ImageQualityResult(
             image_path=image_path,
             technical_score=round(technical_score, 1),

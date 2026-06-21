@@ -152,8 +152,10 @@ def safe_path_join(base: Path, *parts) -> Path:
     for part in parts:
         part_str = str(part)
 
-        # 检查路径遍历序列
-        if '..' in part_str:
+        # 检查路径遍历序列：仅拒绝整段等于 '..' 的组件（真正的目录上跳），
+        # 而非任何含 '..' 子串（会误伤 backup..v2 等合法文件名）；
+        # 下方 resolve().relative_to() 仍是逃逸的权威兜底。
+        if any(p == '..' for p in Path(part_str).parts):
             raise PathValidationError(
                 f"路径包含遍历序列 (..): {part}",
                 str(result / part)

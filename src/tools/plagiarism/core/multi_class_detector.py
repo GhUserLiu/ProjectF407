@@ -282,12 +282,18 @@ class MultiClassDetector:
         all_results, suspicious, _ = global_detector.detect(self.all_submissions)
 
         # 过滤真正的跨班级结果
+        dropped_unmapped = 0
         for result in suspicious:
             class1 = self.student_class_mapping.get(result.student_id)
             class2 = self.student_class_mapping.get(result.similar_to)
 
+            # 学号未在班级映射中（如抽取失败/ID 不一致）：统计并跳过，不再静默丢弃
+            if class1 is None or class2 is None:
+                dropped_unmapped += 1
+                continue
+
             # 只保留跨班级的结果
-            if class1 and class2 and class1 != class2:
+            if class1 != class2:
                 # 添加班级元数据
                 result.metadata = result.metadata or {}
                 result.metadata['class_id_1'] = class1
@@ -316,7 +322,8 @@ class MultiClassDetector:
 
                 self.cross_class_results.append(cross_result)
 
-        self._report_progress(80, f"跨班级检测完成，发现 {len(self.cross_class_results)} 对跨班级相似")
+        self._report_progress(80, f"跨班级检测完成，发现 {len(self.cross_class_results)} 对跨班级相似"
+                             + (f"（⚠ {dropped_unmapped} 对因学号未映射到班级而被跳过，请检查学生信息抽取）" if dropped_unmapped else ""))
 
     def _get_class_name(self, class_id: str) -> str:
         """获取班级名称"""

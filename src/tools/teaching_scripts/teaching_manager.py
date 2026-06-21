@@ -155,7 +155,7 @@ class TeachingManager:
 
         # 执行
         import subprocess
-        result = subprocess.run(cmd, capture_output=True, text=True)
+        result = subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8', errors='replace')
 
         print(result.stdout)
         if result.stderr:
@@ -307,7 +307,7 @@ class TeachingManager:
             cmd.append('--feedback')
 
         import subprocess
-        result = subprocess.run(cmd, capture_output=True, text=True)
+        result = subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8', errors='replace')
 
         print(result.stdout)
 

@@ -190,12 +190,17 @@ class AdaptiveThresholdEngine:
             supervised_thresholds = self._compute_thresholds_from_known_pairs(
                 similarity_matrix, known_pairs
             )
-            # 加权融合
-            suspicious = 0.7 * suspicious + 0.3 * supervised_thresholds['suspicious']
-            high_risk = 0.7 * high_risk + 0.3 * supervised_thresholds['high_risk']
-            plagiarism = 0.7 * plagiarism + 0.3 * supervised_thresholds['plagiarism']
-            reasoning.append("结合历史验证数据调整")
-            confidence += 0.2
+            # _compute_thresholds_from_known_pairs 在正/负样本任一为空时返回 {}，
+            # 此时不能直接取键，否则 KeyError。
+            if supervised_thresholds:
+                # 加权融合
+                suspicious = 0.7 * suspicious + 0.3 * supervised_thresholds['suspicious']
+                high_risk = 0.7 * high_risk + 0.3 * supervised_thresholds['high_risk']
+                plagiarism = 0.7 * plagiarism + 0.3 * supervised_thresholds['plagiarism']
+                reasoning.append("结合历史验证数据调整")
+                confidence += 0.2
+            else:
+                reasoning.append("已知对正/负样本不足，仅使用分布统计")
 
         # 策略4: 边界检查
         suspicious = np.clip(suspicious, 40, 80)

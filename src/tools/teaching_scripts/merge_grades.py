@@ -322,8 +322,8 @@ def generate_semester_excel(exp7_data, stats):
     ws_exp7.merge_cells('A2:M2')
     ws_exp7['A2'].font = Font(size=10, italic=True)
 
-    # 表头
-    headers = ['排名', '学号', '姓名', '提交时间', '总分', '等级', '状态',
+    # 表头（首列按提交时间排序后递增，是提交顺序而非成绩排名，故命名为「序号」）
+    headers = ['序号', '学号', '姓名', '提交时间', '总分', '等级', '状态',
                '团队协作', '实验原理', '实验完成度', '代码质量', '报告质量', '实验态度']
     row = 4
     for col, header in enumerate(headers, 1):
