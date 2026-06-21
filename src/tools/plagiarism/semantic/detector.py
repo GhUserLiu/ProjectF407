@@ -152,7 +152,7 @@ class TfidfCalculator:
     def calculate_idf(
         self,
         documents: List[str],
-        min_df: int = 2
+        min_df: int = 1
     ) -> Dict[str, float]:
         """
         计算逆文档频率（IDF）
@@ -176,9 +176,12 @@ class TfidfCalculator:
         total_docs = len(documents)
         idf = {}
 
+        # 平滑 IDF（sklearn 风格）：log((1+N)/(1+df)) + 1，恒为正、且对稀有词更高。
+        # 旧公式 log(N/(1+df)) 对出现在 >=2 篇的词给出 0/负值，使 TF-IDF 退化为 0、
+        # 语义相似度恒为 0；配合 min_df=1 让每个语料词都有权重，相似度才有区分力。
         for word, count in df.items():
             if count >= min_df:
-                idf[word] = math.log(total_docs / (1 + count))
+                idf[word] = math.log((1 + total_docs) / (1 + count)) + 1
 
         self.idf_cache = idf
         return idf
@@ -284,6 +287,17 @@ class SemanticDetector:
                 print("Warning: sentence-transformers not installed, falling back to TF-IDF")
                 self.method = SemanticMethod.TFIDF
 
+    def precompute_idf(self, documents: List[str]) -> None:
+        """用全量文档预计算语料级 IDF，供后续两两比对复用。
+
+        旧实现每对都用 [text1, text2] 两篇文档算 IDF，min_df=2 时 IDF 为负、
+        语义上无意义；语料级 IDF 才能正确反映词的稀有度。由 PlagiarismDetector
+        在两两比对前调用一次。
+        """
+        docs = [d for d in documents if d]
+        if docs:
+            self.tfidf_calculator.calculate_idf(docs)
+
     def detect(
         self,
         text1: str,
@@ -315,8 +329,10 @@ class SemanticDetector:
         """使用 TF-IDF 检测"""
         processor = self.text_processor
 
-        # 先计算IDF（使用两个文档）
-        self.tfidf_calculator.calculate_idf([text1, text2])
+        # IDF：优先用预计算的语料级 IDF（precompute_idf 注入）；未预计算时回退到
+        # 当前两文档（仅 2 篇时 IDF 退化为负值、语义很弱，仅作兜底）。
+        if not self.tfidf_calculator.idf_cache:
+            self.tfidf_calculator.calculate_idf([text1, text2])
 
         # 计算整体相似度
         overall_sim = self.tfidf_calculator.cosine_similarity(text1, text2)

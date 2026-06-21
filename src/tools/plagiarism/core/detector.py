@@ -387,7 +387,10 @@ class PlagiarismDetector:
         self.enhanced_semantic_detector = None
         if (config and config.features.enable_semantic_detection) or config is None:
             try:
-                from .semantic import SemanticDetector, SemanticMethod, EnhancedSemanticDetector
+                # 注意：semantic 模块在 tools/plagiarism/semantic（本文件位于 core/），
+                # 必须用 ..semantic。旧代码写成 .semantic（解析为 core.semantic，不存在），
+                # 触发 ImportError 被 except 吞掉，导致语义检测整体被静默禁用。
+                from ..semantic import SemanticDetector, SemanticMethod, EnhancedSemanticDetector
                 use_jieba = config.features.enable_jieba if config else True
                 semantic_method = SemanticMethod.TFIDF
                 if config and config.features.prefer_embedding:
@@ -456,6 +459,11 @@ class PlagiarismDetector:
 
         student_ids = list(processed.keys())
         self.student_id_map = student_ids
+
+        # 预计算语料级 IDF（语义检测用全量文档，而非每对仅 2 篇——后者 IDF 退化为负值）
+        if self.semantic_detector:
+            corpus_docs = [processed[sid].get('full_text') for sid in student_ids]
+            self.semantic_detector.precompute_idf(corpus_docs)
 
         # 初始化相似度矩阵
         n = len(student_ids)

@@ -22,6 +22,7 @@ from tools.plagiarism.grading import (
     apply_plagiarism_penalty,
     batch_grade,
 )
+from tools.auto_grading.grading_engine import detect_team_leader
 
 RUBRIC_PATH = Path(__file__).resolve().parents[2] / "data" / "rubrics" / "rubric.json"
 
@@ -125,3 +126,22 @@ class TestApplyPlagiarismPenaltyStandalone:
         )
         assert result.plagiarism_info.risk_level == "warning"
         assert result.grade in {"A", "B", "C", "D", "F"}
+
+
+class TestTeamLeaderDetection:
+    """组长判定：从报告文本提取；未声明则该组无组长（不加分）。"""
+
+    @pytest.mark.parametrize("text,name,expect", [
+        ("本人担任组长，负责总体设计。", "张三", True),
+        ("我是组长，负责整合代码。", "张三", True),
+        ("作为组长，我协调组员分工。", "张三", True),
+        ("组长：张三", "张三", True),
+        ("张三（组长）", "张三", True),
+        ("组长：李四，我负责硬件接线。", "张三", False),   # 声明他人为组长
+        ("李四（组长），本人负责硬件。", "张三", False),
+        ("本实验基于 STM32F407 HAL 库。", "张三", False),  # 完全未声明
+        ("", "张三", False),
+    ])
+    def test_detect(self, text, name, expect):
+        assert detect_team_leader(text, name) is expect
+

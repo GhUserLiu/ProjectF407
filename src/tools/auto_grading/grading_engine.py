@@ -53,6 +53,7 @@ class GradingResult:
     total_score: float = 0.0   # 基础总分（封顶 max_score）
     max_score: float = 100.0   # 满分（rubric.total_points）
     bonus_total: float = 0.0   # 基础分外加分（如组长加分）
+    is_team_leader: bool = False  # 报告是否声明作者为组长（驱动组长加分）
     grade: str = "N/A"         # 等级（A/B/C/D/F）
 
     # 各类别得分（每类一个，与 rubric 对齐）
@@ -75,6 +76,45 @@ class GradingResult:
 
     # 时间戳
     graded_at: datetime = field(default_factory=datetime.now)
+
+
+# 自称为组长的句式（命中即判定作者为组长）
+_LEADER_SELF_PATTERNS = [
+    re.compile(r'担任组长'),
+    re.compile(r'作为组长'),
+    re.compile(r'我任组长'),
+    re.compile(r'任组长'),
+    re.compile(r'本人[^。\n]{0,6}组长'),
+    re.compile(r'我[^。\n]{0,4}组长'),
+    re.compile(r'我\s*[（(]\s*组长'),
+    re.compile(r'组长[：:]\s*本人'),
+    re.compile(r'组长[：:]\s*我(?!们)'),
+]
+
+
+def detect_team_leader(report_text: str, student_name: str) -> bool:
+    """从实验报告文本判断作者是否声明自己为组长。
+
+    - 报告含"本人/我担任组长""作为组长"等自称 → True
+    - "组长：姓名" / "姓名（组长）" 中的姓名 == 学生姓名 → True
+    - 只声明他人为组长，或完全未声明 → False（该组视为无组长，不加分）
+    """
+    if not report_text:
+        return False
+    for pat in _LEADER_SELF_PATTERNS:
+        if pat.search(report_text):
+            return True
+    if student_name:
+        # 组长：张三 / 组长为张三 / 组长:张三
+        for m in re.finditer(r'组长[：:为是]\s*([^\s,，。、；;（(《<]{1,20})', report_text):
+            tok = m.group(1)
+            if student_name in tok or tok in student_name:
+                return True
+        # 张三（组长）
+        for m in re.finditer(r'([一-龥A-Za-z·]{2,20})\s*[（(]\s*组长\s*[）)]', report_text):
+            if m.group(1) == student_name:
+                return True
+    return False
 
 
 class AutoGradingEngine:
@@ -184,6 +224,10 @@ class AutoGradingEngine:
                 print(f"警告: RubricGrader 执行失败: {e}")
                 rg_result = None
 
+        # 组长判定：从报告"团队信息与分工"等处提取；未声明则视为无组长
+        is_leader = detect_team_leader(submission.report_text or "", submission.name or "")
+        result.is_team_leader = is_leader
+
         # 3. 按 grading_method 派发，逐类产出 CategoryScore
         category_scores: List[CategoryScore] = []
         base_earned = 0.0
@@ -192,15 +236,13 @@ class AutoGradingEngine:
         for cat in self.rubric.get('categories', []):
             method = cat.get('grading_method', 'keyword')
 
-            if method == 'conditional':
-                # 组长加分：当前链路暂不自动提取组长信息，默认不加，且不列入反馈噪声
-                continue
-
             cs = None
             if method == 'build':
                 cs = self._grade_compilation(submission, cat)
             elif method == 'code_analysis':
                 cs = self._grade_code_quality(submission, cat)
+            elif method == 'conditional':
+                cs = self._grade_conditional(cat, is_leader)
             else:  # keyword / manual
                 cs = self._category_from_rubric_grader(rg_result, cat, submission)
 
@@ -286,6 +328,32 @@ class AutoGradingEngine:
                 'warning_count': build_result.warning_count,
                 'error_message': build_result.error_message or '',
             }]
+        )
+
+    def _grade_conditional(self, cat: Dict, is_leader: bool) -> CategoryScore:
+        """conditional 类别（如组长加分）：满足条件得满分，否则 0。
+
+        组长信息来自报告文本（detect_team_leader）；报告未声明组长则该组无组长、不加分。
+        该类别通常为 points_outside_base，earned 会被计入 bonus_total，不影响百分制基数。
+        """
+        max_points = cat.get('points', 0)
+        condition = cat.get('condition', '')
+        if condition == 'is_team_leader':
+            if is_leader:
+                earned = float(max_points)
+                feedback = f'报告声明担任组长，加 {max_points} 分'
+            else:
+                earned = 0.0
+                feedback = '报告未声明为组长，不加分'
+        else:
+            earned = 0.0
+            feedback = f'未知条件: {condition}'
+        return CategoryScore(
+            category_id=cat['id'],
+            category_name=cat.get('name', cat['id']),
+            max_points=max_points,
+            earned_points=round(earned, 1),
+            details=[{'feedback': feedback, 'is_leader': is_leader, 'condition': condition}]
         )
 
     def _grade_code_quality(self, submission: ProcessedSubmission, cat: Dict) -> Optional[CategoryScore]:
