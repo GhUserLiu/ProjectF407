@@ -6,12 +6,14 @@ Utility Functions Module
 """
 
 from .config import PlagiarismConfig, SimilarityWeights, ThresholdConfig, FeatureConfig
-from .template import TemplateManager
+from .template import TemplateFilter, TemplateExtractor, StructuredTemplateFilter
 
 __all__ = [
     'PlagiarismConfig',
     'SimilarityWeights',
     'ThresholdConfig',
     'FeatureConfig',
-    'TemplateManager',
+    'TemplateFilter',
+    'TemplateExtractor',
+    'StructuredTemplateFilter',
 ]

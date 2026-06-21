@@ -13,16 +13,16 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # 导入新模块
-from tools.plagiarism.code_analyzer import (
+from tools.plagiarism.code_analysis.code_analyzer import (
     EnhancedCodeAnalyzer,
     analyze_code_from_report,
     Severity
 )
-from tools.plagiarism.smart_feedback import (
+from tools.plagiarism.feedback.smart_feedback import (
     SmartFeedbackEngine,
     generate_smart_feedback_report
 )
-from tools.plagiarism.grading_validator import (
+from tools.plagiarism.grading.grading_validator import (
     GradingValidator,
     validate_grading_results
 )

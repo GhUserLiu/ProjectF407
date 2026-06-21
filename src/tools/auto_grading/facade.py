@@ -88,7 +88,13 @@ class AutoGradingFacade:
         input_base = self.config.teaching_dir / self.config.semester
         self.organizer = SubmissionOrganizer(input_base)
         self.processor = SubmissionProcessor(input_base)
-        self.engine = AutoGradingEngine(self.config)
+
+        # 接通 rubric（单一事实来源）；facade 强制加载，避免引擎退化为简单评分
+        rubric_path = self.config.rubrics_dir / "rubric.json"
+        self.engine = AutoGradingEngine(
+            self.config,
+            rubric_path=rubric_path if rubric_path.exists() else None
+        )
 
     def run_full_pipeline(
         self,
@@ -263,6 +269,7 @@ class AutoGradingFacade:
                 'class_name': grading_result.class_name,
                 'total_score': grading_result.total_score,
                 'max_score': grading_result.max_score,
+                'bonus_total': grading_result.bonus_total,
                 'grade': grading_result.grade,
                 'category_scores': [
                     {
@@ -277,6 +284,12 @@ class AutoGradingFacade:
                 'strengths': grading_result.strengths,
                 'weaknesses': grading_result.weaknesses,
                 'suggestions': grading_result.suggestions,
+                'issues': grading_result.issues,
+                'thinking_check': grading_result.thinking_check,
+                'validation_report': (
+                    grading_result.validation_report.to_dict()
+                    if grading_result.validation_report else None
+                ),
                 'graded_at': grading_result.graded_at.isoformat()
             }
 

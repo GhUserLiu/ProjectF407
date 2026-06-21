@@ -16,28 +16,28 @@ from pathlib import Path
 from typing import Dict, List, Optional
 from datetime import datetime
 
-# 导入核心模块
-from tools.plagiarism import (
-    # 评分
+# 导入核心模块（指向真实子模块路径；历史代码误从顶层 tools.plagiarism 导入，
+# 而该包未绑定这些名称，导致整个脚本导入即崩）
+from tools.plagiarism.grading.grading import (
     batch_grade,
     load_rubric_for_experiment,
     GradingResult,
-    # 技术检查
+)
+from tools.plagiarism.quality.technical_checks import (
     TechnicalChecker,
     ExperimentType,
-    # 反馈
-    save_student_feedback,
-    # 代码分析 (v2.5.0 新增)
+)
+from tools.plagiarism.feedback.feedback import save_student_feedback
+from tools.plagiarism.code_analysis.code_analyzer import (
     analyze_code_from_report,
     CodeAnalysisResult,
-    # 智能反馈 (v2.5.0 新增)
-    generate_smart_feedback_report,
-    # 图像质量检测 (v2.5.0 新增)
+)
+from tools.plagiarism.feedback.smart_feedback import generate_smart_feedback_report
+from tools.plagiarism.image.image_quality_checker import (
     ImageQualityChecker,
     ImageRelevanceChecker,
-    # 评分一致性校验 (v2.5.0 新增)
-    validate_grading_results,
 )
+from tools.plagiarism.grading.grading_validator import validate_grading_results
 
 
 class EnhancedQualityAssessmentSystem:

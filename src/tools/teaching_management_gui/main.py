@@ -40,7 +40,8 @@ def main():
         try:
             # 设置进程DPI感知
             ctypes.windll.shcore.SetProcessDpiAwareness(1)
-        except:
+        except (AttributeError, OSError):
+            # 老版/无头 Windows 无 shcore.SetProcessDpiAwareness，安全降级
             pass
 
     # 创建主窗口

@@ -145,7 +145,7 @@ def extract_text_from_element(element: ET.Element) -> str:
 
 def extract_text_from_docx_xml(xml_content: bytes | str) -> Optional[str]:
     """
-    从docx的XML内容中提取文本
+    从docx的XML内容中提取文本（保留段落换行）
 
     Args:
         xml_content: docx的word/document.xml内容
@@ -154,11 +154,43 @@ def extract_text_from_docx_xml(xml_content: bytes | str) -> Optional[str]:
         提取的文本或None
 
     用途:
-        处理Word文档的XML内容，提取纯文本
+        处理Word文档的XML内容，提取纯文本。
+        按 <w:p> 段落分段、以换行连接，使章节标题独占一行——
+        这对章节检测（SectionDetector）与提交校验至关重要；
+        否则整篇文档会被压成一行，导致章节识别失败。
     """
     try:
         root = safe_parse_xml_string(xml_content)
-        return extract_text_from_element(root)
+        return _extract_docx_paragraphs(root)
     except XMLError as e:
         logger.warning(f"从docx XML提取文本失败: {e}")
         return None
+
+
+def _local_name(tag: str) -> str:
+    """去掉命名空间，返回标签本地名。"""
+    return tag.rsplit('}', 1)[-1] if '}' in tag else tag
+
+
+def _extract_docx_paragraphs(root) -> str:
+    """按段落提取 docx 文本，段落间以 '\\n' 连接。无段落结构时回退到通用提取。"""
+    paragraphs = [el for el in root.iter() if _local_name(el.tag) == 'p']
+    if not paragraphs:
+        return extract_text_from_element(root)
+
+    lines = []
+    for p in paragraphs:
+        buf = []
+        for node in p.iter():
+            local = _local_name(node.tag)
+            if local == 't':
+                if node.text:
+                    buf.append(node.text)
+            elif local == 'tab':
+                buf.append('\t')
+            elif local == 'br':
+                buf.append('\n')
+        line = ''.join(buf).strip()
+        if line:
+            lines.append(line)
+    return '\n'.join(lines)

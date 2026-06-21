@@ -29,11 +29,11 @@ from tools.plagiarism.grading import (
 )
 
 # 导入新增模块
-from tools.plagiarism.simplified_code_checker import (
+from tools.plagiarism.code_analysis.simplified_code_checker import (
     SimplifiedCodeChecker,
     CodeCheckResult
 )
-from tools.plagiarism.image_counter import (
+from tools.plagiarism.image.image_counter import (
     ImageCounter,
     ImageCountResult,
     check_image_count
@@ -220,7 +220,8 @@ class EnhancedGradingSystem:
             apply_plagiarism_penalty(
                 base_result,
                 similarity_info,
-                self.config.plagiarism_thresholds
+                self.config.plagiarism_thresholds,
+                grading_scale=self.rubric.get('grading_scale', {})
             )
 
         # 6. 重新计算等级

@@ -35,7 +35,7 @@ class TestBasicImports:
     def test_quality_import(self):
         """测试质量模块导入"""
         try:
-            from tools.plagiarism.quality import QualityAssessment
-            assert True
+            from tools.plagiarism.quality import EnhancedQualityAssessor
+            assert EnhancedQualityAssessor is not None
         except ImportError as e:
             pytest.skip(f"质量模块导入失败: {e}")

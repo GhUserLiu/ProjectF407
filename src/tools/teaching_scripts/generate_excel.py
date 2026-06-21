@@ -2,10 +2,25 @@
 # -*- coding: utf-8 -*-
 """生成抄袭检测分析Excel报告"""
 
+from pathlib import Path
+
 try:
     import openpyxl
     from openpyxl.styles import Font, PatternFill, Alignment
     from openpyxl.utils import get_column_letter
+    _OPENPYXL_OK = True
+except ImportError:
+    _OPENPYXL_OK = False
+
+# 产物统一写入仓库根目录下的 outputs/reports，避免写到进程 CWD 污染源码树
+_OUTPUT_DIR = Path(__file__).resolve().parents[3] / "outputs" / "reports"
+
+
+def main():
+    if not _OPENPYXL_OK:
+        print('Error: openpyxl 未安装')
+        print('Please install openpyxl: pip install openpyxl')
+        return
 
     times = {
         '23071140226': '2026-06-04 16:30:28', '23071140231': '2026-06-04 16:34:35',
@@ -222,10 +237,12 @@ try:
     for col in range(1, 4):
         ws5.column_dimensions[get_column_letter(col)].width = 18
 
-    wb.save('plagiarism_analysis_report.xlsx')
-    print('Excel report generated successfully: plagiarism_analysis_report.xlsx')
+    _OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    out_path = _OUTPUT_DIR / 'plagiarism_analysis_report.xlsx'
+    wb.save(out_path)
+    print(f'Excel report generated successfully: {out_path}')
     print(f'Contains 5 sheets: 汇总, 详细评分, 抄袭对, 0分名单, 疑似原创')
 
-except ImportError as e:
-    print(f'Error: {e}')
-    print('Please install openpyxl: pip install openpyxl')
+
+if __name__ == '__main__':
+    main()

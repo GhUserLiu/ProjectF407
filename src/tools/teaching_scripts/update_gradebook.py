@@ -93,7 +93,7 @@ def calculate_similarity(eval_data, quality_data):
                 sim = pair.get('overall', 0)
                 if sim > max_sim:
                     max_sim = sim
-        return max_sim / 100 if max_sim > 0 else 0
+        return max_sim if max_sim > 0 else 0  # 0-100 百分比（与 overall 原始单位、determine_status 阈值、plagiarism_status 分支一致）
 
     return 0
 
@@ -215,14 +215,14 @@ def update_gradebook():
         group = team_members[0] if team_members else ''
 
         # 从docx_path中提取提交时间（文件修改时间）
-        import os
         docx_path = extracted_info.get('docx_path', '')
         submit_time = ''
         if docx_path and Path(docx_path).exists():
             try:
                 timestamp = Path(docx_path).stat().st_mtime
                 submit_time = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
-            except:
+            except (OSError, ValueError, OverflowError):
+                # 文件不可访问或时间戳非法，留空
                 pass
 
         # 准备行数据
@@ -231,7 +231,7 @@ def update_gradebook():
             student_id,                    # 学号
             name,                          # 姓名
             group,                         # 实验小组
-            f"{similarity:.1%}",           # 相似度
+            f"{similarity:.1f}%",          # 相似度（0-100）
             submit_time,                   # 提交时间
             total_score,                   # 总分
             grade,                         # 等级

@@ -14,10 +14,13 @@ Multi-Class Report Generator
 """
 
 import json
+import logging
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 from dataclasses import dataclass
+
+logger = logging.getLogger(__name__)
 
 try:
     import openpyxl
@@ -123,29 +126,29 @@ class MultiClassReportGenerator:
             try:
                 path = self.generate_excel(detection_result)
                 paths.append(path)
-            except Exception as e:
-                print(f"Excel生成失败: {e}")
+            except Exception:
+                logger.exception("Excel 报告生成失败")
 
         if 'json' in formats:
             try:
                 path = self.generate_json(detection_result)
                 paths.append(path)
-            except Exception as e:
-                print(f"JSON生成失败: {e}")
+            except Exception:
+                logger.exception("JSON 报告生成失败")
 
         if 'pdf' in formats and HAS_REPORTLAB:
             try:
                 path = self.generate_pdf(detection_result)
                 paths.append(path)
-            except Exception as e:
-                print(f"PDF生成失败: {e}")
+            except Exception:
+                logger.exception("PDF 报告生成失败")
 
         if 'word' in formats and HAS_PYTHON_DOCX:
             try:
                 path = self.generate_word(detection_result)
                 paths.append(path)
-            except Exception as e:
-                print(f"Word生成失败: {e}")
+            except Exception:
+                logger.exception("Word 报告生成失败")
 
         return paths
 
@@ -772,7 +775,7 @@ class MultiClassReportGenerator:
         summary_table = Table(summary_data, colWidths=[8*cm, 4*cm])
         summary_table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (1, 0), colors.HexColor('#3498DB')),
-            ('TEXTCOLOR', (0, 0), (1, 0), colors.whitelist),
+            ('TEXTCOLOR', (0, 0), (1, 0), colors.white),
             ('ALIGN', (0, 0), (1, -1), 'LEFT'),
             ('FONTNAME', (0, 0), (1, -1), 'Helvetica'),
             ('FONTSIZE', (0, 0), (1, -1), 10),
@@ -801,7 +804,7 @@ class MultiClassReportGenerator:
         class_table = Table(class_overview_data, colWidths=[4*cm, 3*cm, 2*cm, 2*cm, 2*cm, 2*cm])
         class_table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (5, 0), colors.HexColor('#3498DB')),
-            ('TEXTCOLOR', (0, 0), (5, 0), colors.whitelist),
+            ('TEXTCOLOR', (0, 0), (5, 0), colors.white),
             ('ALIGN', (0, 0), (5, -1), 'LEFT'),
             ('FONTNAME', (0, 0), (5, -1), 'Helvetica'),
             ('FONTSIZE', (0, 0), (5, -1), 9),
@@ -829,7 +832,7 @@ class MultiClassReportGenerator:
             comparison_table = Table(comparison_data, colWidths=[3*cm, 3*cm, 2*cm, 2*cm, 2*cm])
             comparison_table.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (4, 0), colors.HexColor('#3498DB')),
-                ('TEXTCOLOR', (0, 0), (4, 0), colors.whitelist),
+                ('TEXTCOLOR', (0, 0), (4, 0), colors.white),
                 ('ALIGN', (0, 0), (4, -1), 'LEFT'),
                 ('FONTNAME', (0, 0), (4, -1), 'Helvetica'),
                 ('FONTSIZE', (0, 0), (4, -1), 9),
@@ -878,7 +881,7 @@ class MultiClassReportGenerator:
             grading_table = Table(grading_data, colWidths=[4*cm, 3*cm, 2*cm, 2*cm, 2*cm, 2*cm])
             grading_table.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (5, 0), colors.HexColor('#3498DB')),
-                ('TEXTCOLOR', (0, 0), (5, 0), colors.whitelist),
+                ('TEXTCOLOR', (0, 0), (5, 0), colors.white),
                 ('ALIGN', (0, 0), (5, -1), 'LEFT'),
                 ('FONTNAME', (0, 0), (5, -1), 'Helvetica'),
                 ('FONTSIZE', (0, 0), (5, -1), 9),
@@ -891,8 +894,8 @@ class MultiClassReportGenerator:
         try:
             doc.build(story)
             return output_path
-        except Exception as e:
-            print(f"PDF构建失败: {e}")
+        except Exception:
+            logger.exception("PDF 构建失败: %s", output_path)
             return None
 
     def generate_word(self, detection_result) -> Optional[Path]:

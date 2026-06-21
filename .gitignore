@@ -134,3 +134,6 @@ models/*.pt
 # ========================================
 *.ept
 *.eide-template
+
+# Stray Excel/report artifacts written to CWD by teaching_scripts (should go to outputs/)
+src/tools/*.xlsx

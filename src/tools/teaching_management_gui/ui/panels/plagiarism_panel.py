@@ -93,12 +93,8 @@ class PlagiarismPanel(QWidget):
         self.check_code.setChecked(True)
         self.check_report = QCheckBox("报告查重")
         self.check_report.setChecked(True)
-        self.check_image = QCheckBox("图片查重")
-        self.check_image.setChecked(False)
-        self.check_image.setToolTip("当前版本暂不支持图片查重，不影响结果")
         opts.addWidget(self.check_code)
         opts.addWidget(self.check_report)
-        opts.addWidget(self.check_image)
         opts.addStretch()
         layout.addLayout(opts)
 

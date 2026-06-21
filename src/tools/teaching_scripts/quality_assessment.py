@@ -12,10 +12,17 @@ from collections import defaultdict
 from difflib import SequenceMatcher
 
 # 导入新的类别质量评估模块
-from category_quality_assessment import (
-    CategoryQualityAssessor,
-    assess_category_quality
-)
+# 兼容两种运行方式：脚本目录直接运行（裸导入）与 PYTHONPATH=src 包导入
+try:
+    from category_quality_assessment import (
+        CategoryQualityAssessor,
+        assess_category_quality
+    )
+except ModuleNotFoundError:
+    from tools.teaching_scripts.category_quality_assessment import (
+        CategoryQualityAssessor,
+        assess_category_quality
+    )
 
 BASE_DIR = Path(__file__).parent.parent.parent.parent.parent  # Go up to project root
 EXPERIMENT_DIR = BASE_DIR / "docs" / "teaching" / "2026-春季" / "汽服2302B班" / "07-car-gear"

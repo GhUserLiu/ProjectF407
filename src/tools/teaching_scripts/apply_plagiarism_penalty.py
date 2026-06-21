@@ -129,7 +129,7 @@ def apply_plagiarism_penalty():
 
             # 更新评分
             eval_data['original_total_score'] = original_score
-            eval_data['total_score'] = int(new_score)
+            eval_data['total_score'] = round(new_score, 1)  # 保留 1 位小数，避免 int 截断导致边界丢分
             eval_data['plagiarism_status'] = status
             eval_data['similarity'] = max_similarity
 

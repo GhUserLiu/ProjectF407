@@ -154,8 +154,15 @@ class AutoGradingConfig:
         self.outputs_dir = self.project_root / "outputs"
 
     def get_rubric_path(self, experiment_code: str) -> Path:
-        """获取评分标准路径"""
-        return self.rubrics_dir / f"{experiment_code}.json"
+        """获取评分标准路径。
+
+        优先按实验代码定位（如 07_car_gear_experiment.json）；
+        若不存在则回退到通用 rubric.json（当前主链路使用的规范文件）。
+        """
+        specific = self.rubrics_dir / f"{experiment_code}.json"
+        if specific.exists():
+            return specific
+        return self.rubrics_dir / "rubric.json"
 
     def get_class_dir(self, semester: str, class_name: str) -> Path:
         """获取班级目录"""

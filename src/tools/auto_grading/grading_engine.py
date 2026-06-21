@@ -4,14 +4,23 @@
 整合评分引擎
 Auto Grading Engine
 
-整合多个评分模块：
-- 编译检查（BuildChecker）
-- 代码质量分析（EnhancedCodeAnalyzer）
-- 报告内容评分（RubricGrader）
+以 rubric.json 为唯一事实来源，按每个 category 的 grading_method 派发：
+- build         → BuildChecker（真实编译）
+- code_analysis → EnhancedCodeAnalyzer（真实源码静态分析）
+- keyword       → RubricGrader 逐准则关键词匹配
+- manual        → 读 rubric default_points
+- conditional   → 组长加分（基础分外）
 
-计算综合评分并生成详细反馈。
+每个 category 产出一个 CategoryScore；base 总分封顶 rubric.total_points(100)，
+bonus（points_outside_base）单列；等级按 base/100 计算。
+
+同时产出：
+- validation_report：提交完整性校验（advisory，不改分）
+- issues：结构化失分项（供直击式学生反馈）
+- thinking_check：思考题 Q1~Q7 作答核对
 """
 
+import re
 from pathlib import Path
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional, Any
@@ -20,6 +29,7 @@ from datetime import datetime
 from .config import AutoGradingConfig
 from .build_checker import BuildChecker, BuildResult, BuildStatus
 from .submission_processor import ProcessedSubmission
+from .submission_validator import SubmissionValidator, ValidationReport
 
 
 @dataclass
@@ -40,11 +50,12 @@ class GradingResult:
     class_name: str            # 班级
 
     # 评分
-    total_score: float = 0.0  # 总分
-    max_score: float = 100.0  # 满分
+    total_score: float = 0.0   # 基础总分（封顶 max_score）
+    max_score: float = 100.0   # 满分（rubric.total_points）
+    bonus_total: float = 0.0   # 基础分外加分（如组长加分）
     grade: str = "N/A"         # 等级（A/B/C/D/F）
 
-    # 各类别得分
+    # 各类别得分（每类一个，与 rubric 对齐）
     category_scores: List[CategoryScore] = field(default_factory=list)
 
     # 详细信息
@@ -52,7 +63,12 @@ class GradingResult:
     code_analysis: Optional[Dict] = None
     report_analysis: Optional[Dict] = None
 
-    # 反馈
+    # 校验与反馈
+    validation_report: Optional[ValidationReport] = None
+    issues: List[Dict] = field(default_factory=list)        # 结构化失分项
+    thinking_check: List[Dict] = field(default_factory=list)  # 思考题核对
+
+    # 旧字段（兼容/汇总）
     strengths: List[str] = field(default_factory=list)
     weaknesses: List[str] = field(default_factory=list)
     suggestions: List[str] = field(default_factory=list)
@@ -62,25 +78,19 @@ class GradingResult:
 
 
 class AutoGradingEngine:
-    """自动评分引擎"""
+    """自动评分引擎（rubric 驱动）"""
 
     def __init__(
         self,
         config: Optional[AutoGradingConfig] = None,
         rubric_path: Optional[Path] = None
     ):
-        """
-        初始化评分引擎
-
-        Args:
-            config: 配置对象
-            rubric_path: 评分标准文件路径
-        """
         self.config = config or AutoGradingConfig()
         self.rubric_path = rubric_path
 
         # 初始化子模块
         self.build_checker = BuildChecker(self.config)
+        self.validator = SubmissionValidator()
 
         # 延迟导入（避免循环依赖）
         try:
@@ -94,288 +104,439 @@ class AutoGradingEngine:
             self.code_analyzer = None
             self.rubric_grader = None
 
-        # 加载评分标准
+        # 加载并自检评分标准
         self.rubric = None
         if rubric_path and rubric_path.exists():
             self.rubric = self._load_rubric(rubric_path)
 
+    # --------------------------------------------------------------
+    # rubric 加载与自检
+    # --------------------------------------------------------------
     def _load_rubric(self, rubric_path: Path) -> Dict:
-        """加载评分标准"""
         import json
         with open(rubric_path, 'r', encoding='utf-8') as f:
-            return json.load(f)
+            rubric = json.load(f)
+        self._validate_rubric(rubric)
+        return rubric
 
+    def _validate_rubric(self, rubric: Dict):
+        """加载期 rubric 自检：base 分值和 == total_points；id 唯一；keyword 准则有关键词。"""
+        cats = rubric.get('categories', [])
+        ids = [c.get('id') for c in cats]
+        dup = [i for i in set(ids) if ids.count(i) > 1]
+        if dup:
+            raise ValueError(f"rubric 类别 id 重复: {dup}")
+
+        total_points = rubric.get('total_points', 100)
+        base_sum = sum(c.get('points', 0) for c in cats if not c.get('points_outside_base'))
+        if abs(base_sum - total_points) > 0.01:
+            raise ValueError(
+                f"rubric 基础分值和({base_sum}) != total_points({total_points})；"
+                f"请检查 data/rubrics/rubric.json"
+            )
+
+        for c in cats:
+            if c.get('grading_method', 'keyword') == 'keyword':
+                for crit in c.get('criteria', []):
+                    if not crit.get('keywords'):
+                        print(f"警告: 准则 '{crit.get('description')}' 未配置 keywords")
+
+    # --------------------------------------------------------------
+    # 主评分入口
+    # --------------------------------------------------------------
     def grade_submission(self, submission: ProcessedSubmission) -> GradingResult:
-        """
-        评分单个提交
-
-        Args:
-            submission: 已处理的提交
-
-        Returns:
-            评分结果
-        """
         result = GradingResult(
             student_id=submission.student_id,
             name=submission.name,
             class_name=submission.class_name
         )
 
-        category_scores = []
+        # 1. 提交完整性校验（advisory，不参与计分）
+        try:
+            result.validation_report = self.validator.validate(submission, self.rubric)
+        except Exception as e:
+            print(f"警告: 提交校验异常: {e}")
+            result.validation_report = None
 
-        # 1. 编译检查（如果可用）
-        compilation_score = self._grade_compilation(submission)
-        if compilation_score:
-            category_scores.append(compilation_score)
-            # details是List[Dict]，获取第一个元素中的build_result
-            if compilation_score.details:
-                result.compilation_result = compilation_score.details[0].get('build_result')
+        # 无 rubric 时降级（不应发生，facade 已强制接通）
+        if not self.rubric:
+            result.max_score = 100.0
+            result.grade = self._calculate_grade_default(result.total_score, result.max_score)
+            return result
 
-        # 2. 代码质量分析（如果可用）
-        code_quality_score = self._grade_code_quality(submission)
-        if code_quality_score:
-            category_scores.append(code_quality_score)
-            # details是List[Dict]，获取第一个元素中的analysis
-            if code_quality_score.details:
-                result.code_analysis = code_quality_score.details[0].get('analysis')
+        # 2. RubricGrader 跑一次 keyword/manual 类别（需要报告文本）
+        rg_result = None
+        if self.rubric_grader and submission.report_text:
+            try:
+                grader = self.rubric_grader(self.rubric)
+                rg_result = grader.grade(
+                    submission.student_id,
+                    submission.name,
+                    submission.report_text,
+                )
+                result.report_analysis = {
+                    'category_scores': {
+                        cid: self._rg_category_to_dict(cs)
+                        for cid, cs in rg_result.category_scores.items()
+                    }
+                }
+            except Exception as e:
+                print(f"警告: RubricGrader 执行失败: {e}")
+                rg_result = None
 
-        # 3. 报告内容评分（如果可用）
-        report_score = self._grade_report(submission)
-        if report_score:
-            category_scores.append(report_score)
-            # details是List[Dict]，获取第一个元素中的analysis
-            if report_score.details:
-                result.report_analysis = report_score.details[0].get('analysis')
+        # 3. 按 grading_method 派发，逐类产出 CategoryScore
+        category_scores: List[CategoryScore] = []
+        base_earned = 0.0
+        bonus_total = 0.0
+
+        for cat in self.rubric.get('categories', []):
+            method = cat.get('grading_method', 'keyword')
+
+            if method == 'conditional':
+                # 组长加分：当前链路暂不自动提取组长信息，默认不加，且不列入反馈噪声
+                continue
+
+            cs = None
+            if method == 'build':
+                cs = self._grade_compilation(submission, cat)
+            elif method == 'code_analysis':
+                cs = self._grade_code_quality(submission, cat)
+            else:  # keyword / manual
+                cs = self._category_from_rubric_grader(rg_result, cat, submission)
+
+            if cs is None:
+                cs = CategoryScore(
+                    category_id=cat['id'],
+                    category_name=cat.get('name', cat['id']),
+                    max_points=cat.get('points', 0),
+                    earned_points=0.0,
+                    details=[{'feedback': '无法评分（缺少必要材料）'}]
+                )
+
+            # 记录编译/代码分析详情，供反馈与兼容字段使用
+            if method == 'build' and cs.details:
+                result.compilation_result = cs.details[0].get('build_result')
+            if method == 'code_analysis' and cs.details:
+                result.code_analysis = cs.details[0].get('analysis')
+
+            category_scores.append(cs)
+            if cat.get('points_outside_base'):
+                bonus_total += cs.earned_points
+            else:
+                base_earned += cs.earned_points
 
         result.category_scores = category_scores
 
-        # 计算总分
-        total_points = sum(cs.earned_points for cs in category_scores)
-        max_points = sum(cs.max_points for cs in category_scores)
+        # 4. 汇总：base 封顶 total_points，bonus 单列
+        total_points = self.rubric.get('total_points', 100)
+        result.total_score = round(min(base_earned, total_points), 1)
+        result.max_score = total_points
+        result.bonus_total = round(bonus_total, 1)
 
-        result.total_score = total_points
-        result.max_score = max_points
-
-        # 计算等级
-        if self.rubric and 'grading_scale' in self.rubric:
-            result.grade = self._calculate_grade(total_points, self.rubric['grading_scale'])
+        # 5. 等级
+        if 'grading_scale' in self.rubric:
+            result.grade = self._calculate_grade(result.total_score, self.rubric['grading_scale'])
         else:
-            result.grade = self._calculate_grade_default(total_points, max_points)
+            result.grade = self._calculate_grade_default(result.total_score, result.max_score)
 
-        # 生成反馈
-        self._generate_feedback(result)
+        # 6. 生成结构化反馈（issues + thinking_check + 兼容 strengths/weaknesses）
+        self._generate_feedback(result, submission)
 
         return result
 
-    def _grade_compilation(self, submission: ProcessedSubmission) -> Optional[CategoryScore]:
-        """
-        评分编译检查
-
-        Returns:
-            编译类别得分，如果无源代码则返回None
-        """
+    # --------------------------------------------------------------
+    # 各 grading_method 打分
+    # --------------------------------------------------------------
+    def _grade_compilation(self, submission: ProcessedSubmission, cat: Dict) -> Optional[CategoryScore]:
+        """build：真实编译检查。无源码返回 None（由调用方记 0 分）。"""
         if not submission.source_path or not submission.project_info:
             return None
 
-        max_points = 10  # 编译检查满分
-
-        # 执行编译检查
+        max_points = cat.get('points', 10)
         build_result = self.build_checker.check_build(
             submission.source_path,
             f"{submission.student_id}-{submission.name}"
         )
 
-        # 计算得分
         if build_result.status == BuildStatus.SUCCESS:
             earned_points = max_points
             feedback = "编译通过"
         elif build_result.status == BuildStatus.FAILED:
-            # 根据错误数量扣分
-            if build_result.error_count == 0:
-                earned_points = max_points * 0.5  # 警告但无错误
-                feedback = f"编译通过但有{build_result.warning_count}个警告"
-            else:
-                earned_points = 0
+            # 编译失败一律 0 分。error_count 来自 GCC 诊断正则，链接器等错误不会被匹配
+            # （error_count==0），旧实现据此判"编译通过但有警告"给 50%，把硬失败误判为通过。
+            # 纯警告的构建状态为 SUCCESS，已在上面拿满分；警告不应再降低编译分。
+            earned_points = 0
+            if build_result.error_count:
                 feedback = f"编译失败，{build_result.error_count}个错误"
+            else:
+                feedback = f"编译失败: {build_result.error_message or '未识别错误（可能为链接错误）'}"
         else:
             earned_points = 0
             feedback = f"无法编译: {build_result.error_message}"
 
         return CategoryScore(
-            category_id="compilation",
-            category_name="编译检查",
+            category_id=cat['id'],
+            category_name=cat.get('name', '编译检查'),
             max_points=max_points,
-            earned_points=earned_points,
+            earned_points=round(earned_points, 1),
             details=[{
                 'build_result': build_result,
-                'feedback': feedback
+                'feedback': feedback,
+                'error_count': build_result.error_count,
+                'warning_count': build_result.warning_count,
+                'error_message': build_result.error_message or '',
             }]
         )
 
-    def _grade_code_quality(self, submission: ProcessedSubmission) -> Optional[CategoryScore]:
-        """
-        评分代码质量
-
-        Returns:
-            代码质量得分，如果无代码则返回None
-        """
-        # 优先使用源代码文件
+    def _grade_code_quality(self, submission: ProcessedSubmission, cat: Dict) -> Optional[CategoryScore]:
+        """code_analysis：真实源码静态分析（优先），否则报告代码块；都没有返回 None。"""
         code_to_analyze = ""
-
         if submission.source_path and submission.project_info:
-            # 读取主程序文件
-            main_files = submission.project_info.main_files
-            if main_files:
-                for main_file in main_files:
-                    try:
-                        code_to_analyze += main_file.read_text(encoding='utf-8', errors='ignore') + "\n\n"
-                    except Exception:
-                        pass
-
-        # 如果没有源代码，使用报告中的代码块
+            for main_file in submission.project_info.main_files:
+                try:
+                    code_to_analyze += main_file.read_text(encoding='utf-8', errors='ignore') + "\n\n"
+                except Exception:
+                    pass
         if not code_to_analyze and submission.code_blocks:
             code_to_analyze = "\n\n".join(submission.code_blocks)
-
         if not code_to_analyze.strip():
             return None
 
-        max_points = 20  # 代码质量满分
-
-        # 使用代码分析器
-        if self.code_analyzer:
-            try:
-                analysis_result = self.code_analyzer.analyze(code_to_analyze)
-
-                # 映射分数到0-20分
-                earned_points = (analysis_result.total_score / 100) * max_points
-
-                # 提取反馈
-                strengths = analysis_result.strengths
-                weaknesses = [f"[{i.severity.value}] {i.message}" for i in analysis_result.issues[:5]]
-
-                return CategoryScore(
-                    category_id="code_quality",
-                    category_name="代码质量",
-                    max_points=max_points,
-                    earned_points=round(earned_points, 1),
-                    details=[{
-                        'analysis': {
-                            'total_score': analysis_result.total_score,
-                            'strengths': strengths,
-                            'weaknesses': weaknesses,
-                            'issue_count': len(analysis_result.issues)
-                        },
-                        'feedback': f"代码质量得分: {analysis_result.total_score}/100"
-                    }]
-                )
-            except Exception as e:
-                print(f"警告: 代码分析失败: {e}")
-
-        return None
-
-    def _grade_report(self, submission: ProcessedSubmission) -> Optional[CategoryScore]:
-        """
-        评分报告内容
-
-        Returns:
-            报告得分，如果无报告则返回None
-        """
-        if not submission.report_text:
+        max_points = cat.get('points', 20)
+        if not self.code_analyzer:
             return None
 
-        # 使用Rubric评分器
-        if self.rubric_grader and self.rubric:
-            try:
-                # 准备评分数据
-                grading_input = {
-                    'text': submission.report_text,
-                    'student_id': submission.student_id,
-                    'name': submission.name
+        try:
+            analysis_result = self.code_analyzer.analyze(code_to_analyze)
+            earned_points = (analysis_result.total_score / 100) * max_points
+
+            # 结构化代码问题（带行号/严重度/建议），供直击式反馈
+            issue_dicts = [
+                {
+                    'severity': i.severity.value,
+                    'category': i.category,
+                    'message': i.message,
+                    'line': i.line_number,
+                    'suggestion': i.suggestion,
                 }
+                for i in analysis_result.issues
+            ]
 
-                # 创建评分器实例
-                grader = self.rubric_grader(self.rubric)
+            return CategoryScore(
+                category_id=cat['id'],
+                category_name=cat.get('name', '代码质量'),
+                max_points=max_points,
+                earned_points=round(earned_points, 1),
+                details=[{
+                    'analysis': {
+                        'total_score': analysis_result.total_score,
+                        'strengths': analysis_result.strengths,
+                        'issues': issue_dicts,
+                        'issue_count': len(analysis_result.issues),
+                    },
+                    'feedback': f"代码质量得分: {analysis_result.total_score}/100"
+                }]
+            )
+        except Exception as e:
+            print(f"警告: 代码分析失败: {e}")
+            return None
 
-                # 执行评分
-                grading_result = grader.grade(grading_input)
+    def _category_from_rubric_grader(self, rg_result, cat: Dict, submission: ProcessedSubmission) -> CategoryScore:
+        """keyword/manual：从 RubricGrader 结果映射为引擎 CategoryScore。"""
+        max_points = cat.get('points', 0)
+        if rg_result is None or not submission.report_text:
+            return CategoryScore(
+                category_id=cat['id'],
+                category_name=cat.get('name', cat['id']),
+                max_points=max_points,
+                earned_points=0.0,
+                details=[{'feedback': '未提交报告或无正文，无法评分', 'criteria_scores': []}]
+            )
 
-                # 计算总分（排除手动评分类别）
-                auto_categories = [c for c in self.rubric.get('categories', [])
-                                 if not c.get('manual_evaluation', False)]
+        rg_cs = rg_result.category_scores.get(cat['id'])
+        if rg_cs is None:
+            return CategoryScore(
+                category_id=cat['id'],
+                category_name=cat.get('name', cat['id']),
+                max_points=max_points,
+                earned_points=0.0,
+                details=[{'feedback': '该类别未被 RubricGrader 评分', 'criteria_scores': []}]
+            )
 
-                total_points = sum(
-                    grading_result.get('category_scores', {}).get(c['id'], 0)
-                    for c in auto_categories
-                )
-                max_points = sum(c['points'] for c in auto_categories)
-
-                return CategoryScore(
-                    category_id="report_quality",
-                    category_name="报告质量",
-                    max_points=max_points,
-                    earned_points=total_points,
-                    details=[{
-                        'analysis': grading_result,
-                        'feedback': f"报告得分: {total_points}/{max_points}"
-                    }]
-                )
-            except Exception as e:
-                print(f"警告: 报告评分失败: {e}")
-
-        # 备用方案：简单的关键词评分
-        return self._grade_report_simple(submission)
-
-    def _grade_report_simple(self, submission: ProcessedSubmission) -> CategoryScore:
-        """简单报告评分（备用方案）"""
-        max_points = 70
-        text = submission.report_text
-
-        # 简单的评分逻辑
-        score = 0
-
-        # 检查字数
-        word_count = len(text)
-        if word_count > 1000:
-            score += 20
-        elif word_count > 500:
-            score += 10
-
-        # 检查关键章节
-        keywords = {
-            '实验目的': 10,
-            '实验原理': 15,
-            '硬件设计': 15,
-            '软件设计': 15,
-            '实验结果': 15,
-            '心得体会': 10
-        }
-
-        for keyword, points in keywords.items():
-            if keyword in text:
-                score += points
-
+        criteria_scores = [self._rg_criterion_to_dict(c) for c in rg_cs.criteria_scores]
         return CategoryScore(
-            category_id="report_quality",
-            category_name="报告质量",
+            category_id=cat['id'],
+            category_name=cat.get('name', rg_cs.name),
             max_points=max_points,
-            earned_points=min(score, max_points),
+            earned_points=round(rg_cs.points_earned, 1),
             details=[{
-                'analysis': {'word_count': word_count},
-                'feedback': f"简单评分: {score}/{max_points}"
+                'feedback': '; '.join(rg_cs.feedback) if rg_cs.feedback else '',
+                'criteria_scores': criteria_scores,
+                'percentage': rg_cs.percentage,
             }]
         )
 
+    # --------------------------------------------------------------
+    # 反馈生成（结构化 issues + thinking_check）
+    # --------------------------------------------------------------
+    def _generate_feedback(self, result: GradingResult, submission: ProcessedSubmission):
+        """构建结构化 issues 与 thinking_check，并填充兼容的 strengths/weaknesses。"""
+        ref = (self.rubric or {}).get('reference_answers', {})
+        issues: List[Dict] = []
+
+        for cs in result.category_scores:
+            cat = self._rubric_category(cs.category_id) or {}
+            method = cat.get('grading_method', 'keyword')
+            lost = round(cs.max_points - cs.earned_points, 1)
+
+            if method == 'build':
+                if cs.earned_points < cs.max_points and cs.details:
+                    d = cs.details[0]
+                    issues.append({
+                        'type': 'build',
+                        'category': cs.category_name,
+                        'criterion': '编译',
+                        'points_lost': lost,
+                        'severity': 'error' if cs.earned_points == 0 else 'warning',
+                        'message': d.get('feedback', '编译未通过'),
+                        'detail': d.get('error_message', ''),
+                        'expected': '工程应能通过 arm-none-eabi-gcc / make 编译，0 error',
+                        'fix': '根据编译错误修正语法/链接；缺少源码工程则需补交。',
+                    })
+            elif method == 'code_analysis' and cs.details:
+                analysis = cs.details[0].get('analysis', {}) or {}
+                for ci in (analysis.get('issues') or [])[:8]:
+                    issues.append({
+                        'type': 'code',
+                        'category': cs.category_name,
+                        'criterion': ci.get('category', '代码问题'),
+                        'points_lost': 0,  # 单条 issue 不单独计分，整体已反映在得分率
+                        'severity': ci.get('severity', 'info'),
+                        'message': ci.get('message', ''),
+                        'line': ci.get('line', 0),
+                        'fix': ci.get('suggestion', ''),
+                        'expected': '',
+                    })
+            else:  # keyword/manual：逐准则失分
+                criteria_scores = (cs.details[0].get('criteria_scores') if cs.details else []) or []
+                for crit in criteria_scores:
+                    p_lost = round(crit.get('points_possible', 0) - crit.get('points_earned', 0), 1)
+                    if p_lost <= 0:
+                        continue
+                    issues.append({
+                        'type': 'criterion',
+                        'category': cs.category_name,
+                        'category_id': cs.category_id,
+                        'criterion': crit.get('description', ''),
+                        'missing_keywords': crit.get('missing_keywords', []),
+                        'points_lost': p_lost,
+                        'severity': 'warning',
+                        'message': f"未充分体现：{', '.join(crit.get('missing_keywords', [])) or '相关关键词缺失'}",
+                        'expected': self._expected_answer(cs.category_id, crit.get('description', ''), ref),
+                        'fix': f"补充并准确表述「{crit.get('description', '')}」相关内容。",
+                    })
+
+        # 思考题核对：依据校验器在"七、思考题"章节内检测到的题号（避免正文其它编号误判）+ 参考答案
+        result.thinking_check = self._build_thinking_check(result.validation_report, ref)
+
+        result.issues = issues
+
+        # 兼容旧字段：strengths/weaknesses/suggestions（供尚未迁移的消费者）
+        result.weaknesses = [
+            f"{it.get('category', '')}：{it.get('message', '')}"
+            for it in issues if it.get('severity') in ('error', 'warning')
+        ][:10]
+        result.suggestions = [it.get('fix', '') for it in issues if it.get('fix')][:10]
+        result.strengths = [
+            cs.category_name for cs in result.category_scores
+            if cs.max_points > 0 and cs.earned_points >= cs.max_points
+        ]
+
+    def _build_thinking_check(self, validation_report, ref: Dict) -> List[Dict]:
+        """逐题 Q1~Q7：是否作答（依据校验器在七、章节的检测）+ 参考答案方向。"""
+        answers = ref.get('thinking_questions', {}) if isinstance(ref, dict) else {}
+        missing = set()
+        if validation_report is not None:
+            missing = set(validation_report.missing_questions or [])
+        return [
+            {
+                'id': f'Q{i}',
+                'answered': f'Q{i}' not in missing,
+                'expected': answers.get(f'Q{i}', ''),
+            }
+            for i in range(1, 8)
+        ]
+
+    def _expected_answer(self, category_id: str, criterion_desc: str, ref: Dict) -> str:
+        """按类别/准则启发式回填参考答案（让反馈'正确应为'更具体）。"""
+        if not isinstance(ref, dict):
+            return ''
+        desc = criterion_desc or ''
+        try:
+            if category_id == 'principle_understanding':
+                if '原理' in desc:
+                    parts = [f"消抖：{ref.get('debouncing','')}", f"中断：{ref.get('interrupt_config','')}"]
+                    return '；'.join(p for p in parts if p)
+            if category_id == 'completion':
+                if '引脚' in desc or '硬件' in desc:
+                    gp = ref.get('gpio_pins', {})
+                    if gp:
+                        return 'GPIO：' + '，'.join(f"{k}={v}" for k, v in gp.items())
+                if '现象' in desc or '结果' in desc:
+                    gs = ref.get('gear_states', {})
+                    if gs:
+                        return '档位 LED：' + '，'.join(f"{k}:{v}" for k, v in gs.items())
+            if category_id == 'report_quality' and '思考题' in desc:
+                tq = ref.get('thinking_questions', {})
+                if tq:
+                    return '应逐题作答 Q1~Q7，参考方向见评分反馈「思考题核对」'
+        except Exception:
+            return ''
+        return ''
+
+    # --------------------------------------------------------------
+    # 工具
+    # --------------------------------------------------------------
+    def _rubric_category(self, cat_id: str) -> Optional[Dict]:
+        for c in (self.rubric or {}).get('categories', []):
+            if c.get('id') == cat_id:
+                return c
+        return None
+
+    @staticmethod
+    def _rg_category_to_dict(cs) -> Dict:
+        return {
+            'category_id': cs.category_id,
+            'name': cs.name,
+            'points_earned': cs.points_earned,
+            'points_possible': cs.points_possible,
+            'percentage': cs.percentage,
+            'feedback': list(cs.feedback),
+            'criteria_scores': [AutoGradingEngine._rg_criterion_to_dict(c) for c in cs.criteria_scores],
+        }
+
+    @staticmethod
+    def _rg_criterion_to_dict(c) -> Dict:
+        return {
+            'criterion_id': c.criterion_id,
+            'description': c.description,
+            'points_earned': c.points_earned,
+            'points_possible': c.points_possible,
+            'matched_keywords': list(c.matched_keywords),
+            'missing_keywords': list(getattr(c, 'missing_keywords', [])),
+            'feedback': c.feedback,
+        }
+
     def _calculate_grade(self, score: float, grading_scale: Dict) -> str:
-        """根据评分标准计算等级"""
-        for grade, info in grading_scale.items():
-            if info['min'] <= score <= info['max']:
+        # 半开区间匹配（按 min 降序），消除 B.max=89.9/A.min=90 之类边界缝隙；
+        # 与 RubricGrader._calculate_grade 语义保持一致。
+        for grade, info in sorted(grading_scale.items(), key=lambda x: x[1]['min'], reverse=True):
+            if score >= info['min']:
                 return grade
         return 'F'
 
     def _calculate_grade_default(self, score: float, max_score: float) -> str:
-        """默认等级计算"""
         percentage = (score / max_score) * 100 if max_score > 0 else 0
-
         if percentage >= 90:
             return 'A'
         elif percentage >= 80:
@@ -387,72 +548,29 @@ class AutoGradingEngine:
         else:
             return 'F'
 
-    def _generate_feedback(self, result: GradingResult):
-        """生成反馈"""
-        # 编译检查反馈
-        if result.compilation_result:
-            if result.compilation_result.success:
-                result.strengths.append("代码编译通过")
-            else:
-                result.weaknesses.append(f"代码编译失败: {result.compilation_result.error_message}")
-
-        # 代码质量反馈
-        if result.code_analysis:
-            analysis = result.code_analysis
-            if 'strengths' in analysis:
-                result.strengths.extend(analysis['strengths'])
-            if 'weaknesses' in analysis:
-                result.weaknesses.extend(analysis['weaknesses'][:3])
-
-        # 报告反馈
-        if result.report_analysis:
-            # 这里可以添加报告特定的反馈
-            pass
-
+    # --------------------------------------------------------------
+    # 批量与班级报告
+    # --------------------------------------------------------------
     def batch_grade(self, submissions: List[ProcessedSubmission]) -> List[GradingResult]:
-        """
-        批量评分
-
-        Args:
-            submissions: 已处理提交列表
-
-        Returns:
-            评分结果列表
-        """
         results = []
-
         for i, submission in enumerate(submissions):
             print(f"评分 ({i+1}/{len(submissions)}): {submission.student_id}-{submission.name}")
-
             result = self.grade_submission(submission)
             results.append(result)
-
-            print(f"  得分: {result.total_score:.1f}/{result.max_score:.1f} ({result.grade})")
-
+            print(f"  得分: {result.total_score:.1f}/{result.max_score:.1f} (加分{result.bonus_total:.0f}) ({result.grade})")
         return results
 
     def generate_class_report(self, results: List[GradingResult]) -> Dict:
-        """
-        生成班级报告
-
-        Args:
-            results: 评分结果列表
-
-        Returns:
-            班级报告
-        """
         if not results:
             return {}
 
         total = len(results)
         scores = [r.total_score for r in results]
 
-        # 统计等级分布
         grade_distribution = {}
         for r in results:
             grade_distribution[r.grade] = grade_distribution.get(r.grade, 0) + 1
 
-        # 统计类别得分
         category_stats = {}
         for result in results:
             for cat_score in result.category_scores:
@@ -468,7 +586,6 @@ class AutoGradingEngine:
                 category_stats[cat_id]['max_points'] += cat_score.max_points
                 category_stats[cat_id]['count'] += 1
 
-        # 计算平均分
         for cat_id, stats in category_stats.items():
             if stats['count'] > 0:
                 stats['average'] = stats['total_points'] / stats['count']
@@ -485,6 +602,7 @@ class AutoGradingEngine:
                     'student_id': r.student_id,
                     'name': r.name,
                     'score': r.total_score,
+                    'bonus': r.bonus_total,
                     'grade': r.grade
                 }
                 for r in results
@@ -504,22 +622,15 @@ def main():
 
     args = parser.parse_args()
 
-    # 导入其他模块
     from .submission_processor import SubmissionProcessor
 
-    # 初始化
     processor = SubmissionProcessor(args.base_dir)
     engine = AutoGradingEngine(rubric_path=args.rubric)
 
-    # 处理提交
     submissions = processor.process_class_submissions(args.class_name, args.experiment_id)
-
     print(f"找到 {len(submissions)} 个提交")
 
-    # 评分
     results = engine.batch_grade(submissions)
-
-    # 生成报告
     class_report = engine.generate_class_report(results)
 
     print()

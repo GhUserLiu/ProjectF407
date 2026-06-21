@@ -23,6 +23,7 @@ class CriterionScore:
     points_earned: float
     points_possible: float
     matched_keywords: List[str] = field(default_factory=list)
+    missing_keywords: List[str] = field(default_factory=list)
     feedback: str = ""
 
 
@@ -492,6 +493,10 @@ class RubricGrader:
         if not matched and keywords:
             matched, match_ratio = self.keyword_matcher.match_keywords(full_text, keywords)
 
+        # 未命中的关键词（用于直击式反馈：告诉学生具体缺什么）
+        matched_set = set(matched)
+        missing = [kw for kw in keywords if kw not in matched_set]
+
         # 根据匹配比例计算得分
         if match_ratio >= 0.8:
             earned = points
@@ -508,13 +513,18 @@ class RubricGrader:
             points_earned=earned,
             points_possible=points,
             matched_keywords=matched,
+            missing_keywords=missing,
             feedback=f"匹配关键词: {', '.join(matched)}" if matched else "未找到关键词"
         )
 
     def _calculate_grade(self, percentage: float) -> str:
-        """根据百分比计算等级"""
+        """根据百分比计算等级
+
+        半开区间匹配（按 min 降序，取首个 min <= percentage 的档），
+        消除闭区间下 B.max=89.9 / A.min=90 之类的边界缝隙导致 89.95 落到 F 的问题。
+        """
         for grade, scale in sorted(self.grading_scale.items(), key=lambda x: x[1]['min'], reverse=True):
-            if scale['min'] <= percentage <= scale['max']:
+            if percentage >= scale['min']:
                 return grade
         return 'F'
 
@@ -545,9 +555,14 @@ class RubricGrader:
 class EnhancedRubricGrader(RubricGrader):
     """增强版 Rubric 评分器"""
 
-    def grade(self, student_id: str, name: str, text: str) -> GradingResult:
-        """增强评估"""
-        result = super().grade(student_id, name, text)
+    def grade(self, student_id: str, name: str, text: str, is_leader: bool = False, experience_info: dict = None) -> GradingResult:
+        """增强评估
+
+        签名与父类 RubricGrader.grade 保持一致（is_leader/experience_info 透传），
+        以便 batch_grade 能在 RubricGrader / EnhancedRubricGrader 之间无差别替换，
+        避免因签名收窄导致的调用方 TypeError。
+        """
+        result = super().grade(student_id, name, text, is_leader=is_leader, experience_info=experience_info)
 
         # 增强反馈
         result.recommendations = self._generate_recommendations(result, text)
@@ -642,7 +657,9 @@ def batch_grade(
     Returns:
         评分结果列表
     """
-    grader = EnhancedRubricGrader(rubric) if hasattr(RubricGrader, '__init__') else RubricGrader(rubric, enable_nlp=enable_nlp)
+    # 按 enable_nlp 选择评分器（旧实现用 hasattr(RubricGrader,'__init__') 判断，恒为 True，
+    # 导致永远选中 EnhancedRubricGrader 并丢弃 enable_nlp）。
+    grader = EnhancedRubricGrader(rubric) if enable_nlp else RubricGrader(rubric, enable_nlp=False)
     results = []
 
     for student_id, submission in submissions.items():
@@ -699,7 +716,8 @@ class PlagiarismThresholds:
 def apply_plagiarism_penalty(
     result: GradingResult,
     similarity_info: dict,
-    thresholds: PlagiarismThresholds = None
+    thresholds: PlagiarismThresholds = None,
+    grading_scale: Dict[str, Dict] = None
 ) -> GradingResult:
     """
     根据相似度自动扣分
@@ -725,6 +743,13 @@ def apply_plagiarism_penalty(
     """
     if thresholds is None:
         thresholds = PlagiarismThresholds()
+
+    # grading_scale 作为显式入参；未传入时回退到 result 上注入的属性
+    # （batch_grade_with_plagiarism_check 仍会注入），再退到 None（由
+    # _calculate_grade_from_percentage 用默认 scale）。旧实现直接读 result.grading_scale，
+    # 独立调用时该属性不存在 → AttributeError。
+    if grading_scale is None:
+        grading_scale = getattr(result, 'grading_scale', None)
 
     max_sim = similarity_info.get('max_similarity', 0.0)
     similar_to = similarity_info.get('similar_to', '')
@@ -752,7 +777,7 @@ def apply_plagiarism_penalty(
         result.total_score = max(0, result.total_score - penalty)
         # 重新计算等级
         result.percentage = (result.total_score / result.total_possible * 100) if result.total_possible > 0 else 0
-        result.grade = _calculate_grade_from_percentage(result.percentage, result.grading_scale)
+        result.grade = _calculate_grade_from_percentage(result.percentage, grading_scale)
         result.weaknesses.append(
             f"⚠️ 高度相似: 与 {similar_to} 相似度 {max_sim:.1f}%，扣{penalty:.0f}分"
         )
@@ -761,7 +786,7 @@ def apply_plagiarism_penalty(
         risk_level = "warning"
         result.total_score = max(0, result.total_score - penalty)
         result.percentage = (result.total_score / result.total_possible * 100) if result.total_possible > 0 else 0
-        result.grade = _calculate_grade_from_percentage(result.percentage, result.grading_scale)
+        result.grade = _calculate_grade_from_percentage(result.percentage, grading_scale)
         result.weaknesses.append(
             f"⚡ 相似度警告: 与 {similar_to} 相似度 {max_sim:.1f}%，扣{penalty:.0f}分"
         )
@@ -771,7 +796,7 @@ def apply_plagiarism_penalty(
         risk_level = "warning"
         result.total_score = max(0, result.total_score - penalty)
         result.percentage = (result.total_score / result.total_possible * 100) if result.total_possible > 0 else 0
-        result.grade = _calculate_grade_from_percentage(result.percentage, result.grading_scale)
+        result.grade = _calculate_grade_from_percentage(result.percentage, grading_scale)
         result.weaknesses.append(
             f"🔍 跨组相似: 与 {similar_to} 相似度 {max_sim:.1f}%，扣{penalty:.0f}分"
         )
@@ -805,7 +830,7 @@ def _calculate_grade_from_percentage(percentage: float, grading_scale: Dict[str,
         }
 
     for grade, scale in sorted(grading_scale.items(), key=lambda x: x[1]['min'], reverse=True):
-        if scale['min'] <= percentage <= scale['max']:
+        if percentage >= scale['min']:
             return grade
     return 'F'
 
