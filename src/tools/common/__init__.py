@@ -17,6 +17,11 @@ from .path_config import (
     DIRECTORY_STRUCTURE
 )
 
+from .file_io import (
+    atomic_write_json,
+    atomic_write_text,
+)
+
 __all__ = [
     'ExperimentPaths',
     'TeachingPaths',
@@ -25,5 +30,7 @@ __all__ = [
     'get_results_dir',
     'get_reports_dir',
     'get_feedback_dir',
-    'DIRECTORY_STRUCTURE'
+    'DIRECTORY_STRUCTURE',
+    'atomic_write_json',
+    'atomic_write_text',
 ]

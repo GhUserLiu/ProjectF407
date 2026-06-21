@@ -472,8 +472,9 @@ def save_student_feedback(
                 student_id, name, text, grading_result, technical_results
             )
             return save_enhanced_feedback(enhanced_result, output_dir, generator)
-        except ImportError:
-            print("Warning: Enhanced feedback not available, using standard feedback")
+        except (ImportError, FileNotFoundError, ValueError) as e:
+            # 资源文件缺失/损坏等不应崩溃，降级为标准反馈
+            print(f"Warning: Enhanced feedback 不可用({e})，改用标准反馈")
 
     if format == "html":
         content = HTMLFeedbackGenerator.generate(

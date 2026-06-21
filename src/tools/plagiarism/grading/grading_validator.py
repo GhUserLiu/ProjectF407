@@ -97,14 +97,16 @@ class GradingValidator:
                 details={"category_count": len(categories)}
             ))
 
-        # 3. 检查类别分值
-        category_sum = sum(c.get('points', 0) for c in categories)
-        if abs(category_sum - total_points) > 1:
+        # 3. 检查类别分值（仅基础分；points_outside_base 的加分项不计入总分校验）
+        base_categories = [c for c in categories if not c.get('points_outside_base')]
+        base_sum = sum(c.get('points', 0) for c in base_categories)
+        if abs(base_sum - total_points) > 1:
             issues.append(ValidationIssue(
                 severity=ValidationSeverity.ERROR,
                 category="评分标准",
-                message=f"类别分值总和({category_sum})不等于总分({total_points})",
-                details={"category_sum": category_sum, "total_points": total_points}
+                message=f"基础类别分值总和({base_sum})不等于总分({total_points})",
+                details={"base_sum": base_sum, "total_points": total_points,
+                         "outside_base_count": len(categories) - len(base_categories)}
             ))
 
         # 4. 检查评分类别分值合理性

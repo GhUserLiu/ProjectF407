@@ -13,22 +13,24 @@ from pathlib import Path
 import zipfile
 import io
 import re
-from xml.etree import ElementTree as ET
 from datetime import datetime
+
+# 复用统一的安全 XML 解析器（防御 XXE），避免裸 ET.fromstring 解析不可信 docx
+from tools.security.xml_parser import safe_parse_xml_string, XMLError
 
 def extract_text_from_docx(docx_data):
     """从docx文件中提取文本"""
     try:
         with zipfile.ZipFile(io.BytesIO(docx_data), 'r') as docx:
             xml_content = docx.read('word/document.xml')
-            root = ET.fromstring(xml_content)
+            root = safe_parse_xml_string(xml_content)
             texts = []
             for elem in root.iter():
                 if elem.tag.endswith('}t'):
                     if elem.text:
                         texts.append(elem.text)
             return ''.join(texts)
-    except:
+    except (XMLError, OSError, zipfile.BadZipFile, ValueError):
         return None
 
 def get_student_info(extract_dir):

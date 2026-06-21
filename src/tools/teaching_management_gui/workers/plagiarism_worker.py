@@ -12,7 +12,6 @@ Plagiarism Detection Worker Thread (multi-class, cross-class)
 """
 
 import sys
-import json
 from pathlib import Path
 from datetime import datetime
 from typing import Optional, Dict, List
@@ -30,6 +29,7 @@ from tools.plagiarism.core.detector import (  # noqa: E402
     SimilarityResult,
 )
 from tools.teaching_management_gui.path_helper import plagiarism_dir as resolve_plagiarism_dir  # noqa: E402
+from tools.common import atomic_write_json  # noqa: E402
 
 
 # UI 方法下拉项 → SimilarityMethod 的映射
@@ -49,6 +49,7 @@ class PlagiarismWorker(QThread):
     detail = pyqtSignal(str)
     detection_completed = pyqtSignal(object)  # 结果载荷 dict
     detection_failed = pyqtSignal(str)
+    detection_cancelled = pyqtSignal()  # 取消：不发结果，避免面板当成"完成"
     error_occurred = pyqtSignal(str)
 
     def __init__(
@@ -86,6 +87,7 @@ class PlagiarismWorker(QThread):
             # 阶段1：逐班级整理 + 处理，合并 submissions
             for i, entry in enumerate(self.entries):
                 if self.is_cancelled:
+                    self.detection_cancelled.emit()
                     return
                 self.detail.emit(f"提取 {entry.class_name}（{i + 1}/{total}）")
                 self.progress.emit(int(10 + 40 * (i / max(total, 1))))
@@ -131,6 +133,11 @@ class PlagiarismWorker(QThread):
 
             detector = PlagiarismDetector(method=self.method, threshold=self.threshold)
             all_results, suspicious, adaptive_report = detector.detect(combined)
+
+            # 阶段2 是阻塞调用；若期间请求了取消，检测完成后不再保存/发结果
+            if self.is_cancelled:
+                self.detection_cancelled.emit()
+                return
 
             self.progress.emit(85)
 
@@ -214,8 +221,7 @@ class PlagiarismWorker(QThread):
         out_dir = resolve_plagiarism_dir(e.class_name, e.experiment_id, self.semester)
         out_dir.mkdir(parents=True, exist_ok=True)
         out_path = out_dir / "plagiarism_results.json"
-        with open(out_path, "w", encoding="utf-8") as f:
-            json.dump(payload, f, ensure_ascii=False, indent=2, default=str)
+        atomic_write_json(out_path, payload, ensure_ascii=False, indent=2, default=str)
         return out_path
 
     def cancel(self):

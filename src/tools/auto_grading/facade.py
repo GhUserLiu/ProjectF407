@@ -17,6 +17,8 @@ Auto Grading Facade
 """
 
 import json
+
+from tools.common import atomic_write_json
 from pathlib import Path
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional
@@ -251,8 +253,7 @@ class AutoGradingFacade:
 
         # 保存班级报告
         report_path = output_dir / "班级报告.json"
-        with open(report_path, 'w', encoding='utf-8') as f:
-            json.dump(class_report, f, ensure_ascii=False, indent=2)
+        atomic_write_json(report_path, class_report, ensure_ascii=False, indent=2)
 
         # 保存个人报告
         individuals_dir = output_dir / "个人报告"
@@ -293,8 +294,7 @@ class AutoGradingFacade:
                 'graded_at': grading_result.graded_at.isoformat()
             }
 
-            with open(individual_path, 'w', encoding='utf-8') as f:
-                json.dump(individual_report, f, ensure_ascii=False, indent=2)
+            atomic_write_json(individual_path, individual_report, ensure_ascii=False, indent=2)
 
         # 保存汇总报告（JSON格式，供GUI使用）
         summary_json_path = output_dir / "批阅汇总.json"
@@ -320,8 +320,7 @@ class AutoGradingFacade:
             ]
         }
 
-        with open(summary_json_path, 'w', encoding='utf-8') as f:
-            json.dump(summary_data, f, ensure_ascii=False, indent=2)
+        atomic_write_json(summary_json_path, summary_data, ensure_ascii=False, indent=2)
 
         # 保存汇总报告（文本格式）
         summary_path = output_dir / "批阅汇总.txt"

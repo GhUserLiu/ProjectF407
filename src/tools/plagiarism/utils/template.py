@@ -14,6 +14,9 @@ from xml.etree import ElementTree as ET
 from typing import List, Dict, Tuple, Set, Optional
 from dataclasses import dataclass, field
 from collections import Counter, defaultdict
+
+# 复用统一的安全 XML 解析器（防御 XXE），避免本模块直接用裸 ET.fromstring
+from tools.security.xml_parser import safe_parse_xml_string
 from enum import Enum
 
 
@@ -362,7 +365,7 @@ class TemplateExtractor:
 
             with zipfile.ZipFile(io.BytesIO(docx_data), 'r') as docx:
                 xml_content = docx.read('word/document.xml')
-                root = ET.fromstring(xml_content)
+                root = safe_parse_xml_string(xml_content)
                 texts = []
 
                 for elem in root.iter():

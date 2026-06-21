@@ -8,6 +8,8 @@
 import os
 import sys
 import json
+
+from tools.common import atomic_write_json
 import re
 from pathlib import Path
 from docx import Document
@@ -191,8 +193,7 @@ def extract_content(class_name: str, experiment: str = "07-car-gear") -> List[Di
         results.append(result)
 
     output_path = processed_dir / "extracted_content.json"
-    with open(output_path, 'w', encoding='utf-8') as f:
-        json.dump(results, f, ensure_ascii=False, indent=2)
+    atomic_write_json(output_path, results, ensure_ascii=False, indent=2)
 
     print()
     print(f"完成! 提取了 {len(results)} 个学生的内容")
@@ -296,8 +297,7 @@ def run_plagiarism_detection(class_name: str, experiment: str = "07-car-gear",
         'suspicious_pairs': suspicious_data
     }
 
-    with open(output_path, 'w', encoding='utf-8') as f:
-        json.dump(results_data, f, ensure_ascii=False, indent=2)
+    atomic_write_json(output_path, results_data, ensure_ascii=False, indent=2)
 
     print()
     print(f"完成! 发现 {len(suspicious)} 组可疑报告")
@@ -401,8 +401,7 @@ def run_quality_assessment(class_name: str, experiment: str = "07-car-gear") -> 
 
     # Save results
     output_path = processed_dir / "quality_assessment.json"
-    with open(output_path, 'w', encoding='utf-8') as f:
-        json.dump(results, f, ensure_ascii=False, indent=2)
+    atomic_write_json(output_path, results, ensure_ascii=False, indent=2)
 
     print()
     print(f"完成! 评估了 {len(results)} 个学生")

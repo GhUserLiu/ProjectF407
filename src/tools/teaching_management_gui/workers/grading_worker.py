@@ -33,6 +33,7 @@ class GradingWorker(QThread):
     error_occurred = pyqtSignal(str)  # (error_message)
     log_message = pyqtSignal(str)  # (message)
     grading_completed = pyqtSignal(object)  # (list[GradingResult]，跨班级合并)
+    grading_cancelled = pyqtSignal()  # 取消：不发部分结果，避免被面板当成"完成"
     grading_failed = pyqtSignal(str)  # (error_message)
 
     def __init__(
@@ -95,7 +96,12 @@ class GradingWorker(QThread):
                 all_results.extend(result.grading_results)
                 self.stage_progress.emit("analyze", i + 1, total)
 
-            self.grading_completed.emit(all_results)
+            # 取消时不发 grading_completed（避免部分结果被当成"完成"），改发取消信号
+            if self.is_cancelled:
+                self.log_message.emit(f"批阅已取消（已丢弃 {len(all_results)} 条部分结果）")
+                self.grading_cancelled.emit()
+            else:
+                self.grading_completed.emit(all_results)
 
         except Exception as e:
             self.error_occurred.emit(str(e))

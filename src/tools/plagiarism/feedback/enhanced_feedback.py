@@ -93,8 +93,13 @@ class EnhancedFeedbackGenerator:
         if resources_path is None:
             resources_path = Path(__file__).parent / 'feedback_resources.json'
 
-        with open(resources_path, 'r', encoding='utf-8') as f:
-            self.resources = json.load(f)
+        # 资源文件缺失/损坏时降级为空资源，而非崩溃（增强反馈退化为无建议词条的基础模式）
+        try:
+            with open(resources_path, 'r', encoding='utf-8') as f:
+                self.resources = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError) as e:
+            print(f"Warning: 反馈资源 {resources_path.name} 不可用({e})，增强反馈将退化为基础模式")
+            self.resources = {}
 
         self.technical_issues = self.resources.get('technical_issues', [])
         self.content_gaps = self.resources.get('content_gaps', [])

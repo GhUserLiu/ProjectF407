@@ -7,6 +7,8 @@ Workflow Engine
 """
 
 import json
+
+from tools.common import atomic_write_json
 import hashlib
 import time
 from pathlib import Path
@@ -330,8 +332,7 @@ class WorkflowEngine:
             'last_update': self.state.last_update
         }
 
-        with open(self.state_file, 'w', encoding='utf-8') as f:
-            json.dump(state_data, f, indent=2)
+        atomic_write_json(self.state_file, state_data, indent=2)
 
     def _load_state(self):
         """加载工作流状态"""

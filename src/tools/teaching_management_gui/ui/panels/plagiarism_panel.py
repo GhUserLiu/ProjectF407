@@ -220,6 +220,7 @@ class PlagiarismPanel(QWidget):
         self.plagiarism_worker.detail.connect(lambda t: self.detail_label.setText(t))
         self.plagiarism_worker.detection_completed.connect(self.on_detection_completed)
         self.plagiarism_worker.detection_failed.connect(self.on_detection_failed)
+        self.plagiarism_worker.detection_cancelled.connect(self.on_detection_cancelled)
         self.plagiarism_worker.start()
 
     def on_progress(self, percent):
@@ -248,6 +249,13 @@ class PlagiarismPanel(QWidget):
         self.detail_label.setText("查重失败")
         self.log(f"查重失败: {message}")
         QMessageBox.critical(self, "错误", f"查重失败:\n{message}")
+
+    def on_detection_cancelled(self):
+        self.is_detecting = False
+        self.start_btn.setEnabled(True)
+        self.cancel_btn.setEnabled(False)
+        self.detail_label.setText("查重已取消")
+        self.log("查重已取消（结果未保留）")
 
     def _fill_results_table(self, payload):
         pairs = payload.get("pairs", [])

@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Dict, List, Tuple, Optional
 
 # 导入统一路径配置
-from tools.common import ExperimentPaths
+from tools.common import ExperimentPaths, atomic_write_json
 
 BASE_DIR = Path(__file__).parent.parent.parent.parent.parent  # Go up to project root
 DEFAULT_EXPERIMENT_DIR = BASE_DIR / "data" / "teaching" / "2026-春季" / "汽服2302B班" / "07-car-gear"
@@ -288,8 +288,9 @@ def apply_enhanced_grading(extracted_data, evaluations, paths: ExperimentPaths, 
             print(f"  {student_id}: {eval_data['original_total_score']:.1f} -> {enhanced.adjusted_score:.1f} (-{enhanced.total_deduction:.1f})")
 
         enhanced_output_path = paths.processed_dir / "enhanced_grading_details.json"
-        with open(enhanced_output_path, 'w', encoding='utf-8') as f:
-            json.dump([
+        atomic_write_json(
+            enhanced_output_path,
+            [
                 {
                     'student_id': r.student_id,
                     'name': r.name,
@@ -309,11 +310,13 @@ def apply_enhanced_grading(extracted_data, evaluations, paths: ExperimentPaths, 
                     ]
                 }
                 for r in enhanced_results
-            ], f, ensure_ascii=False, indent=2)
+            ],
+            ensure_ascii=False,
+            indent=2,
+        )
 
         output_path = paths.evaluations_json()
-        with open(output_path, 'w', encoding='utf-8') as f:
-            json.dump(evaluations, f, ensure_ascii=False, indent=2)
+        atomic_write_json(output_path, evaluations, ensure_ascii=False, indent=2)
 
         print(f"\nEnhanced grading applied!")
         print(f"   Adjustments saved to: {enhanced_output_path}")
@@ -413,9 +416,7 @@ def main():
         print(f"  {eval_result['student_id']}: {eval_result['total_score']}分 ({eval_result['grade_label']}){method_str}")
 
     output_path = paths.evaluations_json()
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(output_path, 'w', encoding='utf-8') as f:
-        json.dump(evaluations, f, ensure_ascii=False, indent=2)
+    atomic_write_json(output_path, evaluations, ensure_ascii=False, indent=2)
 
     print(f"\nEvaluated {len(evaluations)} reports")
     print(f"Results saved to: {output_path}")

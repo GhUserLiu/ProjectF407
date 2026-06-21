@@ -9,10 +9,13 @@ Rubric-Based Grading Engine
 
 import re
 import json
+import logging
 from pathlib import Path
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional, Tuple, Any
 from enum import Enum
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -276,6 +279,19 @@ class RubricGrader:
 
         # 初始化关键词匹配器
         self.keyword_matcher = KeywordMatcher(enable_nlp=enable_nlp)
+
+        # 加载期校验评分标准一致性（仅记录 ERROR，不阻断评分）
+        self._validate_rubric_quietly()
+
+    def _validate_rubric_quietly(self):
+        """用 GradingValidator 校验 rubric，仅对 ERROR 级问题记日志。"""
+        try:
+            from .grading_validator import GradingValidator, ValidationSeverity
+            for iss in GradingValidator.validate_rubric(self.rubric):
+                if iss.severity == ValidationSeverity.ERROR:
+                    logger.warning("评分标准校验失败 [%s] %s", iss.category, iss.message)
+        except Exception:
+            logger.debug("评分标准校验跳过", exc_info=True)
 
     def grade(self, student_id: str, name: str, text: str, is_leader: bool = False, experience_info: dict = None) -> GradingResult:
         """

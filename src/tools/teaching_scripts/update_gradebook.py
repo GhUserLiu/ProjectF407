@@ -19,8 +19,29 @@ SCRIPT_DIR = Path(__file__).parent
 DATA_DIR = SCRIPT_DIR / 'data'
 EXCEL_DIR = SCRIPT_DIR.parent / 'docs'
 
-# 成绩册文件
-GRADEBOOK_PATH = EXCEL_DIR / '汽服2302B班_2026春季学期成绩册_updated_20260610_010822.xlsx'
+# 成绩册基础文件名
+GRADEBOOK_BASENAME = '汽服2302B班_2026春季学期成绩册.xlsx'
+
+
+def resolve_gradebook_path() -> Path:
+    """定位成绩册输入：取 EXCEL_DIR 下最新的 *_updated_*.xlsx，回退到基础成绩册。
+
+    旧实现把输入硬编码为某个带时间戳的文件，而脚本自身每次又写出新的带时间戳文件，
+    导致跑一次后输入即失效（FileNotFoundError）。这里按 mtime 选最新，保证可重复运行。
+    """
+    updated = sorted(
+        EXCEL_DIR.glob('*_updated_*.xlsx'),
+        key=lambda p: p.stat().st_mtime,
+        reverse=True,
+    )
+    if updated:
+        return updated[0]
+    base = EXCEL_DIR / GRADEBOOK_BASENAME
+    if base.exists():
+        return base
+    raise FileNotFoundError(
+        f"找不到成绩册：{EXCEL_DIR} 下无 *_updated_*.xlsx，也无基础 {GRADEBOOK_BASENAME}"
+    )
 
 # 评分数据文件
 EVALUATIONS_PATH = DATA_DIR / 'evaluations.json'
@@ -140,7 +161,9 @@ def update_gradebook():
 
     # 加载Excel工作簿
     print("\n2. 加载Excel成绩册...")
-    wb = load_workbook(GRADEBOOK_PATH)
+    gradebook_path = resolve_gradebook_path()
+    print(f"   - 输入: {gradebook_path.name}")
+    wb = load_workbook(gradebook_path)
     print(f"   - 工作表: {wb.sheetnames}")
 
     # 更新实验7工作表

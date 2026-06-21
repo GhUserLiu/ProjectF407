@@ -223,6 +223,7 @@ class GradingPanel(QWidget):
         self.grading_worker.log_message.connect(self.log)
         self.grading_worker.grading_completed.connect(self.on_grading_completed)
         self.grading_worker.grading_failed.connect(self.on_grading_failed)
+        self.grading_worker.grading_cancelled.connect(self.on_grading_cancelled)
         self.grading_worker.start()
 
     def on_stage_started(self, stage_id, stage_name):
@@ -262,6 +263,13 @@ class GradingPanel(QWidget):
         self.detail_label.setText("批阅失败")
         self.log(f"批阅失败: {error_message}")
         QMessageBox.critical(self, "错误", f"批阅失败:\n{error_message}")
+
+    def on_grading_cancelled(self):
+        self.is_grading = False
+        self.start_btn.setEnabled(True)
+        self.cancel_btn.setEnabled(False)
+        self.detail_label.setText("批阅已取消")
+        self.log("批阅已取消（部分结果未保留）")
 
     def _fill_results_table(self):
         results = self.all_results
