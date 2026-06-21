@@ -122,6 +122,11 @@ class TfidfCalculator:
 
     def __init__(self):
         self.idf_cache = {}
+        # 复用单个分词器，避免每次 calculate_tf/idf 都 new 一个 ChineseTextProcessor
+        # （后者构造时会重新触发 jieba 初始化，批量两两比对时浪费明显）。
+        # 注：当前 IDF 仍按"被比较的两个文档"计算（见 _detect_with_tfidf），
+        # 真正的语料级 IDF 需把全量提交传入检测器，属更大的架构改动，暂未做。
+        self.processor = ChineseTextProcessor()
 
     def calculate_tf(self, text: str) -> Dict[str, float]:
         """
@@ -133,7 +138,7 @@ class TfidfCalculator:
         Returns:
             {词: TF值}
         """
-        processor = ChineseTextProcessor()
+        processor = self.processor
         tokens = processor.tokenize(text)
         tokens = processor.remove_stop_words(tokens)
 
@@ -159,7 +164,7 @@ class TfidfCalculator:
         Returns:
             {词: IDF值}
         """
-        processor = ChineseTextProcessor()
+        processor = self.processor
         df = Counter()
 
         for doc in documents:

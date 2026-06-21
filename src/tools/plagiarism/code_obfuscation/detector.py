@@ -160,7 +160,10 @@ class CCodeNormalizer:
         control_flow = {}
         for pattern in CCodeNormalizer.CONTROL_FLOW_PATTERNS:
             matches = re.findall(pattern, code, re.IGNORECASE)
-            keyword = pattern.split()[0].replace('\\', '').replace('(', '').replace('\b', '')
+            # 从模式中提取关键字（如 r'\bif\s*\(' → 'if'）；
+            # 旧实现对模式串做 replace 得到 'bifs*' 之类的乱码键。
+            m = re.match(r'\\b([a-zA-Z]+)', pattern)
+            keyword = m.group(1) if m else pattern
             control_flow[keyword] = len(matches)
 
         # 提取调用序列

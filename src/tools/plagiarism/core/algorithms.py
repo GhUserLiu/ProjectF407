@@ -190,8 +190,10 @@ def _tokenize(text: str) -> List[str]:
             merged.append(tokens[i])
             i += 1
 
-    # 过滤单个字符（保留中文字符）
-    return [t for t in merged if len(t) > 1 or ('一' <= t <= '鿿')]
+    # 过滤单个英文字符（保留中文单字）；但若过滤后为空则回退到原列表，
+    # 否则仅含单字符的英文文档（如 "a"）会得到空词表，自相似度为 0。
+    filtered = [t for t in merged if len(t) > 1 or ('一' <= t <= '鿿')]
+    return filtered if filtered else merged
 
 
 def hybrid_similarity(text1: str, text2: str) -> float:
