@@ -1,0 +1,159 @@
+{
+  "experiment_name": "多功能嵌入式系统综合设计",
+  "experiment_code": "final_project",
+  "course_name": "STM32 嵌入式系统设计",
+  "version": "1.0.0",
+  "total_points": 100,
+  "_weighting_note": "期末综合项目自检 rubric：只覆盖可自动评的「编译 + 代码质量 + HAL_Delay禁用 + 报告结构与关键词」。功能实现(functionality)为 points_outside_base 的 manual 类——教师按任务书实测评定，不计入本 /100 预测分。三任务(80/90/100)的差异由教师评功能分时体现，自检不介入。",
+  "thinking_check": false,
+  "expected_sections": [
+    ["1", ["实验概述", "实验目的", "所选任务"], "report_overview", 10],
+    ["2", ["系统设计", "状态机", "模块划分", "关键算法"], "system_design", 15],
+    ["3", ["核心代码", "非阻塞", "状态机实现", "特殊功能"], "core_code", 10],
+    ["4", ["调试", "测试", "问题与解决"], "debug_test", 10],
+    ["5", ["总结", "心得"], "summary_reflection", 5]
+  ],
+  "grading_scale": {
+    "A": {"min": 90, "max": 100, "label": "优"},
+    "B": {"min": 80, "max": 89.9, "label": "良"},
+    "C": {"min": 70, "max": 79.9, "label": "中"},
+    "D": {"min": 60, "max": 69.9, "label": "及格"},
+    "F": {"min": 0, "max": 59.9, "label": "不及格"}
+  },
+  "categories": [
+    {
+      "id": "compilation",
+      "name": "编译检查",
+      "points": 15,
+      "grading_method": "build",
+      "description": "对真实源码工程执行编译，编译通过得满分；失败不得分",
+      "source_section": "源代码工程",
+      "note": "由 BuildChecker 实际编译评定；未安装工具链时记 SKIPPED 并排除出总分"
+    },
+    {
+      "id": "code_quality",
+      "name": "代码质量",
+      "points": 25,
+      "grading_method": "code_analysis",
+      "description": "对真实源码（优先）或报告代码块进行静态分析：状态机结构、非阻塞实现、模块划分、命名规范、注释",
+      "source_section": "3、核心代码说明",
+      "note": "由 EnhancedCodeAnalyzer 静态分析评定；下列 criteria 仅作评分维度说明，不计关键词分",
+      "criteria": [
+        {"description": "状态机结构清晰（状态/事件/转换）", "points": 6, "keywords": ["状态机", "状态转换", "switch", "enum", "当前状态"]},
+        {"description": "模块划分合理（main/led/key/state_machine 等）", "points": 5, "keywords": ["模块", "led", "key", "state_machine", "接口"]},
+        {"description": "非阻塞延时实现正确", "points": 6, "keywords": ["HAL_GetTick", "非阻塞", "last_tick", "周期"]},
+        {"description": "命名规范、注释清晰", "points": 4, "keywords": ["注释", "命名", "模块_动作", "说明"]},
+        {"description": "长按/短按或特殊功能实现", "points": 4, "keywords": ["长按", "短按", "press_start", "持续"]}
+      ]
+    },
+    {
+      "id": "non_blocking",
+      "name": "非阻塞设计（HAL_Delay 禁用）",
+      "points": 10,
+      "grading_method": "source_check",
+      "description": "扫描源码，禁止出现 HAL_Delay() 调用；任务书明令要求全部使用基于 HAL_GetTick() 的非阻塞实现",
+      "source_section": "源代码工程",
+      "forbid_patterns": ["HAL_Delay\\s*\\("],
+      "penalty_per_hit": 5,
+      "note": "每处 HAL_Delay 调用扣 5 分，扣完为止；2 处及以上该类记 0 分"
+    },
+    {
+      "id": "report_overview",
+      "name": "实验概述",
+      "points": 10,
+      "grading_method": "keyword",
+      "description": "从报告 1、实验概述 评估实验目的与所选任务说明",
+      "source_section": "1、实验概述",
+      "criteria": [
+        {"description": "实验目的清晰完整", "points": 4, "keywords": ["实验目的", "综合运用", "状态机", "非阻塞", "外设"]},
+        {"description": "所选任务及理由说明", "points": 6, "keywords": ["任务一", "任务二", "任务三", "所选", "选择", "理由", "灯光", "温度", "RTC"]}
+      ]
+    },
+    {
+      "id": "system_design",
+      "name": "系统设计",
+      "points": 15,
+      "grading_method": "keyword",
+      "description": "从报告 2、系统设计 评估状态机设计与模块划分",
+      "source_section": "2、系统设计",
+      "criteria": [
+        {"description": "状态机设计含状态转换图", "points": 7, "keywords": ["状态机", "状态转换图", "状态", "事件", "转换条件", "关闭", "左转", "右转", "双闪", "报警", "闹钟"]},
+        {"description": "模块划分与接口设计", "points": 5, "keywords": ["模块划分", "接口", "led", "key", "state_machine", "main"]},
+        {"description": "关键算法说明（长按短按/温度判断/RTC 等）", "points": 3, "keywords": ["关键算法", "长按", "短按", "滞回", "ADC", "RTC", "闹钟"]}
+      ]
+    },
+    {
+      "id": "core_code",
+      "name": "核心代码说明",
+      "points": 10,
+      "grading_method": "keyword",
+      "description": "从报告 3、核心代码说明 评估关键实现阐述",
+      "source_section": "3、核心代码说明",
+      "criteria": [
+        {"description": "非阻塞延时实现说明", "points": 4, "keywords": ["HAL_GetTick", "非阻塞", "last_tick", "周期", "HAL_Delay"]},
+        {"description": "状态机实现说明", "points": 3, "keywords": ["状态机", "switch", "enum", "状态转换"]},
+        {"description": "特殊功能实现（长按短按/温度采集/RTC 闹钟）", "points": 3, "keywords": ["长按", "短按", "ADC", "温度", "RTC", "闹钟", "备份寄存器"]}
+      ]
+    },
+    {
+      "id": "debug_test",
+      "name": "调试与测试",
+      "points": 10,
+      "grading_method": "keyword",
+      "description": "从报告 4、调试与测试 评估调试过程与功能测试",
+      "source_section": "4、调试与测试",
+      "criteria": [
+        {"description": "调试过程记录", "points": 4, "keywords": ["调试", "过程", "问题", "排查", "示波器", "断点"]},
+        {"description": "功能测试结果（截图/视频）", "points": 4, "keywords": ["功能测试", "测试结果", "现象", "视频", "截图", "演示"]},
+        {"description": "遇到的问题及解决方案", "points": 2, "keywords": ["问题", "解决", "方案", "遇到"]}
+      ]
+    },
+    {
+      "id": "summary_reflection",
+      "name": "总结与心得",
+      "points": 5,
+      "grading_method": "keyword",
+      "description": "从报告 5、总结与心得 评估收获与改进思考",
+      "source_section": "5、总结与心得",
+      "criteria": [
+        {"description": "完成项目的收获与心得", "points": 3, "keywords": ["收获", "心得", "总结", "体会", "掌握"]},
+        {"description": "有待改进之处", "points": 2, "keywords": ["改进", "优化", "扩展", "不足", "未来"]}
+      ]
+    },
+    {
+      "id": "functionality",
+      "name": "功能实现",
+      "points": 0,
+      "grading_method": "manual",
+      "points_outside_base": true,
+      "default_points": 0,
+      "manual_evaluation": true,
+      "description": "按任务书实测评定（短按/长按/紧急双闪/温度报警/RTC 闹钟等功能）；本项不在机器预测分内",
+      "source_section": "教师评定",
+      "note": "功能实现是项目核心分，需硬件演示评定，自检无法预测；请以教师实测为准"
+    }
+  ],
+  "reference_answers": {
+    "state_machine": "状态+事件+转换三要素；任务一(关闭/左转/右转/双闪/迎宾/紧急)，任务二(手动/报警)，任务三(正常/设置闹钟/闹钟触发/查询)",
+    "non_blocking": "基于 HAL_GetTick() 记录上次执行时间，差值达周期才执行；主循环 <10ms；严禁 HAL_Delay",
+    "long_short_press": "记录按下/释放时刻差，>1 秒判长按、否则短按；长按可在未松手时立即触发",
+    "gpio_pins": {
+      "LED0": "PF9 低电平点亮",
+      "LED1": "PF10 低电平点亮",
+      "KEY0": "PE4 低电平有效（按下为低）",
+      "KEY_UP": "PA0 高电平有效（按下为高）"
+    },
+    "adc_temp": "ADC1 通道16 内部温度传感器，约每 2 秒采一次（非阻塞）；>=45℃ 自动报警快闪、手动失效，降温后恢复",
+    "rtc_alarm": "RTC 走时自 00:00:00 起；闹钟用 RTC 中断触发迎宾闪烁；掉电保持用备份寄存器(VBAT)或 Flash",
+    "thinking_questions": {}
+  },
+  "common_issues": [
+    "使用 HAL_Delay 阻塞主循环（任务书禁止）",
+    "状态机缺少状态/转换条件，档位/模式跳变错误",
+    "KEY0(低有效)与 KEY_UP(高有效)电平判断混淆",
+    "长按判定不准（未在 >1 秒立即触发）",
+    "报警/紧急模式未能正确恢复原状态",
+    "RTC 闹钟用主循环轮询而非中断",
+    "闹钟设置未做掉电保持"
+  ]
+}

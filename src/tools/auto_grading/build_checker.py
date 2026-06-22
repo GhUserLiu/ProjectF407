@@ -133,8 +133,12 @@ class BuildChecker:
             toolchain = self._detect_project_type(project_path)
 
         # 工具链不可用时优雅跳过（给出清晰原因，而非抛 FileNotFoundError）。
-        # make_available 等属性在 _check_toolchain 中静默记录。
-        if toolchain == 'gcc' and not getattr(self, 'make_available', True):
+        # make_available / gcc_available 等属性在 _check_toolchain 中静默记录。
+        # 任一缺失即视为工具链不完整：make 在但 arm-none-eabi-gcc 不在时，make 必然失败，
+        # 应判 SKIPPED（不计入总分）而非误导性的 FAILED。
+        if toolchain == 'gcc' and not (
+            getattr(self, 'make_available', True) and getattr(self, 'gcc_available', True)
+        ):
             return BuildResult(
                 status=BuildStatus.SKIPPED,
                 project_name=project_name or project_path.name,

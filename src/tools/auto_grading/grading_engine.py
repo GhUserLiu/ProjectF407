@@ -232,6 +232,7 @@ class AutoGradingEngine:
         category_scores: List[CategoryScore] = []
         base_earned = 0.0
         bonus_total = 0.0
+        excluded_points = 0.0   # 工具链缺失等「非学生责任」被排除的基数分（如编译 15 分）
 
         for cat in self.rubric.get('categories', []):
             method = cat.get('grading_method', 'keyword')
@@ -241,6 +242,8 @@ class AutoGradingEngine:
                 cs = self._grade_compilation(submission, cat)
             elif method == 'code_analysis':
                 cs = self._grade_code_quality(submission, cat)
+            elif method == 'source_check':
+                cs = self._grade_source_check(submission, cat)
             elif method == 'conditional':
                 cs = self._grade_conditional(cat, is_leader)
             else:  # keyword / manual
@@ -257,7 +260,13 @@ class AutoGradingEngine:
 
             # 记录编译/代码分析详情，供反馈与兼容字段使用
             if method == 'build' and cs.details:
-                result.compilation_result = cs.details[0].get('build_result')
+                br = cs.details[0].get('build_result')
+                result.compilation_result = br
+                # 工具链缺失（SKIPPED）：非学生责任，汇总时把该类分值排除出总分与等级基数，
+                # 避免无工具链持续拖低预测分。仅对基础分内类别生效（bonus 类本就单列）。
+                if (br is not None and getattr(br, 'status', None) == BuildStatus.SKIPPED
+                        and not cat.get('points_outside_base')):
+                    excluded_points += cat.get('points', 0)
             if method == 'code_analysis' and cs.details:
                 result.code_analysis = cs.details[0].get('analysis')
 
@@ -271,15 +280,26 @@ class AutoGradingEngine:
 
         # 4. 汇总：base 封顶 total_points，bonus 单列
         total_points = self.rubric.get('total_points', 100)
-        result.total_score = round(min(base_earned, total_points), 1)
-        result.max_score = total_points
-        result.bonus_total = round(bonus_total, 1)
-
-        # 5. 等级
-        if 'grading_scale' in self.rubric:
-            result.grade = self._calculate_grade(result.total_score, self.rubric['grading_scale'])
+        if excluded_points > 0:
+            # 存在被排除的编译类（工具链缺失）：按「可评类别」折算总分与等级。
+            # max_score 收缩为可评基数（如 100-15=85），等级按 base_earned/可评基数 折算回
+            # /total_points 再套 grading_scale，保证学生不被工具链缺失系统性压低等级。
+            assessable_max = max(total_points - excluded_points, 0.01)
+            result.max_score = round(assessable_max, 1)
+            result.total_score = round(min(base_earned, assessable_max), 1)
+            effective = (base_earned / assessable_max) * total_points
+            if 'grading_scale' in self.rubric:
+                result.grade = self._calculate_grade(effective, self.rubric['grading_scale'])
+            else:
+                result.grade = self._calculate_grade_default(result.total_score, result.max_score)
         else:
-            result.grade = self._calculate_grade_default(result.total_score, result.max_score)
+            result.total_score = round(min(base_earned, total_points), 1)
+            result.max_score = total_points
+            if 'grading_scale' in self.rubric:
+                result.grade = self._calculate_grade(result.total_score, self.rubric['grading_scale'])
+            else:
+                result.grade = self._calculate_grade_default(result.total_score, result.max_score)
+        result.bonus_total = round(bonus_total, 1)
 
         # 6. 生成结构化反馈（issues + thinking_check + 兼容 strengths/weaknesses）
         self._generate_feedback(result, submission)
@@ -303,6 +323,11 @@ class AutoGradingEngine:
         if build_result.status == BuildStatus.SUCCESS:
             earned_points = max_points
             feedback = "编译通过"
+        elif build_result.status == BuildStatus.SKIPPED:
+            # 工具链缺失（非学生责任）：本类记 0 分，但由 grade_submission 汇总时排除出
+            # 总分与等级基数（按可评类别折算）。不用「无法编译」措辞以免误导。
+            earned_points = 0
+            feedback = "已跳过：本机未安装 make / arm-none-eabi-gcc（不代表代码无法编译）"
         elif build_result.status == BuildStatus.FAILED:
             # 编译失败一律 0 分。error_count 来自 GCC 诊断正则，链接器等错误不会被匹配
             # （error_count==0），旧实现据此判"编译通过但有警告"给 50%，把硬失败误判为通过。
@@ -409,6 +434,74 @@ class AutoGradingEngine:
             print(f"警告: 代码分析失败: {e}")
             return None
 
+    def _grade_source_check(self, submission: ProcessedSubmission, cat: Dict) -> Optional[CategoryScore]:
+        """source_check：扫描源码命中禁止模式（如 HAL_Delay），按命中数扣分。
+
+        任务书要求全部使用基于 HAL_GetTick() 的非阻塞实现，禁止 HAL_Delay()。
+        遍历工程内所有源/头文件（ProjectInfo.source_files + header_files），
+        按 forbid_patterns（正则）统计命中并计分。
+        """
+        if not submission.source_path or not submission.project_info:
+            return None
+
+        max_points = cat.get('points', 10)
+        patterns = cat.get('forbid_patterns', [r'HAL_Delay\s*\('])
+        penalty_per_hit = cat.get('penalty_per_hit', 5)
+        # 防爆：单文件读取上限与扫描文件数上限
+        MAX_FILES = 80
+        MAX_FILE_BYTES = 512 * 1024
+
+        compiled = []
+        for p in patterns:
+            try:
+                compiled.append(re.compile(p))
+            except re.error:
+                continue
+        if not compiled:
+            return None
+
+        violations = []  # [{file, line, match}]
+        files = list(getattr(submission.project_info, 'source_files', [])) \
+              + list(getattr(submission.project_info, 'header_files', []))
+        for f in files[:MAX_FILES]:
+            try:
+                if f.stat().st_size > MAX_FILE_BYTES:
+                    continue
+                text = f.read_text(encoding='utf-8', errors='ignore')
+            except Exception:
+                continue
+            for ln, line in enumerate(text.splitlines(), start=1):
+                for rx in compiled:
+                    for m in rx.finditer(line):
+                        violations.append({
+                            'file': getattr(f, 'name', str(f)),
+                            'line': ln,
+                            'match': m.group(0),
+                        })
+
+        hit_count = len(violations)
+        if hit_count == 0:
+            earned = float(max_points)
+            feedback = "未发现 HAL_Delay 调用，符合非阻塞要求"
+        else:
+            earned = max(0.0, max_points - hit_count * penalty_per_hit)
+            sample = ", ".join(f"{v['file']}:{v['line']}" for v in violations[:3])
+            more = "…" if hit_count > 3 else ""
+            feedback = (f"发现 {hit_count} 处 HAL_Delay 调用（{sample}{more}），"
+                        "违反非阻塞要求，需改用基于 HAL_GetTick() 的非阻塞实现")
+
+        return CategoryScore(
+            category_id=cat['id'],
+            category_name=cat.get('name', '源码检查'),
+            max_points=max_points,
+            earned_points=round(earned, 1),
+            details=[{
+                'violations': violations[:20],
+                'hit_count': hit_count,
+                'feedback': feedback,
+            }]
+        )
+
     def _category_from_rubric_grader(self, rg_result, cat: Dict, submission: ProcessedSubmission) -> CategoryScore:
         """keyword/manual：从 RubricGrader 结果映射为引擎 CategoryScore。"""
         max_points = cat.get('points', 0)
@@ -458,6 +551,11 @@ class AutoGradingEngine:
             lost = round(cs.max_points - cs.earned_points, 1)
 
             if method == 'build':
+                br = cs.details[0].get('build_result') if cs.details else None
+                if br is not None and getattr(br, 'status', None) == BuildStatus.SKIPPED:
+                    # 工具链缺失（非学生责任）：不计为失分错误项；编译行已用灰色 + 注释说明，
+                    # 且 grade_submission 已把该类排除出总分。避免红色「无法编译」误导学生。
+                    continue
                 if cs.earned_points < cs.max_points and cs.details:
                     d = cs.details[0]
                     issues.append({
@@ -485,6 +583,20 @@ class AutoGradingEngine:
                         'fix': ci.get('suggestion', ''),
                         'expected': '',
                     })
+            elif method == 'source_check':
+                d = cs.details[0] if cs.details else {}
+                if d.get('hit_count', 0) > 0:
+                    issues.append({
+                        'type': 'source_check',
+                        'category': cs.category_name,
+                        'criterion': 'HAL_Delay 禁用',
+                        'points_lost': lost,
+                        'severity': 'error',
+                        'message': d.get('feedback', '源码含 HAL_Delay 调用'),
+                        'detail': '; '.join(f"{v['file']}:{v['line']}" for v in d.get('violations', [])),
+                        'expected': '全部使用基于 HAL_GetTick() 的非阻塞延时，禁止 HAL_Delay()',
+                        'fix': '将 HAL_Delay(...) 改为基于 HAL_GetTick() 差值判定的非阻塞写法',
+                    })
             else:  # keyword/manual：逐准则失分
                 criteria_scores = (cs.details[0].get('criteria_scores') if cs.details else []) or []
                 for crit in criteria_scores:
@@ -501,7 +613,8 @@ class AutoGradingEngine:
                         'severity': 'warning',
                         'message': f"未充分体现：{', '.join(crit.get('missing_keywords', [])) or '相关关键词缺失'}",
                         'expected': self._expected_answer(cs.category_id, crit.get('description', ''), ref),
-                        'fix': f"补充并准确表述「{crit.get('description', '')}」相关内容。",
+                        'fix': (f"此处可回收 {p_lost:g} 分：围绕「{crit.get('description', '')}」"
+                                "把原理/做法/数据写清写准即可拿回（缺失关键词见上）。"),
                     })
 
         # 思考题核对：依据校验器在"七、思考题"章节内检测到的题号（避免正文其它编号误判）+ 参考答案
@@ -522,6 +635,9 @@ class AutoGradingEngine:
 
     def _build_thinking_check(self, validation_report, ref: Dict) -> List[Dict]:
         """逐题 Q1~Q7：是否作答（依据校验器在七、章节的检测）+ 参考答案方向。"""
+        # rubric 声明 thinking_check=false（如综合项目思考题为选做）时不生成该表
+        if not (self.rubric or {}).get('thinking_check', True):
+            return []
         answers = ref.get('thinking_questions', {}) if isinstance(ref, dict) else {}
         missing = set()
         if validation_report is not None:

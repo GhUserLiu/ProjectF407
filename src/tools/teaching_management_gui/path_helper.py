@@ -15,8 +15,21 @@ import re
 from pathlib import Path
 from typing import Optional, Tuple
 
-# 定位项目根目录（本文件位于 src/tools/teaching_management_gui/）
-PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
+# 定位项目根目录
+# - 开发态：本文件位于 src/tools/teaching_management_gui/，向上 4 级到仓库根
+# - 冻结态（PyInstaller）：__file__ 在 sys._MEIPASS 下，且 pathex=['src'] 会把 src/
+#   这一级剥离，再向上 4 级会落到 _MEIPASS 的「父目录」而找不到 data/。
+#   故冻结态直接以 sys._MEIPASS（onefile）或 exe 同级（onedir）为根。
+def _resolve_project_root() -> Path:
+    if getattr(sys, "frozen", False):
+        meipass = getattr(sys, "_MEIPASS", None)
+        if meipass:
+            return Path(meipass)
+        return Path(sys.executable).resolve().parent
+    return Path(__file__).parent.parent.parent.parent
+
+
+PROJECT_ROOT = _resolve_project_root()
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 

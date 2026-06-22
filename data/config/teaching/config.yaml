@@ -17,6 +17,12 @@ experiments:
   #   template_path: "templates/01-turn-signal-template.docx"
   #   rubric_path: "rubrics/rubric_01.json"
 
+  final-project:
+    name: "期末综合项目（多功能嵌入式系统综合设计）"
+    code: "final_project"
+    rubric_path: "rubrics/final-project.json"
+    description: "三选一综合设计；功能实现由教师实测评定，不在自检预测分内"
+
 # 班级配置
 classes:
   汽服2302B班:

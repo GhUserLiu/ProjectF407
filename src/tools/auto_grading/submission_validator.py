@@ -44,6 +44,36 @@ QUESTION_PATTERNS = [
 ]
 
 
+def detect_report_format(path) -> str:
+    """按文件头嗅探报告真实格式（扩展名可能不准）。
+
+    只读前 8 字节，开销极低。用于识破「旧版 .doc / RTF / PDF 被改名为 .docx」
+    这类陷阱——它们不是真正的 zip-based .docx，python-docx 解析会静默返回空，
+    进而让所有关键词类别 0 分。
+
+    Returns:
+        'docx'  — PK 头，至少是 zip（能否抽文本由后续解析决定）
+        'doc'   — OLE2 复合文档（Word 97-2003 .doc）
+        'pdf'   — PDF
+        'rtf'   — RTF
+        'unknown' — 其它/读取失败
+    """
+    try:
+        with open(path, "rb") as f:
+            head = f.read(8)
+    except (OSError, TypeError):
+        return "unknown"
+    if head.startswith(b"PK\x03\x04"):
+        return "docx"
+    if head.startswith(b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"):
+        return "doc"
+    if head.startswith(b"%PDF"):
+        return "pdf"
+    if head.startswith(b"{\\rtf"):
+        return "rtf"
+    return "unknown"
+
+
 @dataclass
 class ValidationIssue:
     """单条校验问题"""
@@ -96,6 +126,10 @@ class SubmissionValidator:
         self.min_result_images = min_result_images or self.MIN_RESULT_IMAGES
         self._section_detector = None
         self._image_counter = None
+        # rubric 驱动的校验配置（validate 时按 rubric 覆盖）
+        self._rubric: Dict = {}
+        self._expected_sections = EXPECTED_SECTIONS
+        self._thinking_check = True
 
     # ---------- 复用既有实现（惰性导入，避免循环依赖）----------
     def _detect_sections(self, text: str) -> Dict[str, str]:
@@ -139,6 +173,11 @@ class SubmissionValidator:
         """校验单个提交。绝不抛异常。"""
         report = ValidationReport()
 
+        # 按 rubric 配置校验：期望章节、是否检查思考题（缺省回退汽车档位默认）
+        self._rubric = rubric or {}
+        self._expected_sections = self._rubric.get('expected_sections') or EXPECTED_SECTIONS
+        self._thinking_check = bool(self._rubric.get('thinking_check', True))
+
         try:
             self._rule_format(submission, report)
             self._rule_files(submission, report, rubric)
@@ -166,7 +205,7 @@ class SubmissionValidator:
 
     # ---------- 各规则 ----------
     def _rule_format(self, submission, report: ValidationReport):
-        """规则1：报告格式"""
+        """规则1：报告格式（含「扩展名为 .docx 但实为旧版 .doc/RTF/PDF」的嗅探）"""
         path = getattr(submission, 'report_path', None)
         if path is None:
             report.issues.append(ValidationIssue(
@@ -175,7 +214,18 @@ class SubmissionValidator:
                 fix='补交 .docx 格式的实验报告'))
             return
         suffix = str(path).lower().rsplit('.', 1)[-1] if '.' in str(path) else ''
+        # 即便扩展名是 .docx，也按文件头核验真实格式——防「旧版 .doc / RTF / PDF 改名 .docx」
+        # 陷阱：它们不是真正的 zip-based .docx，python-docx 解析静默返回空 → 关键词类 0 分。
+        true_fmt = detect_report_format(path)
         if suffix == 'docx':
+            if true_fmt == 'docx':
+                return
+            label = {'doc': '旧版 Word .doc（97-2003）',
+                     'pdf': 'PDF', 'rtf': 'RTF', 'unknown': '未知'}.get(true_fmt, '未知')
+            report.issues.append(ValidationIssue(
+                rule='format', severity='error', section='文件格式',
+                message=f'扩展名是 .docx，但文件实为{label}，无法提取正文（关键词类将计 0 分）',
+                fix='在 Word 中打开后「另存为 → Word 文档(.docx)」，再重新选择该新文件'))
             return
         if suffix == 'doc':
             report.issues.append(ValidationIssue(
@@ -240,10 +290,10 @@ class SubmissionValidator:
                 fix='使用"一、团队信息与分工"等标准中文编号标题'))
             return
         section_names = list(sections.keys())
-        for numeral, keywords, cat_id, cat_pts in EXPECTED_SECTIONS:
+        for numeral, keywords, cat_id, cat_pts in self._expected_sections:
             found = any(any(kw in name for kw in keywords) for name in section_names)
             if not found:
-                cat_name = self._category_label(cat_id)
+                cat_name = self._category_name(cat_id)
                 report.issues.append(ValidationIssue(
                     rule='sections', severity='warning',
                     section=f'{numeral}、',
@@ -252,7 +302,7 @@ class SubmissionValidator:
 
     def _rule_section_content(self, sections: Dict[str, str], report: ValidationReport):
         """规则4：章节最小内容"""
-        for numeral, keywords, cat_id, cat_pts in EXPECTED_SECTIONS:
+        for numeral, keywords, cat_id, cat_pts in self._expected_sections:
             for name, content in sections.items():
                 if any(kw in name for kw in keywords):
                     body = re.sub(r'\s', '', content)
@@ -265,20 +315,17 @@ class SubmissionValidator:
                     break
 
     def _rule_code_block(self, submission, sections: Dict[str, str], report: ValidationReport):
-        """规则6：四、软件设计 含代码块"""
-        # 优先看第四章内容；其次看提取到的代码块
-        sw_content = ''
-        for name, content in sections.items():
-            if any(kw in name for kw in ['软件设计', '实现', '软件']):
-                sw_content = content
-                break
-        has_code_in_sec = bool(re.search(r'(int|void|static|HAL_|GPIO|switch|enum)\s*\w*\s*\(|[{};]\s*$', sw_content, re.MULTILINE))
+        """规则6：报告应含关键代码（在任意章节中检测，不限定「软件设计」）"""
+        # 扫描所有章节正文找代码痕迹；不同实验报告结构不同（汽车档位在「软件设计」、综合项目在「核心代码说明」）
+        all_content = "\n".join(sections.values())
+        has_code_in_sec = bool(re.search(
+            r'(int|void|static|HAL_|GPIO|switch|enum)\s*\w*\s*\(|[{};]\s*$', all_content, re.MULTILINE))
         code_blocks = getattr(submission, 'code_blocks', []) or []
         if not has_code_in_sec and not code_blocks:
             report.issues.append(ValidationIssue(
-                rule='code_block', severity='warning', section='四、软件设计与实现',
-                message='软件设计章节未检测到关键代码，代码质量（30分）将主要依赖源码工程分析',
-                fix='在报告四、中粘贴关键代码（如状态机 switch、EXTI 回调、DWT 初始化）'))
+                rule='code_block', severity='warning', section='核心代码',
+                message='报告未检测到关键代码，代码质量将主要依赖源码工程分析',
+                fix='在核心代码章节粘贴关键代码（如状态机 switch、按键长/短按、非阻塞延时、EXTI 回调）'))
 
     def _rule_images(self, submission, sections: Dict[str, str], report: ValidationReport):
         """规则5：结果章节图片证据"""
@@ -297,7 +344,9 @@ class SubmissionValidator:
                 fix='补充实验现象照片、LED 状态截图或示波器波形'))
 
     def _rule_thinking_questions(self, submission, sections: Dict[str, str], report: ValidationReport):
-        """规则7：思考题题号齐全"""
+        """规则7：思考题题号齐全（rubric 声明 thinking_check=false 时跳过，如综合项目为选做）"""
+        if not self._thinking_check:
+            return
         q_text = ''
         for name, content in sections.items():
             if any(kw in name for kw in ['思考题', '思考']):
@@ -331,6 +380,13 @@ class SubmissionValidator:
         # 检测到 ≥4 个题号：视为基本作答，不再提示
 
     # ---------- 辅助 ----------
+    def _category_name(self, cat_id: str) -> str:
+        """章节缺失提示里的类别名：优先取 rubric 中该类别的 name，回退到内置标签/id。"""
+        for c in (self._rubric or {}).get('categories', []):
+            if c.get('id') == cat_id:
+                return c.get('name', cat_id)
+        return self._category_label(cat_id)
+
     @staticmethod
     def _category_label(cat_id: str) -> str:
         return {

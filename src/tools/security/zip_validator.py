@@ -55,6 +55,8 @@ class ZipValidationError(Exception):
             zip_file: 相关的ZIP文件名（可选）
         """
         self.zip_file = zip_file
+        # 保留未加前缀的原文，供上层拼接时避免重复前缀（如 safe_extract_zip）
+        self.raw_message = message
         full_message = f"ZIP验证失败: {message}"
         if zip_file:
             full_message += f" (文件: {zip_file})"
@@ -250,7 +252,7 @@ def is_safe_zip_file(
         return True, ""
 
     except ZipValidationError as e:
-        return False, str(e)
+        return False, e.raw_message
     except Exception as e:
         return False, f"验证异常: {e}"
 
@@ -283,7 +285,9 @@ def safe_extract_zip(
     # 验证ZIP文件安全性
     is_safe, error_msg = is_safe_zip_file(zip_path, limits)
     if not is_safe:
-        raise ZipValidationError(f"ZIP文件验证失败: {error_msg}")
+        # error_msg 已是未加前缀的原文；ZipValidationError.__init__ 会补一层「ZIP验证失败:」前缀，
+        # 此处不再额外包装，避免出现「ZIP验证失败:ZIP文件验证失败:ZIP验证失败:…」的三重前缀。
+        raise ZipValidationError(error_msg)
 
     # 创建解压目录
     extract_dir.mkdir(parents=True, exist_ok=True)

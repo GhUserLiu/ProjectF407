@@ -73,7 +73,10 @@ ENV/
 # ========================================
 tools/teaching_management_gui/dist/
 tools/teaching_management_gui/build/
+# PyInstaller spec 多为本地临时产物（如冒烟测试用），默认忽略；
+# 但学生端正式构建 spec 是可复现构建的必要配置，显式纳管。
 *.spec
+!build_student.spec
 
 # ========================================
 # Logs & Temporary
