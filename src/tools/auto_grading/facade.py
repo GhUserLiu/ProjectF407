@@ -91,11 +91,26 @@ class AutoGradingFacade:
         self.organizer = SubmissionOrganizer(input_base)
         self.processor = SubmissionProcessor(input_base)
 
-        # 接通 rubric（单一事实来源）；facade 强制加载，避免引擎退化为简单评分
+        # 接通 rubric（单一事实来源）；facade 强制加载，避免引擎退化为简单评分。
+        # 此处用通用 rubric.json 作默认引擎（兼容 run_full_pipeline 前访问 facade.engine 的场景）；
+        # 真正评分时 run_full_pipeline 会按 experiment_id 重新装载对应 rubric。
         rubric_path = self.config.rubrics_dir / "rubric.json"
         self.engine = AutoGradingEngine(
             self.config,
             rubric_path=rubric_path if rubric_path.exists() else None
+        )
+
+    def _make_engine(self, experiment_id: str) -> AutoGradingEngine:
+        """按实验 id 定位 rubric 并构造引擎（单一事实来源：AutoGradingConfig.get_rubric_path）。
+
+        - final-project → data/rubrics/final-project.json
+        - 07-car-gear    → data/rubrics/07-car-gear.json 不存在 → 回退 rubric.json（行为不变）
+        避免 facade 永远只装 rubric.json、让综合项目被汽车档位标准误评。
+        """
+        rubric_path = self.config.get_rubric_path(experiment_id)
+        return AutoGradingEngine(
+            self.config,
+            rubric_path=rubric_path if rubric_path.exists() else None,
         )
 
     def run_full_pipeline(
@@ -128,6 +143,10 @@ class AutoGradingFacade:
         print(f"班级: {class_name}")
         print(f"实验: {experiment_id}")
         print(f"开始时间: {result.started_at.strftime('%Y-%m-%d %H:%M:%S')}")
+
+        # 按实验 id 装载对应 rubric（不同实验不同 rubric，如 final-project.json）
+        self.engine = self._make_engine(experiment_id)
+        print(f"rubric: {getattr(self.engine.rubric, 'get', lambda *a: None)('experiment_name', None) or self.engine.rubric_path or '(默认)'}")
         print()
 
         # 阶段1: 整理提交格式

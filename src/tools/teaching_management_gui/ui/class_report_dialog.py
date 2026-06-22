@@ -699,13 +699,22 @@ class ClassReportDialog(QDialog):
             count_label.setText(f"{count}人")
             percent_label.setText(f"{percentage:.0f}%")
 
-        # 各维度（analysis 按 category_id 聚合，映射到 build/code/report）
-        cat_map = {"compilation": "build", "code_quality": "code", "report_quality": "report"}
-        cat_rate = {k: None for k in ("build", "code", "report")}
+        # 各维度：按 category_id 映射到 build/code/report；同一维度多个类别取平均。
+        # 综合项目把报告相关类别聚合到 report；汽车档位仅 report_quality 落 report（单一，行为不变）。
+        cat_map = {
+            "compilation": "build", "code_quality": "code",
+            "report_quality": "report",
+            # 综合项目的报告维度（多个类别聚合求均）
+            "report_overview": "report", "system_design": "report",
+            "core_code": "report", "debug_test": "report",
+            "summary_reflection": "report", "non_blocking": "report",
+        }
+        cat_vals = {"build": [], "code": [], "report": []}
         for c in a.category_analysis:
             key = cat_map.get(c["id"])
             if key:
-                cat_rate[key] = c["rate"] * 100
+                cat_vals[key].append(c["rate"] * 100)
+        cat_rate = {k: (sum(v) / len(v) if v else None) for k, v in cat_vals.items()}
 
         for key, (progress_bar, score_label) in self.cat_bars.items():
             val = cat_rate.get(key)
