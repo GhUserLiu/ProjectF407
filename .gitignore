@@ -107,17 +107,17 @@ desktop.ini
 # ========================================
 # Project Specific
 # ========================================
-# Student submissions (optional - uncomment if needed)
-# data/teaching/*/submissions/
-# data/teaching/*/processed/
+# 学生提交的源代码（运行时数据，不入库；含解包后的 CubeMX 工程）
+data/teaching/**/source/
 
 # 学生原始提交压缩包（大文件，不入库）
 data/teaching/**/*.zip
 /*.汽服*.zip
 /汽服*.zip
 
-# Generated reports (optional)
-data/teaching/*/results/
+# 学生实验报告与系统生成结果（运行时产物，不入库；** 匹配 学期/班级/实验 任意深度）
+data/teaching/**/reports/
+data/teaching/**/results/
 data/teaching/*/*.xlsx
 data/teaching/*/*.html
 
@@ -140,3 +140,6 @@ models/*.pt
 
 # Stray Excel/report artifacts written to CWD by teaching_scripts (should go to outputs/)
 src/tools/*.xlsx
+
+# 本地临时测试文件（不入库）
+/测试.txt
