@@ -8,6 +8,8 @@ Unified Path Configuration for Teaching System
 确保所有模块使用一致的输出路径
 """
 
+from __future__ import annotations
+
 from pathlib import Path
 from dataclasses import dataclass, field
 from typing import Optional

@@ -11,13 +11,12 @@ Files Panel — 输入入口
 from datetime import datetime
 from pathlib import Path
 
-from PyQt6.QtWidgets import (
+from ...qt_compat import (
     QWidget, QVBoxLayout, QHBoxLayout, QFormLayout, QGridLayout,
     QGroupBox, QLabel, QPushButton, QLineEdit, QComboBox,
     QFileDialog, QProgressBar, QPlainTextEdit, QMessageBox, QFrame,
+    QFont, Qt,
 )
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QFont
 
 from tools.student_submission_gui.id_card import StudentIdentity
 from tools.student_submission_gui.submission_state import shared, SourceKind

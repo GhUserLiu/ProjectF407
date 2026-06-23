@@ -11,6 +11,8 @@ For defending against XXE (XML External Entity) injection attacks
 版本: 1.0.0
 """
 
+from __future__ import annotations
+
 import logging
 from xml.etree import ElementTree as ET
 from typing import Optional

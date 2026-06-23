@@ -8,12 +8,12 @@ Check Panel — ValidationReport 展示
 读 shared().state().last_result。
 """
 
-from PyQt6.QtWidgets import (
+from ...qt_compat import (
     QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
     QGroupBox, QLabel, QPushButton, QTableWidget, QTableWidgetItem,
     QHeaderView, QMessageBox,
+    Qt,
 )
-from PyQt6.QtCore import Qt
 
 from tools.student_submission_gui.submission_state import shared
 from tools.auto_grading.submission_validator import EXPECTED_SECTIONS
@@ -161,7 +161,7 @@ class CheckPanel(QWidget):
 
     @staticmethod
     def _brush(severity: str):
-        from PyQt6.QtGui import QColor
+        from ...qt_compat import QColor
         return QColor(_SEVERITY_COLOR.get(severity, "#000"))
 
     def _render_sections(self, detected_sections: dict):

@@ -8,13 +8,12 @@ Grade Panel — GradingResult 展示
 结构化失分与改进、思考题核对、导出自检报告。
 """
 
-from PyQt6.QtWidgets import (
+from ...qt_compat import (
     QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
     QGroupBox, QLabel, QPushButton, QTableWidget, QTableWidgetItem,
     QHeaderView, QMessageBox,
+    QUrl, QDesktopServices, QColor, Qt,
 )
-from PyQt6.QtCore import Qt, QUrl
-from PyQt6.QtGui import QDesktopServices, QColor
 
 from tools.student_submission_gui.submission_state import shared
 from tools.student_submission_gui.self_checker import build_status_of

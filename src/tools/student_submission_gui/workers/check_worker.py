@@ -19,7 +19,7 @@ import sys
 from pathlib import Path
 from typing import Optional
 
-from PyQt6.QtCore import QThread, pyqtSignal
+from ..qt_compat import QThread, pyqtSignal
 
 # 定位项目根目录（本文件位于 src/tools/student_submission_gui/workers/）
 project_root = Path(__file__).parent.parent.parent.parent.parent

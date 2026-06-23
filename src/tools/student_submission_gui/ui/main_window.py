@@ -15,13 +15,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
-from PyQt6.QtWidgets import (
+from ..qt_compat import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QListWidget, QStackedWidget, QListWidgetItem,
     QFrame, QMessageBox, QLabel,
+    QAction, QSize, Qt,
 )
-from PyQt6.QtCore import Qt, QSize
-from PyQt6.QtGui import QAction
 
 from tools.student_submission_gui.ui.panels.files_panel import FilesPanel
 from tools.student_submission_gui.ui.panels.check_panel import CheckPanel

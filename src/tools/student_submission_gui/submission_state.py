@@ -16,7 +16,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Optional
 
-from PyQt6.QtCore import QObject, pyqtSignal
+from .qt_compat import QObject, pyqtSignal
 
 from .id_card import StudentIdentity
 
