@@ -88,6 +88,12 @@ class GradingResult:
     graded_at: datetime = field(default_factory=datetime.now)
 
 
+# 视为"组长"的角色名（学生填表时可能用 主操作手 / 队长 等同义称呼）
+_LEADER_TITLES = ("组长", "主操作手", "队长", "负责人", "项目负责")
+# 预编译为正则 alternation，供 detect_team_leader 复用
+_LEADER_TITLE_ALT = r'(?:' + '|'.join(re.escape(t) for t in _LEADER_TITLES) + r')'
+
+
 # 自称为组长的句式（命中即判定作者为组长）
 _LEADER_SELF_PATTERNS = [
     re.compile(r'担任组长'),
@@ -103,12 +109,13 @@ _LEADER_SELF_PATTERNS = [
 
 
 def detect_team_leader(report_text: str, student_name: str) -> bool:
-    """从实验报告文本判断"该学生"是否被声明为组长。
+    """从实验报告文本判断"该学生"是否被声明为组长（含主操作手等同等角色）。
 
     小组报告会被多名成员共享（批阅时按团队展开），故必须按**姓名特异性**判定：
-    - "组长：张三" / "组长为张三" 中的姓名 == 学生姓名 → True
-    - "张三（组长）" → True
-    - 表式布局："<张三>\\n<学号>\\n<班级>\\n组长" → True
+    - "组长：张三" / "主操作手：张三" 中的姓名 == 学生姓名 → True
+    - "张三（组长）" / "张三（主操作手）" → True
+    - 表式布局："<张三>\\n<学号>\\n<班级>\\n组长/主操作手" → True
+    视为组长的角色见 _LEADER_TITLES（组长、主操作手、队长、负责人、项目负责）。
     文本级自称（"我担任组长"）无法归因到具体成员，仅在未提供姓名（单作者报告）
     时作退化判定；提供姓名时不使用，避免同组所有成员都被判为组长。
     只声明他人为组长，或完全未声明 → False。
@@ -119,19 +126,21 @@ def detect_team_leader(report_text: str, student_name: str) -> bool:
         # 无姓名（单作者报告）：退化为文本级自称
         return any(pat.search(report_text) for pat in _LEADER_SELF_PATTERNS)
 
+    title_alt = _LEADER_TITLE_ALT  # (?:组长|主操作手|队长|负责人|项目负责)
+
     # 有姓名：仅按姓名特异性判定
-    # 组长：张三 / 组长为张三 / 组长:张三
-    for m in re.finditer(r'组长[：:为是]\s*([^\s,，。、；;（(《<]{1,20})', report_text):
+    # 组长：张三 / 主操作手为张三 / 组长:张三
+    for m in re.finditer(title_alt + r'[：:为是]\s*([^\s,，。、；;（(《<]{1,20})', report_text):
         tok = m.group(1)
         if student_name in tok or tok in student_name:
             return True
-    # 张三（组长）
-    for m in re.finditer(r'([一-龥A-Za-z·]{2,20})\s*[（(]\s*组长\s*[）)]', report_text):
+    # 张三（组长） / 张三（主操作手）
+    for m in re.finditer(r'([一-龥A-Za-z·]{2,20})\s*[（(]\s*' + title_alt + r'\s*[）)]', report_text):
         if m.group(1) == student_name:
             return True
-    # 表式布局兜底：docx 表格竖排，"<姓名>\n<学号>\n<班级>\n组长"
-    # （姓名后 1~4 行内出现作为独立单元格的"组长"）
-    if re.search(re.escape(student_name) + r'[^\n]*(?:\n[^\n]*){0,3}\n\s*组长\b', report_text):
+    # 表式布局兜底：docx 表格竖排，"<姓名>\n<学号>\n<班级>\n组长/主操作手"
+    # （姓名后 1~4 行内出现作为独立单元格的角色名）
+    if re.search(re.escape(student_name) + r'[^\n]*(?:\n[^\n]*){0,3}\n\s*' + title_alt + r'\b', report_text):
         return True
     return False
 

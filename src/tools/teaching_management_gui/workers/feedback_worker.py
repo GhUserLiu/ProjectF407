@@ -8,8 +8,11 @@ Feedback Generation Worker Thread
 都要写 .md + .docx）移到后台线程，避免大批量时界面冻结。
 """
 
+import os
 import sys
+import subprocess
 from pathlib import Path
+from typing import Optional
 
 from PyQt6.QtCore import QThread, pyqtSignal
 
@@ -100,9 +103,40 @@ class FeedbackWorker(QThread):
                 self.log_message.emit(f"反馈生成已取消（已完成 {success}/{total}）")
                 self.feedback_cancelled.emit()
             else:
+                # 生成成功后自动在文件资源管理器中打开输出目录
+                if success > 0:
+                    opened = self._open_output_folder()
+                    if opened:
+                        self.log_message.emit(f"已打开输出目录：{opened}")
                 self.feedback_completed.emit(success, total)
         except Exception as e:
             self.feedback_failed.emit(str(e))
+
+    def _open_output_folder(self) -> Optional[Path]:
+        """生成完成后打开输出目录（Windows 资源管理器）。返回打开的路径，失败返回 None。
+
+        多班级时打开第一个班级的目录；学生模式开「学生反馈」，教师模式开「教师报告」。
+        """
+        if not self.reports:
+            return None
+        _, cls, exp = self.reports[0]
+        sub = "教师报告" if self.mode == "teacher" else "学生反馈"
+        folder = resolve_feedback_dir(cls, exp, self.semester) / sub
+        if not folder.exists():
+            folder = folder.parent
+        if not folder.exists():
+            return None
+        try:
+            if sys.platform.startswith("win"):
+                os.startfile(str(folder))  # type: ignore[attr-defined]
+            elif sys.platform == "darwin":
+                subprocess.Popen(["open", str(folder)])
+            else:
+                subprocess.Popen(["xdg-open", str(folder)])
+        except Exception as e:
+            self.log_message.emit(f"（无法自动打开文件夹：{e}）")
+            return None
+        return folder
 
     # ---------------- 学生反馈 ----------------
     def _generate_student(self):
