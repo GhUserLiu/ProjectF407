@@ -31,7 +31,7 @@ from dataclasses import dataclass, field
 from typing import List, Dict, Optional, Tuple
 from datetime import datetime
 
-from ..security.zip_validator import safe_extract_zip
+from ..security.zip_validator import safe_extract_zip, ZipLimits
 # from ..security.path_validator import PathValidator  # Not needed
 
 
@@ -59,6 +59,16 @@ class SubmissionOrganizer:
     # 文件扩展名模式
     REPORT_EXTENSIONS = {'.docx', '.doc', '.wps'}
     SOURCE_EXTENSIONS = {'.zip'}
+
+    # 班级压缩包解压限制：班级包内含每位学生的提交包（期末综合项目「按人导出」
+    # 常达数百 MB），默认 ZipLimits 的 100MB 上限会误拦正常班级包。此处放宽
+    # 外层/单文件上限；路径遍历、符号链接、高压缩比等其它安全检查仍由
+    # safe_extract_zip 照常生效。
+    CLASS_ZIP_LIMITS = ZipLimits(
+        max_file_count=5000,
+        max_outer_size=2 * 1024 * 1024 * 1024,   # 2GB（整班解压后总量）
+        max_inner_size=500 * 1024 * 1024,        # 500MB（单个学生提交包）
+    )
 
     # 学号模式（11位数字）
     STUDENT_ID_PATTERN = re.compile(r'(\d{11})')
@@ -112,7 +122,7 @@ class SubmissionOrganizer:
             class_temp_dir.mkdir(exist_ok=True)
 
             print(f"解压班级压缩包: {class_zip.name}")
-            safe_extract_zip(class_zip, class_temp_dir)
+            safe_extract_zip(class_zip, class_temp_dir, limits=self.CLASS_ZIP_LIMITS)
 
             # 2. 查找所有学生压缩包
             student_zips = self._find_student_zips(class_temp_dir)
@@ -206,6 +216,12 @@ class SubmissionOrganizer:
             # 3. 解压学生压缩包
             safe_extract_zip(student_zip, student_temp)
 
+            # 3.5 递归解包"包装层"zip
+            # 学习通「按人导出(附件)」的期末综合项目常有多层 zip 套娃：
+            #   学号-姓名-ID.zip → 学号-姓名-期末综合项目.zip → 班级姓名.docx + 源码
+            # 普通实验首层即含报告，此调用无副作用（找到报告立即返回）。
+            self._unwrap_nested_zips(student_temp)
+
             # 4. 查找并处理报告文件
             report_file = self._find_report_file(student_temp)
             if report_file:
@@ -228,7 +244,6 @@ class SubmissionOrganizer:
                 source_path.mkdir(exist_ok=True)
 
                 # 解压源代码（增加限制以应对大型项目）
-                from ..security.zip_validator import ZipLimits
                 source_limits = ZipLimits(
                     max_file_count=5000,      # 允许更多文件
                     max_outer_size=500*1024*1024,  # 500MB (学生可能包含大型库文件)
@@ -284,6 +299,89 @@ class SubmissionOrganizer:
             name=name,
             class_name=class_name
         )
+
+    def _unwrap_nested_zips(self, directory: Path, max_depth: int = 5) -> None:
+        """递归解包"包装层"zip，直到目录里出现真正的提交内容（实验报告）。
+
+        背景：学习通「按人导出(附件)」导出常有多层 zip 套娃，期末综合项目
+        尤为典型::
+
+            学号-姓名-ID.zip
+              └ 学号-姓名-期末综合项目.zip
+                   └ 班级姓名.docx  +  源码.7z      ← 真正的提交内容
+
+        本方法逐层解开这些"包装"zip，使报告落到磁盘上供 `_find_report_file`
+        发现。普通实验（07-car-gear）学生包内首层即是「报告 + 源码.zip」，
+        首层即可找到报告 → 立即返回，行为不变。
+
+        - 仅在「当前层找不到报告」时才尝试解包；
+        - 按命名约定属于源码包的 zip（源代码/工程/code/project/source）不视为
+          包装层，避免误把真正的源码包解开（会破坏 source/ 的提取）。
+        """
+        for _ in range(max_depth):
+            if self._find_report_file(directory) is not None:
+                return  # 已到达含报告的内容层
+            wrappers = [
+                p for p in directory.rglob("*.zip")
+                if not self._looks_like_source_archive(p)
+                and not self._looks_like_source_project(p)
+            ]
+            if not wrappers:
+                return
+            progress = False
+            for wrapper in wrappers:
+                try:
+                    dest = directory / f"{wrapper.stem}__unwrapped"
+                    dest.mkdir(exist_ok=True)
+                    safe_extract_zip(wrapper, dest)
+                    wrapper.unlink()  # 删掉包装层，避免后续被当成源码包
+                    progress = True
+                except Exception:
+                    continue
+            if not progress:
+                return
+
+    def _looks_like_source_archive(self, path: Path) -> bool:
+        """文件名是否符合"源代码压缩包"约定（不应被当作包装层解开）。"""
+        name = path.name
+        name_lower = name.lower()
+        # 中文约定：源代码 / 工程；英文约定：code / project / source
+        return any(kw in name for kw in ("源代码", "工程")) or \
+            any(kw in name_lower for kw in ("code", "project", "source"))
+
+    def _looks_like_source_project(self, zip_path: Path) -> bool:
+        """zip 内容是否像一个源码工程（而非提交包装层），应保留给 source/ 提取。
+
+        通过窥视内部条目判断：含工程源码特征（.c/.h/.ioc/.uvprojx/Core//Drivers/
+        Makefile/.mxproject 等）且**不含报告**即视为源码工程——否则会把整棵
+        CMSIS/HAL 树铺到临时目录。提交包装层（内含 报告.docx + 源码.7z）不含
+        这些直接的源码文件，故不会被误判；即便包装层里同时散落了 .c，只要它还
+        含报告，就仍按包装层解开以让报告露出。
+        """
+        try:
+            import zipfile as _zf
+            with _zf.ZipFile(zip_path) as zf:
+                names = [n for n in zf.namelist() if not n.endswith("/")]
+        except Exception:
+            return False
+
+        # 含报告 → 当作包装层（交给外层去解开让报告露出）
+        has_report = any(
+            n.lower().endswith((".docx", ".doc", ".pdf", ".wps")) or "报告" in n
+            for n in names
+        )
+        if has_report:
+            return False
+
+        for n in names:
+            low = n.lower()
+            if low.endswith((".c", ".h", ".cpp", ".hpp", ".cxx", ".s",
+                             ".ioc", ".uvprojx", ".uvproj")):
+                return True
+            if low.endswith("makefile") or ".mxproject" in low \
+                    or "/core/" in low or "/drivers/" in low:
+                return True
+        return False
 
     def _find_report_file(self, directory: Path) -> Optional[Path]:
         """查找报告文件"""
