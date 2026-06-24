@@ -54,7 +54,7 @@ class FilesPanel(QWidget):
         box = QGroupBox("使用说明")
         v = QVBoxLayout()
         msg = QLabel(
-            "1) 选择实验报告（.docx 推荐）与源代码（.zip）；\n"
+            "1) 选择实验报告（.docx 推荐）与源代码（.zip / .7z）；\n"
             "2) 填写班级/学号/姓名（文件名规范时会自动回填）；\n"
             "3) 选择实验，点「开始检测与自评」。\n"
             "说明：编译检查需 make + arm-none-eabi-gcc；未安装时编译项记 0 分但状态为「已跳过」，不代表代码无法编译。"
@@ -93,10 +93,10 @@ class FilesPanel(QWidget):
         grid.addWidget(QLabel("源代码："), 3, 0)
         self.source_edit = QLineEdit()
         self.source_edit.setReadOnly(True)
-        self.source_edit.setPlaceholderText("可选 · .zip 压缩包（影响编译/代码质量分）")
+        self.source_edit.setPlaceholderText("可选 · .zip / .7z 压缩包（影响编译/代码质量分）")
         grid.addWidget(self.source_edit, 3, 1)
         src_row = QHBoxLayout()
-        zip_btn = QPushButton("选 zip…")
+        zip_btn = QPushButton("选源码包…")
         zip_btn.clicked.connect(self._pick_source)
         clr_btn = QPushButton("清除")
         clr_btn.clicked.connect(self._clear_source)
@@ -229,13 +229,15 @@ class FilesPanel(QWidget):
 
     def _pick_source(self):
         path, _ = QFileDialog.getOpenFileName(
-            self, "选择源代码压缩包", str(Path.home()), "ZIP 压缩包 (*.zip)")
+            self, "选择源代码压缩包", str(Path.home()),
+            "压缩包 (*.zip *.7z);;ZIP 压缩包 (*.zip);;7z 压缩包 (*.7z)")
         if not path:
             return
         p = Path(path)
-        shared().update(source_path=p, source_kind=SourceKind.ZIP)
+        kind = SourceKind.SEVEN_ZIP if p.suffix.lower() == ".7z" else SourceKind.ZIP
+        shared().update(source_path=p, source_kind=kind)
         self.source_edit.setText(str(p))
-        self.source_badge.setText("已选源码（zip）")
+        self.source_badge.setText(f"已选源码（{p.suffix.lower().lstrip('.')}）")
         self.source_badge.setStyleSheet("color:#27ae60;")
 
     def _clear_source(self):
