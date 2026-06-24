@@ -131,6 +131,17 @@
       "description": "按任务书实测评定（短按/长按/紧急双闪/温度报警/RTC 闹钟等功能）；本项不在机器预测分内",
       "source_section": "教师评定",
       "note": "功能实现是项目核心分，需硬件演示评定，自检无法预测；请以教师实测为准"
+    },
+    {
+      "id": "team_leader_bonus",
+      "name": "组长加分",
+      "points": 5,
+      "grading_method": "conditional",
+      "points_outside_base": true,
+      "condition": "is_team_leader",
+      "description": "报告声明担任组长的学生加 5 分（基础分外，不影响百分制基础分）；组员与组长基础分相同",
+      "source_section": "一、团队信息与分工",
+      "note": "由 detect_team_leader 从报告「团队信息与分工/个人分工」识别组长；小组成员同分，组长额外加分"
     }
   ],
   "reference_answers": {

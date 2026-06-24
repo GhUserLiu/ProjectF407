@@ -198,7 +198,8 @@ class ObservableFacade:
 
         submissions = self.facade.processor.process_class_submissions(
             class_name,
-            experiment_id
+            experiment_id,
+            expand_team=True,   # 批阅按团队成员展开为每人一条；查重链路保持默认 False
         )
 
         self.stage_progress.emit("compile", 10, 10)
@@ -232,6 +233,10 @@ class ObservableFacade:
 
         self.stage_progress.emit("analyze", total, total)
         self.stage_completed.emit("analyze")
+
+        # 小组按成员展开后，同一学生可能出现在多份上传报告中；按学号去重保留最高分
+        from tools.auto_grading.grading_engine import dedupe_team_members
+        grading_results = dedupe_team_members(grading_results)
 
         result.grading_results = grading_results
         result.successful_graded = len(grading_results)

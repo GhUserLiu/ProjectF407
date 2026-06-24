@@ -32,6 +32,16 @@ from .submission_processor import ProcessedSubmission
 from .submission_validator import SubmissionValidator, ValidationReport
 
 
+# 编译"无法评估"的状态集合：这些情况下不应记为学生责任（不罚分、排除出总分），
+# 仅 FAILED（真正编译出错）才计入失分。
+_UNASSESSABLE_BUILD_STATES = frozenset({
+    BuildStatus.SKIPPED,     # 工具链缺失 / 未提取到工程
+    BuildStatus.NOT_FOUND,   # 工程无 Makefile / 无可编译目标（如纯 MDK-ARM 工程）
+    BuildStatus.ERROR,       # 工具链执行错误
+    BuildStatus.TIMEOUT,     # 编译超时
+})
+
+
 @dataclass
 class CategoryScore:
     """评分类别得分"""
@@ -93,28 +103,59 @@ _LEADER_SELF_PATTERNS = [
 
 
 def detect_team_leader(report_text: str, student_name: str) -> bool:
-    """从实验报告文本判断作者是否声明自己为组长。
+    """从实验报告文本判断"该学生"是否被声明为组长。
 
-    - 报告含"本人/我担任组长""作为组长"等自称 → True
-    - "组长：姓名" / "姓名（组长）" 中的姓名 == 学生姓名 → True
-    - 只声明他人为组长，或完全未声明 → False（该组视为无组长，不加分）
+    小组报告会被多名成员共享（批阅时按团队展开），故必须按**姓名特异性**判定：
+    - "组长：张三" / "组长为张三" 中的姓名 == 学生姓名 → True
+    - "张三（组长）" → True
+    - 表式布局："<张三>\\n<学号>\\n<班级>\\n组长" → True
+    文本级自称（"我担任组长"）无法归因到具体成员，仅在未提供姓名（单作者报告）
+    时作退化判定；提供姓名时不使用，避免同组所有成员都被判为组长。
+    只声明他人为组长，或完全未声明 → False。
     """
     if not report_text:
         return False
-    for pat in _LEADER_SELF_PATTERNS:
-        if pat.search(report_text):
+    if not student_name:
+        # 无姓名（单作者报告）：退化为文本级自称
+        return any(pat.search(report_text) for pat in _LEADER_SELF_PATTERNS)
+
+    # 有姓名：仅按姓名特异性判定
+    # 组长：张三 / 组长为张三 / 组长:张三
+    for m in re.finditer(r'组长[：:为是]\s*([^\s,，。、；;（(《<]{1,20})', report_text):
+        tok = m.group(1)
+        if student_name in tok or tok in student_name:
             return True
-    if student_name:
-        # 组长：张三 / 组长为张三 / 组长:张三
-        for m in re.finditer(r'组长[：:为是]\s*([^\s,，。、；;（(《<]{1,20})', report_text):
-            tok = m.group(1)
-            if student_name in tok or tok in student_name:
-                return True
-        # 张三（组长）
-        for m in re.finditer(r'([一-龥A-Za-z·]{2,20})\s*[（(]\s*组长\s*[）)]', report_text):
-            if m.group(1) == student_name:
-                return True
+    # 张三（组长）
+    for m in re.finditer(r'([一-龥A-Za-z·]{2,20})\s*[（(]\s*组长\s*[）)]', report_text):
+        if m.group(1) == student_name:
+            return True
+    # 表式布局兜底：docx 表格竖排，"<姓名>\n<学号>\n<班级>\n组长"
+    # （姓名后 1~4 行内出现作为独立单元格的"组长"）
+    if re.search(re.escape(student_name) + r'[^\n]*(?:\n[^\n]*){0,3}\n\s*组长\b', report_text):
+        return True
     return False
+
+
+def dedupe_team_members(results: List[GradingResult]) -> List[GradingResult]:
+    """按学号去重评分结果，每位学生保留得分最高的一份。
+
+    小组按成员展开后，同一学生可能出现在多份上传报告中（学习通「按人导出」，
+    同组的每位成员各自上传一份报告）。此函数对每个学号保留 (total_score, bonus_total)
+    最大者，并按首次出现顺序输出。对个人实验（无团队成员表、不展开）为空操作。
+    """
+    best: Dict[str, GradingResult] = {}
+    for r in results:
+        cur = best.get(r.student_id)
+        if cur is None or (r.total_score, r.bonus_total) > (cur.total_score, cur.bonus_total):
+            best[r.student_id] = r
+    seen = set()
+    out = []
+    for r in results:
+        if r.student_id in seen:
+            continue
+        seen.add(r.student_id)
+        out.append(best[r.student_id])
+    return out
 
 
 class AutoGradingEngine:
@@ -131,6 +172,8 @@ class AutoGradingEngine:
         # 初始化子模块
         self.build_checker = BuildChecker(self.config)
         self.validator = SubmissionValidator()
+        # 编译结果缓存（按 source_path）：小组成员共享同一工程，避免重复编译
+        self._build_cache: Dict[Path, BuildResult] = {}
 
         # 延迟导入（避免循环依赖）
         try:
@@ -262,9 +305,11 @@ class AutoGradingEngine:
             if method == 'build' and cs.details:
                 br = cs.details[0].get('build_result')
                 result.compilation_result = br
-                # 工具链缺失（SKIPPED）：非学生责任，汇总时把该类分值排除出总分与等级基数，
-                # 避免无工具链持续拖低预测分。仅对基础分内类别生效（bonus 类本就单列）。
-                if (br is not None and getattr(br, 'status', None) == BuildStatus.SKIPPED
+                # 编译"无法评估"（无源码/无 Makefile/工具链缺失/超时/错误）：非学生责任，
+                # 汇总时把该类分值排除出总分与等级基数，避免误判为编译失败拖低预测分。
+                # 仅真正编译失败的 FAILED 才计入。仅对基础分内类别生效（bonus 类本就单列）。
+                if (br is not None
+                        and getattr(br, 'status', None) in _UNASSESSABLE_BUILD_STATES
                         and not cat.get('points_outside_base')):
                     excluded_points += cat.get('points', 0)
             if method == 'code_analysis' and cs.details:
@@ -310,15 +355,45 @@ class AutoGradingEngine:
     # 各 grading_method 打分
     # --------------------------------------------------------------
     def _grade_compilation(self, submission: ProcessedSubmission, cat: Dict) -> Optional[CategoryScore]:
-        """build：真实编译检查。无源码返回 None（由调用方记 0 分）。"""
-        if not submission.source_path or not submission.project_info:
-            return None
+        """build：真实编译检查。
 
+        - 无源码/工程：返回 SKIPPED（grade_submission 会将其排除出总分与等级基数，
+          视为"无法评估"而非学生责任，避免误判为编译失败）。
+        - 同一 source_path 的编译结果缓存：小组多名成员共享同一工程，只编译一次。
+        """
         max_points = cat.get('points', 10)
-        build_result = self.build_checker.check_build(
-            submission.source_path,
-            f"{submission.student_id}-{submission.name}"
-        )
+
+        if not submission.source_path or not submission.project_info:
+            # 未提取到可编译工程：按"无法评估"处理（SKIPPED），汇总时排除出总分
+            return CategoryScore(
+                category_id=cat['id'],
+                category_name=cat.get('name', '编译检查'),
+                max_points=max_points,
+                earned_points=0.0,
+                details=[{
+                    'build_result': BuildResult(
+                        status=BuildStatus.SKIPPED,
+                        project_name=f"{submission.student_id}-{submission.name}",
+                        project_path=Path(submission.source_path or ''),
+                        success=False,
+                        error_message='未提取到可编译的源码工程（可能为 .7z 等未支持格式或学生未提交）',
+                    ),
+                    'feedback': '已跳过：未提取到源码工程（不代表代码无法编译）',
+                    'error_count': 0,
+                    'warning_count': 0,
+                    'error_message': '',
+                }]
+            )
+
+        cache_key = Path(submission.source_path)
+        if cache_key in self._build_cache:
+            build_result = self._build_cache[cache_key]
+        else:
+            build_result = self.build_checker.check_build(
+                submission.source_path,
+                f"{submission.student_id}-{submission.name}"
+            )
+            self._build_cache[cache_key] = build_result
 
         if build_result.status == BuildStatus.SUCCESS:
             earned_points = max_points
@@ -552,9 +627,9 @@ class AutoGradingEngine:
 
             if method == 'build':
                 br = cs.details[0].get('build_result') if cs.details else None
-                if br is not None and getattr(br, 'status', None) == BuildStatus.SKIPPED:
-                    # 工具链缺失（非学生责任）：不计为失分错误项；编译行已用灰色 + 注释说明，
-                    # 且 grade_submission 已把该类排除出总分。避免红色「无法编译」误导学生。
+                if br is not None and getattr(br, 'status', None) in _UNASSESSABLE_BUILD_STATES:
+                    # 编译"无法评估"（无源码/无 Makefile/工具链缺失/超时）：非学生责任，
+                    # grade_submission 已把该类排除出总分；此处不再显示误导性"编译失败"。
                     continue
                 if cs.earned_points < cs.max_points and cs.details:
                     d = cs.details[0]
@@ -742,7 +817,10 @@ class AutoGradingEngine:
             result = self.grade_submission(submission)
             results.append(result)
             print(f"  得分: {result.total_score:.1f}/{result.max_score:.1f} (加分{result.bonus_total:.0f}) ({result.grade})")
-        return results
+        # 小组按成员展开后，同一学生可能出现在多份上传报告中（学习通「按人导出」，
+        # 同组成员各自上传）；按学号去重，保留得分最高的一份（同组多版本取最优，
+        # 对学生最有利且确定）。个人实验无团队成员表→不展开→去重为空操作。
+        return dedupe_team_members(results)
 
     def generate_class_report(self, results: List[GradingResult]) -> Dict:
         if not results:

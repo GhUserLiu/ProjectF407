@@ -32,6 +32,7 @@ from typing import List, Dict, Optional, Tuple
 from datetime import datetime
 
 from ..security.zip_validator import safe_extract_zip, ZipLimits
+from ..security.seven_zip_validator import safe_extract_7z
 # from ..security.path_validator import PathValidator  # Not needed
 
 
@@ -58,7 +59,7 @@ class SubmissionOrganizer:
 
     # 文件扩展名模式
     REPORT_EXTENSIONS = {'.docx', '.doc', '.wps'}
-    SOURCE_EXTENSIONS = {'.zip'}
+    SOURCE_EXTENSIONS = {'.zip', '.7z'}
 
     # 班级压缩包解压限制：班级包内含每位学生的提交包（期末综合项目「按人导出」
     # 常达数百 MB），默认 ZipLimits 的 100MB 上限会误拦正常班级包。此处放宽
@@ -236,8 +237,9 @@ class SubmissionOrganizer:
                 return result
 
             # 5. 查找并处理源代码
-            source_zip = self._find_source_zip(student_temp)
-            if source_zip:
+            source_archive = self._find_source_archive(student_temp)
+            if source_archive:
+                source_file, src_kind = source_archive
                 # 创建源代码目录
                 source_name = f"{class_name}-{student_info.student_id}-{student_info.name}-源代码"
                 source_path = source_dir / source_name
@@ -249,9 +251,16 @@ class SubmissionOrganizer:
                     max_outer_size=500*1024*1024,  # 500MB (学生可能包含大型库文件)
                     max_inner_size=200*1024*1024   # 200MB
                 )
-                safe_extract_zip(source_zip, source_path, limits=source_limits)
-                result['source_path'] = str(source_path)
-                print(f"  [OK] 处理源代码: {source_name}")
+                try:
+                    if src_kind == '7z':
+                        safe_extract_7z(source_file, source_path, limits=source_limits)
+                    else:
+                        safe_extract_zip(source_file, source_path, limits=source_limits)
+                    result['source_path'] = str(source_path)
+                    print(f"  [OK] 处理源代码({src_kind}): {source_name}")
+                except Exception as e:
+                    # 源码解压失败不阻断（报告已处理，可按报告评分；编译将按"无法评估"跳过）
+                    print(f"  [WARN] 源代码解压失败({src_kind}) {source_file.name}: {e}")
             else:
                 print(f"  [WARN] 未找到源代码压缩包: {student_zip.name}")
 
@@ -398,20 +407,29 @@ class SubmissionOrganizer:
 
         return None
 
-    def _find_source_zip(self, directory: Path) -> Optional[Path]:
-        """查找源代码压缩包"""
-        # 查找可能的源代码压缩包
-        patterns = ['*源代码*.zip', '*code*.zip', '*project*.zip', '*工程*.zip']
+    def _find_source_archive(self, directory: Path) -> Optional[Tuple[Path, str]]:
+        """查找源代码压缩包（.zip 或 .7z），含嵌套子目录（如 _unwrap 产生的 __unwrapped/）。
 
-        for pattern in patterns:
-            for file in directory.glob(pattern):
-                return file
+        学习通「按人导出(附件)」的综合项目源码常为 .7z，且经 _unwrap_nested_zips
+        后位于 __unwrapped/ 子目录，故用 rglob 递归查找。
 
-        # 如果没有找到，查找任意ZIP（排除可能的重复）
-        zips = list(directory.glob("*.zip"))
-        if len(zips) == 1:
-            return zips[0]
+        Returns:
+            (path, kind)，kind ∈ {'zip', '7z'}；找不到返回 None。
+        """
+        def _kind(p: Path) -> str:
+            return '7z' if p.suffix.lower() == '.7z' else 'zip'
 
+        # 1) 按命名约定优先（明确为源码包的命名）
+        named = ['*源代码*.zip', '*源码*.zip', '*code*.zip', '*project*.zip', '*工程*.zip',
+                 '*源代码*.7z', '*源码*.7z']
+        for pat in named:
+            for f in directory.rglob(pat):
+                return f, _kind(f)
+
+        # 2) 兜底：任意单一归档（zip/7z）
+        found = list(directory.rglob("*.zip")) + list(directory.rglob("*.7z"))
+        if len(found) == 1:
+            return found[0], _kind(found[0])
         return None
 
     def generate_summary_report(self, result: OrganizationResult, output_path: Path):

@@ -177,7 +177,8 @@ class AutoGradingFacade:
 
         submissions = self.processor.process_class_submissions(
             class_name,
-            experiment_id
+            experiment_id,
+            expand_team=True,   # 批阅按团队成员展开为每人一条；查重链路保持默认 False
         )
 
         result.total_submissions = len(submissions)

@@ -112,6 +112,16 @@ def build_student_feedback(
             cname = cs.get("category_name") or cs.get("category_id", "")
             e = float(cs.get("earned_points", 0) or 0)
             m = float(cs.get("max_points", 0) or 0)
+            # 编译类"无法评估"（已跳过/无 Makefile/工具链缺失等）：不计入总分，
+            # 单独标注，避免显示误导性的"0/15 ⚠失分较多"。
+            details = cs.get("details") or []
+            d0 = details[0] if isinstance(details, list) and details else {}
+            br = d0.get("build_result") if isinstance(d0, dict) else None
+            bstatus = (br.get("status") or "").lower() if isinstance(br, dict) else ""
+            fb_txt = d0.get("feedback", "") if isinstance(d0, dict) else ""
+            if bstatus in ("skipped", "not_found", "error", "timeout") or "已跳过" in fb_txt:
+                lines.append(f"- {cname}：已跳过（未提取到可编译工程，不计入总分）")
+                continue
             rate = _safe_rate(e, m)
             flag = "" if rate >= 0.6 else "  ⚠失分较多"
             lines.append(f"- {cname}：{e}/{m}（{rate*100:.0f}%）{flag}")
