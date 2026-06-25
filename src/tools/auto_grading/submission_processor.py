@@ -55,6 +55,10 @@ class ProcessedSubmission:
     # 提取的代码块（从报告中）
     code_blocks: List[str] = field(default_factory=list)
 
+    # 小组信息（批阅按团队展开时，同组所有成员共享同一份工程/报告）
+    group_key: str = ""                                  # 小组键（组长学号）；同组成员相同
+    group_members: List[Tuple[str, str]] = field(default_factory=list)  # [(学号, 姓名), ...]
+
     # 元数据
     processed_at: datetime = field(default_factory=datetime.now)
 
@@ -222,7 +226,12 @@ class SubmissionProcessor:
                     source_path=source_path,
                     project_info=project_info,
                     source_state=source_state,
-                    code_blocks=code_blocks
+                    code_blocks=code_blocks,
+                    # 小组键取组员「最小学号」——与上传者无关的规范代表：学习通「按人导出」
+                    # 时同组每人各传一份报告，若用上传者学号做键，同一队会被拆成多组。
+                    # 同组成员名册相同 → 最小学号相同 → 同组归到一起。
+                    group_key=min((sid for sid, _ in members), default=student_id),
+                    group_members=list(members),    # 同组成员名册 [(学号, 姓名), ...]
                 )
 
                 submissions.append(submission)

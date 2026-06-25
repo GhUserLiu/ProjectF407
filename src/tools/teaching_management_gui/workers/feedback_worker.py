@@ -11,8 +11,9 @@ Feedback Generation Worker Thread
 import os
 import sys
 import subprocess
+from collections import OrderedDict
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List, Dict, Tuple
 
 from PyQt6.QtCore import QThread, pyqtSignal
 
@@ -22,6 +23,8 @@ sys.path.insert(0, str(project_root))
 from tools.teaching_management_gui.feedback_reports import (  # noqa: E402
     build_student_feedback,
     build_teacher_report,
+    build_group_feedback,
+    pick_group_leader,
 )
 from tools.teaching_management_gui.path_helper import (  # noqa: E402
     feedback_dir as resolve_feedback_dir,
@@ -50,6 +53,77 @@ def _write_docx(path: Path, title: str, text: str):
         elif line.strip():
             doc.add_paragraph(line)
     doc.save(path)
+
+
+def generate_group_feedback_files(
+    reports: List[Tuple[Dict, str, str]],
+    semester: str,
+    include_strengths: bool = True,
+    include_weaknesses: bool = True,
+    include_suggestions: bool = True,
+    concise: bool = False,
+    log=print,
+    on_progress=None,
+    is_cancelled=None,
+) -> Tuple[int, int]:
+    """按 ``(班级, 实验, group_key)`` 聚合，每组生成 1 份反馈。
+
+    - 同组（共享同一份小组报告/工程）的成员合并为一份，列出全体组员与各自成绩；
+    - 无 ``group_key``（个人实验或旧数据）按学号自成一组，行为退化为每生一份；
+    - md → ``学生反馈/md/``，word → ``学生反馈/word/``（分文件夹）。
+
+    Args:
+        reports: [(report_dict, class_name, experiment_id), ...]
+        semester: 学期（决定产物路径）
+        on_progress: 可选回调 (current, total) -> None
+        is_cancelled: 可选取消判定 () -> bool
+
+    Returns:
+        (success, total)
+    """
+    groups: "OrderedDict[Tuple[str, str, str], List[Dict]]" = OrderedDict()
+    for rep, cls, exp in reports:
+        gk = rep.get('group_key') or rep.get('student_id') or 'unknown'
+        groups.setdefault((cls, exp, gk), []).append(rep)
+
+    total = len(groups)
+    success = 0
+    log(f"批量生成小组反馈：{total} 个小组（来源 {len(reports)} 份个人报告）")
+
+    for i, ((cls, exp, gk), member_reports) in enumerate(groups.items()):
+        if on_progress:
+            on_progress(i, total)
+        if is_cancelled and is_cancelled():
+            break
+        try:
+            text = build_group_feedback(
+                member_reports, cls, exp,
+                include_strengths, include_weaknesses, include_suggestions, concise,
+            )
+            base_dir = resolve_feedback_dir(cls, exp, semester) / "学生反馈"
+            md_dir = base_dir / "md"
+            word_dir = base_dir / "word"
+            md_dir.mkdir(parents=True, exist_ok=True)
+            word_dir.mkdir(parents=True, exist_ok=True)
+
+            leader = pick_group_leader(member_reports)
+            lsid = leader.get('student_id', '') or gk
+            lname = leader.get('name', '')
+            n = len(member_reports)
+            base = f"{lsid}_{lname}_小组反馈({n}人)" if lname else f"{gk}_小组反馈({n}人)"
+
+            (md_dir / f"{base}.md").write_text(text, encoding="utf-8")
+            if HAS_DOCX:
+                _write_docx(word_dir / f"{base}.docx",
+                            f"{lname or gk} 小组实验反馈（{n}人）", text)
+            success += 1
+        except Exception as e:
+            log(f"生成失败 小组 {gk}: {e}")
+
+    if on_progress:
+        on_progress(total, total)
+    log(f"小组反馈完成：{success}/{total}")
+    return success, total
 
 
 class FeedbackWorker(QThread):
@@ -138,35 +212,21 @@ class FeedbackWorker(QThread):
             return None
         return folder
 
-    # ---------------- 学生反馈 ----------------
+    # ---------------- 学生反馈（按小组聚合，每组 1 份） ----------------
     def _generate_student(self):
-        total = len(self.reports)
-        success = 0
-        self.log_message.emit(f"批量生成学生反馈：{total} 名学生")
-        for i, (rep, cls, exp) in enumerate(self.reports):
-            if self.is_cancelled:
-                break
-            self.progress.emit(i, total)
-            try:
-                text = build_student_feedback(
-                    rep, cls, exp,
-                    self.include_strengths, self.include_weaknesses,
-                    self.include_suggestions, self.concise,
-                )
-                out_dir = resolve_feedback_dir(cls, exp, self.semester) / "学生反馈"
-                out_dir.mkdir(parents=True, exist_ok=True)
-                sid = rep.get("student_id", "unknown")
-                name = rep.get("name", "")
-                base = f"{sid}_{name}_反馈" if name else f"{sid}_反馈"
-                (out_dir / f"{base}.md").write_text(text, encoding="utf-8")
-                if HAS_DOCX:
-                    _write_docx(out_dir / f"{base}.docx", f"{name or sid} 实验反馈", text)
-                success += 1
-            except Exception as e:
-                self.log_message.emit(f"生成失败 {rep.get('name', '')}: {e}")
-        self.progress.emit(total, total)
-        if not self.is_cancelled:
-            self.log_message.emit(f"学生反馈完成：{success}/{total}")
+        success, total = generate_group_feedback_files(
+            self.reports,
+            self.semester,
+            self.include_strengths,
+            self.include_weaknesses,
+            self.include_suggestions,
+            self.concise,
+            log=self.log_message.emit,
+            on_progress=lambda c, t: self.progress.emit(c, t),
+            is_cancelled=lambda: self.is_cancelled,
+        )
+        if self.is_cancelled:
+            self.log_message.emit(f"反馈生成已取消（已完成 {success}/{total}）")
         return success, total
 
     # ---------------- 教师分析报告 ----------------

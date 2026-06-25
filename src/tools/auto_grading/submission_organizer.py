@@ -268,6 +268,15 @@ class SubmissionOrganizer:
                         print(f"  [OK] 扁平化源码目录(原嵌套{nres.original_depth}层): {source_name}")
                     elif nres.skip_cause and nres.skip_cause != 'already_flat':
                         print(f"  [INFO] 未扁平化({nres.skip_cause}): {nres.reason}")
+                    # 成功解压后清除可能残留的旧 .extraction_error 标记：否则 processor
+                    # 读取该标记会让 SourceStateClassifier 优先判损坏/嵌套，连累本次
+                    # 已成功解压的工程被误判（如上次失败留下的标记没清，重跑仍判 0）。
+                    stale_err = source_dir / f"{source_name}.extraction_error"
+                    if stale_err.exists():
+                        try:
+                            stale_err.unlink()
+                        except Exception:
+                            pass
                     result['source_path'] = str(source_path)
                     print(f"  [OK] 处理源代码({src_kind}): {source_name}")
                 except Exception as e:

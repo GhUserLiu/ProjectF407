@@ -350,11 +350,6 @@ def main():
         base_dir / 'docs' / '07_car_gear_experiment.docx'
     )
 
-    md_to_docx(
-        base_dir / 'docs' / '实验报告模板.md',
-        base_dir / 'docs' / '实验报告模板.docx'
-    )
-
     print('\n转换完成！')
     print('改进：')
     print('  - 严格列表识别，减少误判')

@@ -347,6 +347,15 @@ def safe_extract_zip(
                 except (UnicodeDecodeError, UnicodeEncodeError):
                     # 如果编码转换失败，使用原始方式
                     zf.extract(zinfo, extract_dir)
+            except OSError as e:
+                # 文件系统层错误：最常见为 Windows MAX_PATH(260) 超长——学生源码包里
+                # CubeMX 生成的 CMSIS/NN/NN_Lib_Tests 等深层目录路径轻易超过 260，
+                # 若某个深层文件写失败就让整体解压中断，会连累真工程（Makefile/Core/Drivers，
+                # 路径较短）也被判"解压失败→编译跳过→0 分"。此处仅跳过该单个文件并记日志，
+                # 不中断整体解压；真正的工程文件仍能正常落盘，编译不受影响。
+                logger.warning("跳过无法写入的文件（可能路径超过 Windows 260 限制）: %s (%s)",
+                               zinfo.filename, e)
+                continue
             except Exception as e:
                 raise ZipValidationError(f"解压文件失败 {zinfo.filename}: {e}")
 
