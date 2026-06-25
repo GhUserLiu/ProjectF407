@@ -33,6 +33,7 @@ from datetime import datetime
 
 from ..security.zip_validator import safe_extract_zip, ZipLimits
 from ..security.seven_zip_validator import safe_extract_7z
+from .submission_normalizer import SubmissionNormalizer
 # from ..security.path_validator import PathValidator  # Not needed
 
 
@@ -243,7 +244,10 @@ class SubmissionOrganizer:
                 # 创建源代码目录
                 source_name = f"{class_name}-{student_info.student_id}-{student_info.name}-源代码"
                 source_path = source_dir / source_name
-                source_path.mkdir(exist_ok=True)
+                # 重跑幂等：先清空旧目录（上一次扁平化留下的顶层 Makefile 会让本次
+                # 新解压的嵌套工程被误判 already_flat）。注：这会清除教师对该目录的手改。
+                shutil.rmtree(source_path, ignore_errors=True)
+                source_path.mkdir(parents=True, exist_ok=True)
 
                 # 解压源代码（增加限制以应对大型项目）
                 source_limits = ZipLimits(
@@ -256,11 +260,34 @@ class SubmissionOrganizer:
                         safe_extract_7z(source_file, source_path, limits=source_limits)
                     else:
                         safe_extract_zip(source_file, source_path, limits=source_limits)
+                    # 扁平化多余「包装层」目录嵌套（如 QIMO/QIMO/{工程}），
+                    # 让真正的工程根落到 source_path 顶层，使 BuildChecker 能找到 Makefile。
+                    # 仅在纯包装链时执行；不安全情形原样保留，绝不抛异常。
+                    nres = SubmissionNormalizer.flatten(source_path)
+                    if nres.flattened:
+                        print(f"  [OK] 扁平化源码目录(原嵌套{nres.original_depth}层): {source_name}")
+                    elif nres.skip_cause and nres.skip_cause != 'already_flat':
+                        print(f"  [INFO] 未扁平化({nres.skip_cause}): {nres.reason}")
                     result['source_path'] = str(source_path)
                     print(f"  [OK] 处理源代码({src_kind}): {source_name}")
                 except Exception as e:
-                    # 源码解压失败不阻断（报告已处理，可按报告评分；编译将按"无法评估"跳过）
-                    print(f"  [WARN] 源代码解压失败({src_kind}) {source_file.name}: {e}")
+                    # 源码解压失败不阻断（报告已处理，可按报告评分；编译将按"无法评估"跳过）。
+                    # 关键：清掉残留的空/半空 source_path，否则 processor 会把它当作"有源码但无 Makefile"，
+                    # 让编译误判 not_found（实为解压失败）。清空后 processor 检测到无源码 → 编译判 SKIPPED，
+                    # 归为「无法评估」并明确提示"未提取到源码工程"，不再误导。
+                    shutil.rmtree(source_path, ignore_errors=True)
+                    hint = ""
+                    if src_kind == '7z' and ('py7zr' in str(e).lower() or '7z' in str(e).lower()):
+                        hint = "（教师端请：pip install py7zr）"
+                    msg = f"源代码解压失败({src_kind}) {source_file.name}: {e}{hint}"
+                    print(f"  [WARN] {msg}")
+                    result['source_error'] = msg   # 记录到结果，不再静默吞掉
+                    # 写标记文件，供 SubmissionProcessor 读取并归类为 corrupted，
+                    # 进而在学生反馈中告知「具体原因 + 改进方法」。
+                    try:
+                        (source_dir / f"{source_name}.extraction_error").write_text(msg, encoding='utf-8')
+                    except Exception:
+                        pass
             else:
                 print(f"  [WARN] 未找到源代码压缩包: {student_zip.name}")
 

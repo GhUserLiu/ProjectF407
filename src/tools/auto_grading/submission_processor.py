@@ -16,11 +16,12 @@ Submission Processor
 import re
 from pathlib import Path
 from dataclasses import dataclass, field
-from typing import List, Dict, Optional, Tuple
+from typing import List, Dict, Optional, Tuple, Any
 from datetime import datetime
 
 from ..security.zip_validator import safe_extract_text_from_docx
 from ..security.xml_parser import extract_text_from_docx_xml
+from .source_state import SourceStateClassifier
 
 
 @dataclass
@@ -49,6 +50,7 @@ class ProcessedSubmission:
     # 源代码信息
     source_path: Optional[Path] = None       # 源代码目录路径
     project_info: Optional[ProjectInfo] = None  # 项目信息
+    source_state: Optional[Any] = None       # 源码工程状态（SourceState）——格式问题的具体原因/改进
 
     # 提取的代码块（从报告中）
     code_blocks: List[str] = field(default_factory=list)
@@ -178,14 +180,25 @@ class SubmissionProcessor:
             # 查找对应的源代码目录
             source_path = None
             project_info = None
+            source_state = None
 
             if source_dir.exists():
                 source_name = f"{class_name_parsed}-{student_id}-{name}-源代码"
                 student_source = source_dir / source_name
+                err_marker = source_dir / f"{source_name}.extraction_error"
+                extraction_error = None
+                if err_marker.exists():
+                    try:
+                        extraction_error = err_marker.read_text(encoding='utf-8')
+                    except Exception:
+                        extraction_error = None
 
                 if student_source.exists():
                     source_path = student_source
                     project_info = self._analyze_project(student_source)
+                # 无论目录是否存在，都做一次状态分类（携带 extraction_error），
+                # 让格式问题（损坏/嵌套/空/未提交/纯Keil）在学生反馈中给出具体原因与改进方法。
+                source_state = SourceStateClassifier.classify(source_path, extraction_error)
 
             # 读取报告内容
             report_text = self._read_report(report_file)
@@ -208,6 +221,7 @@ class SubmissionProcessor:
                     report_text=report_text,
                     source_path=source_path,
                     project_info=project_info,
+                    source_state=source_state,
                     code_blocks=code_blocks
                 )
 
@@ -242,8 +256,10 @@ class SubmissionProcessor:
 
         # 分析源代码
         project_info = None
+        source_state = None
         if source_path and source_path.exists():
             project_info = self._analyze_project(source_path)
+        source_state = SourceStateClassifier.classify(source_path if (source_path and source_path.exists()) else None)
 
         # 提取代码块
         code_blocks = self._extract_code_blocks(report_text)
@@ -256,6 +272,7 @@ class SubmissionProcessor:
             report_text=report_text,
             source_path=source_path,
             project_info=project_info,
+            source_state=source_state,
             code_blocks=code_blocks
         )
 

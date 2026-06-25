@@ -19,6 +19,8 @@ Auto Grading System for STM32 Teaching Projects
 
 from .config import AutoGradingConfig
 from .submission_organizer import SubmissionOrganizer, OrganizationResult, StudentInfo
+from .submission_normalizer import SubmissionNormalizer, NormalizeResult
+from .source_state import SourceState, SourceStateClassifier
 from .build_checker import BuildChecker, BuildResult, BuildStatus
 from .submission_processor import SubmissionProcessor, ProcessedSubmission, ProjectInfo
 from .grading_engine import AutoGradingEngine, GradingResult, CategoryScore
@@ -31,6 +33,12 @@ __all__ = [
     "SubmissionOrganizer",
     "OrganizationResult",
     "StudentInfo",
+    # 提交规整（消除多余包装层目录嵌套）
+    "SubmissionNormalizer",
+    "NormalizeResult",
+    # 源码工程状态分类（格式问题的具体原因/改进方法）
+    "SourceState",
+    "SourceStateClassifier",
     # 编译检查
     "BuildChecker",
     "BuildResult",

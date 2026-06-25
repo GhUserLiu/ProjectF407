@@ -146,17 +146,63 @@ def detect_team_leader(report_text: str, student_name: str) -> bool:
 
 
 def dedupe_team_members(results: List[GradingResult]) -> List[GradingResult]:
-    """按学号去重评分结果，每位学生保留得分最高的一份。
+    """按学号去重评分结果。
 
     小组按成员展开后，同一学生可能出现在多份上传报告中（学习通「按人导出」，
-    同组的每位成员各自上传一份报告）。此函数对每个学号保留 (total_score, bonus_total)
-    最大者，并按首次出现顺序输出。对个人实验（无团队成员表、不展开）为空操作。
+    同组成员各自上传）。去重规则：
+
+    1. **优先自评归因**：若该生有「自己提交的源码」对应的结果（学号命中源码目录名，
+       即源码目录形如 ``{班级}-{学号}-{姓名}-源代码``），则保留自评那条——避免被
+       判到队友的源码上、反馈与本人提交不符。仅当该生仅作为组员出现（无自己源码）
+       时，才回退到最高分（共享组长源码）。
+    2. **同组勿重复提交提醒**：若该生关联了 >1 个**不同**源码目录（多人各自上传了
+       不同版本），在反馈 issues 中追加提醒，引导「同组由组长一人提交」。
+
+    对个人实验（无团队成员表、不展开）为空操作。
     """
-    best: Dict[str, GradingResult] = {}
+    def _source_token(r: GradingResult) -> str:
+        """该结果所用源码目录名（= 报告组长的源码包）；无源码返回 ''。"""
+        pp = getattr(r.compilation_result, "project_path", None) if r.compilation_result else None
+        try:
+            return Path(pp).name if pp else ""
+        except Exception:
+            return ""
+
+    def _is_self_sourced(r: GradingResult) -> bool:
+        """该结果是否用的是「该生自己提交的源码」（学号在源码目录名中）。"""
+        return bool(r.student_id) and r.student_id in _source_token(r)
+
+    # 按学号分组
+    by_id: Dict[str, List[GradingResult]] = {}
     for r in results:
-        cur = best.get(r.student_id)
-        if cur is None or (r.total_score, r.bonus_total) > (cur.total_score, cur.bonus_total):
-            best[r.student_id] = r
+        by_id.setdefault(r.student_id, []).append(r)
+
+    best: Dict[str, GradingResult] = {}
+    for sid, rs in by_id.items():
+        if len(rs) == 1:
+            best[sid] = rs[0]
+            continue
+        # 多份：优先自评；同为自评或同为非自评时再比最高分
+        self_rs = [r for r in rs if _is_self_sourced(r)]
+        pool = self_rs if self_rs else rs
+        best[sid] = max(pool, key=lambda r: (r.total_score, r.bonus_total))
+
+    # 同组勿重复提交：该生关联了 >1 个不同源码目录 → 追加提醒（advisory，不扣分）
+    for sid, rs in by_id.items():
+        tokens = {_source_token(r) for r in rs if _source_token(r)}
+        if len(tokens) > 1 and sid in best:
+            best[sid].issues.append({
+                "type": "submission",
+                "category": "提交规范",
+                "criterion": "同组勿重复提交",
+                "points_lost": 0,
+                "severity": "info",
+                "message": "检测到你的学号关联了多份不同的源码提交（同组多人各自上传了不同版本）。",
+                "fix": "同组只需由组长提交一份报告 + 一份源码；组员不必各自重复上传，以免机器批阅归因混乱、反馈与本人提交不符。",
+                "expected": "每组一份报告 + 一份源码",
+            })
+
+    # 按首次出现顺序输出
     seen = set()
     out = []
     for r in results:
@@ -366,14 +412,54 @@ class AutoGradingEngine:
     def _grade_compilation(self, submission: ProcessedSubmission, cat: Dict) -> Optional[CategoryScore]:
         """build：真实编译检查。
 
-        - 无源码/工程：返回 SKIPPED（grade_submission 会将其排除出总分与等级基数，
-          视为"无法评估"而非学生责任，避免误判为编译失败）。
+        - 无源码/工程：按 source_state 分类，在学生反馈中给出**具体原因 + 改进方法**。
+          * 纯 Keil 工程（keil_only）：判为真实编译失败（FAILED，0 分计入总分）。
+          * 损坏/嵌套/空/未提交：无法评估（SKIPPED，排除出总分），但仍带反馈。
         - 同一 source_path 的编译结果缓存：小组多名成员共享同一工程，只编译一次。
         """
+        from .source_state import STATE_KEIL_ONLY, STATE_OK
         max_points = cat.get('points', 10)
+        name = f"{submission.student_id}-{submission.name}"
 
-        if not submission.source_path or not submission.project_info:
-            # 未提取到可编译工程：按"无法评估"处理（SKIPPED），汇总时排除出总分
+        ss = getattr(submission, 'source_state', None)
+        # 无可机器编译的工程（含格式问题）：按状态分类给反馈
+        if not submission.source_path or not submission.project_info \
+                or (ss is not None and not getattr(ss, 'is_machine_buildable', True) and ss.state != STATE_OK):
+            # 即便 source_path/project_info 在(如纯 Keil：有 project_info 但无 Makefile)，
+            # 也由 source_state 统一出口，确保反馈带具体原因与改进方法。
+            if ss is not None and not getattr(ss, 'is_machine_buildable', True):
+                reason = ss.feedback_reason
+                fix = ss.feedback_fix
+                st = ss.state
+                # 纯 Keil 工程：判为真实编译失败（计入总分），其余格式问题判 SKIPPED（排除）
+                if st == STATE_KEIL_ONLY:
+                    status, feedback = BuildStatus.FAILED, f"{reason} {fix}"
+                else:
+                    status, feedback = BuildStatus.SKIPPED, f"{reason} {fix}"
+                br = BuildResult(
+                    status=status,
+                    project_name=name,
+                    project_path=Path(submission.source_path or ''),
+                    success=False,
+                    error_message=reason,
+                )
+                return CategoryScore(
+                    category_id=cat['id'],
+                    category_name=cat.get('name', '编译检查'),
+                    max_points=max_points,
+                    earned_points=0.0,
+                    details=[{
+                        'build_result': br,
+                        'feedback': feedback,
+                        'source_state': st,
+                        'reason': reason,
+                        'fix': fix,
+                        'error_count': 0,
+                        'warning_count': 0,
+                        'error_message': '',
+                    }]
+                )
+            # 无 source_state（兼容旧调用）：退化为原"无法评估"
             return CategoryScore(
                 category_id=cat['id'],
                 category_name=cat.get('name', '编译检查'),
@@ -382,7 +468,7 @@ class AutoGradingEngine:
                 details=[{
                     'build_result': BuildResult(
                         status=BuildStatus.SKIPPED,
-                        project_name=f"{submission.student_id}-{submission.name}",
+                        project_name=name,
                         project_path=Path(submission.source_path or ''),
                         success=False,
                         error_message='未提取到可编译的源码工程（可能为 .7z 等未支持格式或学生未提交）',
@@ -635,13 +721,30 @@ class AutoGradingEngine:
             lost = round(cs.max_points - cs.earned_points, 1)
 
             if method == 'build':
-                br = cs.details[0].get('build_result') if cs.details else None
+                d = cs.details[0] if cs.details else {}
+                br = d.get('build_result')
+                src_state = d.get('source_state')
+                # 格式问题（损坏/嵌套/空/未提交/纯Keil）：**必须**告知学生具体原因与改进方法，
+                # 即便被归为「无法评估」(SKIPPED) 也反馈（用户要求：格式问题一定说清）。
+                if src_state:
+                    reason = d.get('reason') or d.get('feedback', '源码工程无法用于机器编译')
+                    issues.append({
+                        'type': 'build',
+                        'category': cs.category_name,
+                        'criterion': '编译/源码格式',
+                        'points_lost': lost,
+                        'severity': 'error',
+                        'message': reason,
+                        'detail': d.get('error_message', ''),
+                        'expected': '提交标准 GCC 工程：根目录含 Makefile（CubeMX 导出时 Toolchain 选 Makefile）',
+                        'fix': d.get('fix') or '请按反馈原因修正源码打包/工程类型后重新提交。',
+                    })
+                    continue
                 if br is not None and getattr(br, 'status', None) in _UNASSESSABLE_BUILD_STATES:
-                    # 编译"无法评估"（无源码/无 Makefile/工具链缺失/超时）：非学生责任，
+                    # 编译"无法评估"（工具链缺失/超时等非学生责任，且无格式问题）：
                     # grade_submission 已把该类排除出总分；此处不再显示误导性"编译失败"。
                     continue
                 if cs.earned_points < cs.max_points and cs.details:
-                    d = cs.details[0]
                     issues.append({
                         'type': 'build',
                         'category': cs.category_name,
