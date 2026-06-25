@@ -127,6 +127,13 @@ outputs/**/*.xlsx
 outputs/**/*.png
 outputs/**/*.html
 
+# CubeMX 厂商库（DSP/NN 信号/神经网络库，体积大且 .ioc 可重新生成，不入库）
+src/projects/*/cubemx/Drivers/CMSIS/DSP/
+src/projects/*/cubemx/Drivers/CMSIS/NN/
+
+# Keil DFP 器件支持包（EIDE/Keil 本地构建用，按机器安装，不入库）
+/.pack/
+
 # Model files (large)
 models/*.pkl
 models/*.h5
@@ -143,3 +150,9 @@ src/tools/*.xlsx
 
 # 本地临时测试文件（不入库）
 /测试.txt
+
+# Keil/EIDE 自动生成的 RTE 头文件（构建时再生，不入库）
+/RTE_Components.h
+
+# 一次性重跑/诊断脚本（如下划线前缀的 rerun 脚本，不入库）
+scripts/_*.py

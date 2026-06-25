@@ -32,23 +32,27 @@
 ```
 stm32f407/
 ├── src/                          # 源代码目录
-│   ├── common/                   # 共享代码库
-│   │   ├── core/                # 核心 HAL 库
-│   │   ├── bsp/                 # 板级支持包
+│   ├── common/                   # 共享代码库（模块化 HAL）
+│   │   ├── core/                # 核心 HAL 库（GPIO/SysTick/RCC/EXTI + 错误处理）
+│   │   ├── bsp/                 # 板级支持包（board.h 引脚定义）
 │   │   ├── drivers/             # 外设驱动（UART、Timer）
-│   │   └── startup/             # 启动文件
+│   │   ├── inc/                 # 公共头文件
+│   │   └── startup/             # 启动文件（startup_stm32f407xx.s）
 │   │
 │   ├── projects/                 # STM32 实验项目
 │   │   ├── _template/           # 项目模板（新建项目参考）
 │   │   ├── 01-turn-signal/      # 转向灯系统（简单项目示例）
-│   │   └── 07-car-gear/         # 汽车档位模拟器（CubeMX 项目）
+│   │   ├── 07-car-gear/         # 汽车档位模拟器（CubeMX 项目）
+│   │   └── Test6/               # 示例项目（CubeMX）
 │   │
-│   └── tools/                    # 教学管理工具
+│   └── tools/                    # 教学管理工具（Python）
 │       ├── plagiarism/           # 查重检测系统（核心）
-│       ├── auto_grading_gui/    # 自动化批阅GUI应用
-│       ├── security/            # 安全工具
+│       ├── auto_grading/         # 自动化批阅（核心逻辑，无 GUI）
+│       ├── teaching_management_gui/  # 教学管理桌面应用（PyQt6）
+│       ├── student_submission_gui/   # 学生端提交应用
+│       ├── security/            # 安全工具（路径/ZIP/XML/脱敏）
 │       ├── teaching_scripts/    # 教学处理脚本
-│       └── *.py                 # 独立脚本
+│       └── scripts/             # 通用辅助脚本
 │
 ├── data/                         # 数据目录
 │   ├── config/                   # 配置文件
@@ -56,24 +60,28 @@ stm32f407/
 │   │   ├── plagiarism/          # 查重工具配置
 │   │   └── security/            # 安全配置
 │   ├── rubrics/                  # 评分标准
-│   ├── templates/                # 模板文件
+│   ├── templates/                # 模板文件（实验报告模板等）
 │   ├── resources/                # 资源文件（图标等）
 │   └── teaching/                 # 教学业务数据
 │       └── 2026-春季/           # 按学期组织的数据
 │
-├── outputs/                      # 运行时输出
-│   ├── analysis/                 # 分析结果
-│   ├── grading/                  # 评分结果
-│   ├── build/                    # 构建输出
-│   └── reports/                  # 生成的报告
-│
 ├── docs/                         # 文档中心
 │   ├── api/                      # API 文档
 │   ├── guides/                   # 开发指南
-│   └── security/                 # 安全文档
+│   ├── security/                 # 安全文档
+│   ├── teaching/                 # 教学资料
+│   └── archive/                  # 归档资料
 │
+├── scripts/                      # 构建 / 重跑辅助脚本
+├── tests/                        # 单元 / 集成测试
+├── outputs/                      # 运行时输出（不入库）
+├── models/                       # 模型文件
 ├── Makefile                      # 构建系统
-└── requirements.txt              # Python 依赖
+├── STM32F407XX_FLASH.ld          # 链接脚本
+├── build_student.spec            # 学生端 exe 构建配置
+├── requirements.txt              # Python 依赖
+├── CLAUDE.md / README.md / PROJECT_STRUCTURE.md / CHANGELOG.md
+└── 启动教学管理系统.bat           # 教学管理系统启动器
 ```
 
 ---
