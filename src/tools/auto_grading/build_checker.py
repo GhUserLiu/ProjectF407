@@ -270,9 +270,11 @@ class BuildChecker:
                 )
 
         # 调用make命令
+        # 不传 -C <dir>：cwd 已设为 makefile.parent，-C 本就冗余；且在 Windows + MSYS make 下，
+        # -C 收到的反斜杠路径会被解析坏（实测报 "...QIMO\QIMO: No such file or directory"）。
+        # make 默认在 cwd 查找 Makefile，故去掉 -C 既修正 Windows 路径 bug，POSIX 行为不变。
         cmd = [
             self.config.toolchain.make_path,
-            '-C', str(makefile.parent),
             'clean',
             'all'
         ]

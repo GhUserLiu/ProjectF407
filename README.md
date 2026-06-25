@@ -24,37 +24,37 @@ make help
 ## 项目结构
 
 ```
-NewProjectF407/
-├── projects/              # 各个项目
-│   ├── _template/         # 新项目模板
-│   ├── 01-turn-signal/    # 转向灯系统
-│   ├── 07-car-gear/      # 汽车档位模拟器 (CubeMX)
-│   └── Test6/            # 示例项目
-├── common/                # 共享代码库（模块化）
-│   ├── core/             # 核心 HAL 库
-│   │   ├── stm32f4xx_hal.h/c       # 基础 HAL
-│   │   └── stm32f4xx_hal_ext.h/c   # 扩展 HAL
-│   ├── bsp/              # 板级支持包
-│   │   └── board.h                   # 开发板硬件定义 ⭐
-│   ├── drivers/          # 外设驱动（预留）
-│   ├── utils/            # 工具函数（预留）
-│   ├── inc/              # 公共头文件
-│   └── startup/          # 启动文件
-│       └── startup_stm32f407xx.s
-├── docs/                 # 文档中心
-│   ├── guides/           # 开发指南
-│   ├── api/              # API 文档
-│   ├── hardware/         # 硬件文档
-│   ├── teaching/         # 教学资料
-│   ├── EIDE_GUIDE.md
-│   └── TROUBLESHOOTING_LOG.md
-├── tools/                # 开发工具
-│   ├── scripts/          # 辅助脚本
-│   └── templates/        # 文件模板
-├── build/                # 构建输出
-├── Makefile              # 构建脚本
-├── STM32F407XX_FLASH.ld  # 链接脚本
-├── PROJECT_STRUCTURE.md  # 结构说明
+stm32f407/
+├── src/                          # 源代码
+│   ├── common/                   # 共享代码库（模块化 HAL）
+│   │   ├── core/                 # 核心 HAL 库（stm32f4xx_hal + error_handler）
+│   │   ├── bsp/                  # 板级支持包（board.h 开发板引脚定义）⭐
+│   │   ├── drivers/              # 外设驱动（UART、Timer）
+│   │   ├── inc/                  # 公共头文件
+│   │   └── startup/              # 启动文件（startup_stm32f407xx.s）
+│   ├── projects/                 # 实验项目
+│   │   ├── _template/            # 新项目模板
+│   │   ├── 01-turn-signal/       # 转向灯系统（简单项目）
+│   │   ├── 07-car-gear/          # 汽车档位模拟器（CubeMX）
+│   │   └── Test6/                # 示例项目（CubeMX）
+│   └── tools/                    # 教学管理工具（Python）
+│       ├── auto_grading/         # 自动化批阅
+│       ├── plagiarism/           # 查重检测
+│       ├── teaching_management_gui/  # 教学管理 GUI（PyQt6）
+│       ├── student_submission_gui/   # 学生端提交 GUI
+│       ├── security/             # 安全工具（路径/ZIP/XML）
+│       └── teaching_scripts/     # 教学处理脚本
+├── data/                         # 配置 / 模板 / 教学业务数据
+├── docs/                         # 文档（api / guides / security / teaching / archive）
+├── scripts/                      # 构建 / 重跑辅助脚本
+├── tests/                        # 单元 / 集成测试
+├── outputs/                      # 运行时输出（不入库）
+├── models/                       # 模型文件
+├── Makefile                      # 构建脚本
+├── STM32F407XX_FLASH.ld          # 链接脚本
+├── build_student.spec            # 学生端 exe 构建配置
+├── requirements.txt              # Python 依赖
+├── PROJECT_STRUCTURE.md          # 结构说明
 └── README.md
 ```
 

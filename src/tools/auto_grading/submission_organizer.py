@@ -31,7 +31,9 @@ from dataclasses import dataclass, field
 from typing import List, Dict, Optional, Tuple
 from datetime import datetime
 
-from ..security.zip_validator import safe_extract_zip
+from ..security.zip_validator import safe_extract_zip, ZipLimits
+from ..security.seven_zip_validator import safe_extract_7z
+from .submission_normalizer import SubmissionNormalizer
 # from ..security.path_validator import PathValidator  # Not needed
 
 
@@ -58,7 +60,17 @@ class SubmissionOrganizer:
 
     # 文件扩展名模式
     REPORT_EXTENSIONS = {'.docx', '.doc', '.wps'}
-    SOURCE_EXTENSIONS = {'.zip'}
+    SOURCE_EXTENSIONS = {'.zip', '.7z'}
+
+    # 班级压缩包解压限制：班级包内含每位学生的提交包（期末综合项目「按人导出」
+    # 常达数百 MB），默认 ZipLimits 的 100MB 上限会误拦正常班级包。此处放宽
+    # 外层/单文件上限；路径遍历、符号链接、高压缩比等其它安全检查仍由
+    # safe_extract_zip 照常生效。
+    CLASS_ZIP_LIMITS = ZipLimits(
+        max_file_count=5000,
+        max_outer_size=2 * 1024 * 1024 * 1024,   # 2GB（整班解压后总量）
+        max_inner_size=500 * 1024 * 1024,        # 500MB（单个学生提交包）
+    )
 
     # 学号模式（11位数字）
     STUDENT_ID_PATTERN = re.compile(r'(\d{11})')
@@ -112,7 +124,7 @@ class SubmissionOrganizer:
             class_temp_dir.mkdir(exist_ok=True)
 
             print(f"解压班级压缩包: {class_zip.name}")
-            safe_extract_zip(class_zip, class_temp_dir)
+            safe_extract_zip(class_zip, class_temp_dir, limits=self.CLASS_ZIP_LIMITS)
 
             # 2. 查找所有学生压缩包
             student_zips = self._find_student_zips(class_temp_dir)
@@ -206,6 +218,12 @@ class SubmissionOrganizer:
             # 3. 解压学生压缩包
             safe_extract_zip(student_zip, student_temp)
 
+            # 3.5 递归解包"包装层"zip
+            # 学习通「按人导出(附件)」的期末综合项目常有多层 zip 套娃：
+            #   学号-姓名-ID.zip → 学号-姓名-期末综合项目.zip → 班级姓名.docx + 源码
+            # 普通实验首层即含报告，此调用无副作用（找到报告立即返回）。
+            self._unwrap_nested_zips(student_temp)
+
             # 4. 查找并处理报告文件
             report_file = self._find_report_file(student_temp)
             if report_file:
@@ -220,23 +238,65 @@ class SubmissionOrganizer:
                 return result
 
             # 5. 查找并处理源代码
-            source_zip = self._find_source_zip(student_temp)
-            if source_zip:
+            source_archive = self._find_source_archive(student_temp)
+            if source_archive:
+                source_file, src_kind = source_archive
                 # 创建源代码目录
                 source_name = f"{class_name}-{student_info.student_id}-{student_info.name}-源代码"
                 source_path = source_dir / source_name
-                source_path.mkdir(exist_ok=True)
+                # 重跑幂等：先清空旧目录（上一次扁平化留下的顶层 Makefile 会让本次
+                # 新解压的嵌套工程被误判 already_flat）。注：这会清除教师对该目录的手改。
+                shutil.rmtree(source_path, ignore_errors=True)
+                source_path.mkdir(parents=True, exist_ok=True)
 
                 # 解压源代码（增加限制以应对大型项目）
-                from ..security.zip_validator import ZipLimits
                 source_limits = ZipLimits(
                     max_file_count=5000,      # 允许更多文件
                     max_outer_size=500*1024*1024,  # 500MB (学生可能包含大型库文件)
                     max_inner_size=200*1024*1024   # 200MB
                 )
-                safe_extract_zip(source_zip, source_path, limits=source_limits)
-                result['source_path'] = str(source_path)
-                print(f"  [OK] 处理源代码: {source_name}")
+                try:
+                    if src_kind == '7z':
+                        safe_extract_7z(source_file, source_path, limits=source_limits)
+                    else:
+                        safe_extract_zip(source_file, source_path, limits=source_limits)
+                    # 扁平化多余「包装层」目录嵌套（如 QIMO/QIMO/{工程}），
+                    # 让真正的工程根落到 source_path 顶层，使 BuildChecker 能找到 Makefile。
+                    # 仅在纯包装链时执行；不安全情形原样保留，绝不抛异常。
+                    nres = SubmissionNormalizer.flatten(source_path)
+                    if nres.flattened:
+                        print(f"  [OK] 扁平化源码目录(原嵌套{nres.original_depth}层): {source_name}")
+                    elif nres.skip_cause and nres.skip_cause != 'already_flat':
+                        print(f"  [INFO] 未扁平化({nres.skip_cause}): {nres.reason}")
+                    # 成功解压后清除可能残留的旧 .extraction_error 标记：否则 processor
+                    # 读取该标记会让 SourceStateClassifier 优先判损坏/嵌套，连累本次
+                    # 已成功解压的工程被误判（如上次失败留下的标记没清，重跑仍判 0）。
+                    stale_err = source_dir / f"{source_name}.extraction_error"
+                    if stale_err.exists():
+                        try:
+                            stale_err.unlink()
+                        except Exception:
+                            pass
+                    result['source_path'] = str(source_path)
+                    print(f"  [OK] 处理源代码({src_kind}): {source_name}")
+                except Exception as e:
+                    # 源码解压失败不阻断（报告已处理，可按报告评分；编译将按"无法评估"跳过）。
+                    # 关键：清掉残留的空/半空 source_path，否则 processor 会把它当作"有源码但无 Makefile"，
+                    # 让编译误判 not_found（实为解压失败）。清空后 processor 检测到无源码 → 编译判 SKIPPED，
+                    # 归为「无法评估」并明确提示"未提取到源码工程"，不再误导。
+                    shutil.rmtree(source_path, ignore_errors=True)
+                    hint = ""
+                    if src_kind == '7z' and ('py7zr' in str(e).lower() or '7z' in str(e).lower()):
+                        hint = "（教师端请：pip install py7zr）"
+                    msg = f"源代码解压失败({src_kind}) {source_file.name}: {e}{hint}"
+                    print(f"  [WARN] {msg}")
+                    result['source_error'] = msg   # 记录到结果，不再静默吞掉
+                    # 写标记文件，供 SubmissionProcessor 读取并归类为 corrupted，
+                    # 进而在学生反馈中告知「具体原因 + 改进方法」。
+                    try:
+                        (source_dir / f"{source_name}.extraction_error").write_text(msg, encoding='utf-8')
+                    except Exception:
+                        pass
             else:
                 print(f"  [WARN] 未找到源代码压缩包: {student_zip.name}")
 
@@ -285,6 +345,89 @@ class SubmissionOrganizer:
             class_name=class_name
         )
 
+    def _unwrap_nested_zips(self, directory: Path, max_depth: int = 5) -> None:
+        """递归解包"包装层"zip，直到目录里出现真正的提交内容（实验报告）。
+
+        背景：学习通「按人导出(附件)」导出常有多层 zip 套娃，期末综合项目
+        尤为典型::
+
+            学号-姓名-ID.zip
+              └ 学号-姓名-期末综合项目.zip
+                   └ 班级姓名.docx  +  源码.7z      ← 真正的提交内容
+
+        本方法逐层解开这些"包装"zip，使报告落到磁盘上供 `_find_report_file`
+        发现。普通实验（07-car-gear）学生包内首层即是「报告 + 源码.zip」，
+        首层即可找到报告 → 立即返回，行为不变。
+
+        - 仅在「当前层找不到报告」时才尝试解包；
+        - 按命名约定属于源码包的 zip（源代码/工程/code/project/source）不视为
+          包装层，避免误把真正的源码包解开（会破坏 source/ 的提取）。
+        """
+        for _ in range(max_depth):
+            if self._find_report_file(directory) is not None:
+                return  # 已到达含报告的内容层
+            wrappers = [
+                p for p in directory.rglob("*.zip")
+                if not self._looks_like_source_archive(p)
+                and not self._looks_like_source_project(p)
+            ]
+            if not wrappers:
+                return
+            progress = False
+            for wrapper in wrappers:
+                try:
+                    dest = directory / f"{wrapper.stem}__unwrapped"
+                    dest.mkdir(exist_ok=True)
+                    safe_extract_zip(wrapper, dest)
+                    wrapper.unlink()  # 删掉包装层，避免后续被当成源码包
+                    progress = True
+                except Exception:
+                    continue
+            if not progress:
+                return
+
+    def _looks_like_source_archive(self, path: Path) -> bool:
+        """文件名是否符合"源代码压缩包"约定（不应被当作包装层解开）。"""
+        name = path.name
+        name_lower = name.lower()
+        # 中文约定：源代码 / 工程；英文约定：code / project / source
+        return any(kw in name for kw in ("源代码", "工程")) or \
+            any(kw in name_lower for kw in ("code", "project", "source"))
+
+    def _looks_like_source_project(self, zip_path: Path) -> bool:
+        """zip 内容是否像一个源码工程（而非提交包装层），应保留给 source/ 提取。
+
+        通过窥视内部条目判断：含工程源码特征（.c/.h/.ioc/.uvprojx/Core//Drivers/
+        Makefile/.mxproject 等）且**不含报告**即视为源码工程——否则会把整棵
+        CMSIS/HAL 树铺到临时目录。提交包装层（内含 报告.docx + 源码.7z）不含
+        这些直接的源码文件，故不会被误判；即便包装层里同时散落了 .c，只要它还
+        含报告，就仍按包装层解开以让报告露出。
+        """
+        try:
+            import zipfile as _zf
+            with _zf.ZipFile(zip_path) as zf:
+                names = [n for n in zf.namelist() if not n.endswith("/")]
+        except Exception:
+            return False
+
+        # 含报告 → 当作包装层（交给外层去解开让报告露出）
+        has_report = any(
+            n.lower().endswith((".docx", ".doc", ".pdf", ".wps")) or "报告" in n
+            for n in names
+        )
+        if has_report:
+            return False
+
+        for n in names:
+            low = n.lower()
+            if low.endswith((".c", ".h", ".cpp", ".hpp", ".cxx", ".s",
+                             ".ioc", ".uvprojx", ".uvproj")):
+                return True
+            if low.endswith("makefile") or ".mxproject" in low \
+                    or "/core/" in low or "/drivers/" in low:
+                return True
+        return False
+
     def _find_report_file(self, directory: Path) -> Optional[Path]:
         """查找报告文件"""
         for ext in self.REPORT_EXTENSIONS:
@@ -300,20 +443,29 @@ class SubmissionOrganizer:
 
         return None
 
-    def _find_source_zip(self, directory: Path) -> Optional[Path]:
-        """查找源代码压缩包"""
-        # 查找可能的源代码压缩包
-        patterns = ['*源代码*.zip', '*code*.zip', '*project*.zip', '*工程*.zip']
+    def _find_source_archive(self, directory: Path) -> Optional[Tuple[Path, str]]:
+        """查找源代码压缩包（.zip 或 .7z），含嵌套子目录（如 _unwrap 产生的 __unwrapped/）。
 
-        for pattern in patterns:
-            for file in directory.glob(pattern):
-                return file
+        学习通「按人导出(附件)」的综合项目源码常为 .7z，且经 _unwrap_nested_zips
+        后位于 __unwrapped/ 子目录，故用 rglob 递归查找。
 
-        # 如果没有找到，查找任意ZIP（排除可能的重复）
-        zips = list(directory.glob("*.zip"))
-        if len(zips) == 1:
-            return zips[0]
+        Returns:
+            (path, kind)，kind ∈ {'zip', '7z'}；找不到返回 None。
+        """
+        def _kind(p: Path) -> str:
+            return '7z' if p.suffix.lower() == '.7z' else 'zip'
 
+        # 1) 按命名约定优先（明确为源码包的命名）
+        named = ['*源代码*.zip', '*源码*.zip', '*code*.zip', '*project*.zip', '*工程*.zip',
+                 '*源代码*.7z', '*源码*.7z']
+        for pat in named:
+            for f in directory.rglob(pat):
+                return f, _kind(f)
+
+        # 2) 兜底：任意单一归档（zip/7z）
+        found = list(directory.rglob("*.zip")) + list(directory.rglob("*.7z"))
+        if len(found) == 1:
+            return found[0], _kind(found[0])
         return None
 
     def generate_summary_report(self, result: OrganizationResult, output_path: Path):

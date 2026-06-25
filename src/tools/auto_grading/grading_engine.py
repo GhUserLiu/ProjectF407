@@ -23,13 +23,23 @@ bonus（points_outside_base）单列；等级按 base/100 计算。
 import re
 from pathlib import Path
 from dataclasses import dataclass, field
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Optional, Any, Tuple
 from datetime import datetime
 
 from .config import AutoGradingConfig
 from .build_checker import BuildChecker, BuildResult, BuildStatus
 from .submission_processor import ProcessedSubmission
 from .submission_validator import SubmissionValidator, ValidationReport
+
+
+# 编译"无法评估"的状态集合：这些情况下不应记为学生责任（不罚分、排除出总分），
+# 仅 FAILED（真正编译出错）才计入失分。
+_UNASSESSABLE_BUILD_STATES = frozenset({
+    BuildStatus.SKIPPED,     # 工具链缺失 / 未提取到工程
+    BuildStatus.NOT_FOUND,   # 工程无 Makefile / 无可编译目标（如纯 MDK-ARM 工程）
+    BuildStatus.ERROR,       # 工具链执行错误
+    BuildStatus.TIMEOUT,     # 编译超时
+})
 
 
 @dataclass
@@ -56,6 +66,18 @@ class GradingResult:
     is_team_leader: bool = False  # 报告是否声明作者为组长（驱动组长加分）
     grade: str = "N/A"         # 等级（A/B/C/D/F）
 
+    # 小组信息（同组共用同一份工程/报告；供反馈按组聚合）
+    group_key: str = ""                     # 小组键（组长学号）；同组成员相同
+    group_members: list = field(default_factory=list)  # [(学号, 姓名), ...]
+
+    # 任务感知（final-project：任选其一，难度系数缩放最终分）
+    detected_task: str = ""                 # 任务键 task1/task2/task3（无任务 rubric 时为空）
+    detected_task_name: str = ""            # 任务中文名
+    detected_task_source: str = ""          # 检测来源 report/code/default
+    evaluation_score: float = 0.0           # 评价分 /100（任务统一刻度）
+    difficulty_ratio: float = 1.0           # 任务难度比（0.8/0.9/1.0）
+    task_full_marks: float = 100.0          # 任务满分（80/90/100，= 难度比×100）
+
     # 各类别得分（每类一个，与 rubric 对齐）
     category_scores: List[CategoryScore] = field(default_factory=list)
 
@@ -78,6 +100,12 @@ class GradingResult:
     graded_at: datetime = field(default_factory=datetime.now)
 
 
+# 视为"组长"的角色名（学生填表时可能用 主操作手 / 队长 等同义称呼）
+_LEADER_TITLES = ("组长", "主操作手", "队长", "负责人", "项目负责")
+# 预编译为正则 alternation，供 detect_team_leader 复用
+_LEADER_TITLE_ALT = r'(?:' + '|'.join(re.escape(t) for t in _LEADER_TITLES) + r')'
+
+
 # 自称为组长的句式（命中即判定作者为组长）
 _LEADER_SELF_PATTERNS = [
     re.compile(r'担任组长'),
@@ -93,28 +121,177 @@ _LEADER_SELF_PATTERNS = [
 
 
 def detect_team_leader(report_text: str, student_name: str) -> bool:
-    """从实验报告文本判断作者是否声明自己为组长。
+    """从实验报告文本判断"该学生"是否被声明为组长（含主操作手等同等角色）。
 
-    - 报告含"本人/我担任组长""作为组长"等自称 → True
-    - "组长：姓名" / "姓名（组长）" 中的姓名 == 学生姓名 → True
-    - 只声明他人为组长，或完全未声明 → False（该组视为无组长，不加分）
+    小组报告会被多名成员共享（批阅时按团队展开），故必须按**姓名特异性**判定：
+    - "组长：张三" / "主操作手：张三" 中的姓名 == 学生姓名 → True
+    - "张三（组长）" / "张三（主操作手）" → True
+    - 表式布局："<张三>\\n<学号>\\n<班级>\\n组长/主操作手" → True
+    视为组长的角色见 _LEADER_TITLES（组长、主操作手、队长、负责人、项目负责）。
+    文本级自称（"我担任组长"）无法归因到具体成员，仅在未提供姓名（单作者报告）
+    时作退化判定；提供姓名时不使用，避免同组所有成员都被判为组长。
+    只声明他人为组长，或完全未声明 → False。
     """
     if not report_text:
         return False
-    for pat in _LEADER_SELF_PATTERNS:
-        if pat.search(report_text):
+    if not student_name:
+        # 无姓名（单作者报告）：退化为文本级自称
+        return any(pat.search(report_text) for pat in _LEADER_SELF_PATTERNS)
+
+    title_alt = _LEADER_TITLE_ALT  # (?:组长|主操作手|队长|负责人|项目负责)
+
+    # 有姓名：仅按姓名特异性判定
+    # 组长：张三 / 主操作手为张三 / 组长:张三
+    for m in re.finditer(title_alt + r'[：:为是]\s*([^\s,，。、；;（(《<]{1,20})', report_text):
+        tok = m.group(1)
+        if student_name in tok or tok in student_name:
             return True
-    if student_name:
-        # 组长：张三 / 组长为张三 / 组长:张三
-        for m in re.finditer(r'组长[：:为是]\s*([^\s,，。、；;（(《<]{1,20})', report_text):
-            tok = m.group(1)
-            if student_name in tok or tok in student_name:
-                return True
-        # 张三（组长）
-        for m in re.finditer(r'([一-龥A-Za-z·]{2,20})\s*[（(]\s*组长\s*[）)]', report_text):
-            if m.group(1) == student_name:
-                return True
+    # 张三（组长） / 张三（主操作手）
+    for m in re.finditer(r'([一-龥A-Za-z·]{2,20})\s*[（(]\s*' + title_alt + r'\s*[）)]', report_text):
+        if m.group(1) == student_name:
+            return True
+    # 表式布局兜底：docx 表格竖排，"<姓名>\n<学号>\n<班级>\n组长/主操作手"
+    # （姓名后 1~4 行内出现作为独立单元格的角色名）
+    if re.search(re.escape(student_name) + r'[^\n]*(?:\n[^\n]*){0,3}\n\s*' + title_alt + r'\b', report_text):
+        return True
     return False
+
+
+# ============================================================
+# 任务检测（final-project：学生任选 task1/task2/task3 之一）
+# ============================================================
+def _collect_source_text(submission: "ProcessedSubmission", cache: Dict[Path, str]) -> str:
+    """拼接工程内源/头文件文本（按 source_path 缓存），供任务检测/代码分析复用。
+    遍历口径与 _grade_code_quality/_grade_source_check 一致，带文件数与单文件大小上限。"""
+    sp = getattr(submission, 'source_path', None)
+    pi = getattr(submission, 'project_info', None)
+    if not sp or not pi:
+        return ""
+    sp = Path(sp)
+    if sp in cache:
+        return cache[sp]
+    MAX_FILES = 80
+    MAX_FILE_BYTES = 512 * 1024
+    parts: List[str] = []
+    files = list(getattr(pi, 'main_files', [])) \
+            + list(getattr(pi, 'source_files', [])) \
+            + list(getattr(pi, 'header_files', []))
+    for f in files[:MAX_FILES]:
+        try:
+            if f.stat().st_size > MAX_FILE_BYTES:
+                continue
+            parts.append(f.read_text(encoding='utf-8', errors='ignore'))
+        except Exception:
+            continue
+    text = "\n".join(parts)
+    cache[sp] = text
+    return text
+
+
+def detect_task(submission: "ProcessedSubmission",
+                rubric: Dict,
+                source_cache: Dict[Path, str]) -> Tuple[str, str]:
+    """检测学生所选任务，返回 (task_key, source)。source ∈ {'report','code','default'}。
+
+    优先级（task_detection.priority）：
+    1. 报告声明（「所选任务」区或全文出现 任务三/二/一 + 任务特征词）→ 'report'
+    2. 源码信号（HAL_RTC/闹钟→task3；HAL_ADC/温度→task2）→ 'code'
+    3. fallback（默认 task1）→ 'default'
+
+    task3 优先于 task2（RTC 是最强信号）。报告声明优先于源码（作者意图）。
+    """
+    td = (rubric or {}).get('task_detection') or {}
+    priority = td.get('priority', ['task3', 'task2', 'task1'])
+    declare = td.get('report_declare') or {}
+    signals = td.get('code_signals') or {}
+    fallback = td.get('fallback', 'task1')
+
+    text = getattr(submission, 'report_text', '') or ''
+
+    # 1) 报告声明：任一声明词命中即判该任务（按 priority 顺序，强任务优先）
+    for tk in priority:
+        for kw in declare.get(tk, []):
+            if kw and kw in text:
+                return tk, 'report'
+
+    # 2) 源码信号
+    code = _collect_source_text(submission, source_cache)
+    if code:
+        for tk in priority:
+            for kw in signals.get(tk, []):
+                if kw and kw in code:
+                    return tk, 'code'
+
+    # 3) 默认
+    return fallback, 'default'
+
+
+def dedupe_team_members(results: List[GradingResult]) -> List[GradingResult]:
+    """按学号去重评分结果。
+
+    小组按成员展开后，同一学生可能出现在多份上传报告中（学习通「按人导出」，
+    同组成员各自上传）。去重规则：
+
+    1. **优先自评归因**：若该生有「自己提交的源码」对应的结果（学号命中源码目录名，
+       即源码目录形如 ``{班级}-{学号}-{姓名}-源代码``），则保留自评那条——避免被
+       判到队友的源码上、反馈与本人提交不符。仅当该生仅作为组员出现（无自己源码）
+       时，才回退到最高分（共享组长源码）。
+    2. **同组勿重复提交提醒**：若该生关联了 >1 个**不同**源码目录（多人各自上传了
+       不同版本），在反馈 issues 中追加提醒，引导「同组由组长一人提交」。
+
+    对个人实验（无团队成员表、不展开）为空操作。
+    """
+    def _source_token(r: GradingResult) -> str:
+        """该结果所用源码目录名（= 报告组长的源码包）；无源码返回 ''。"""
+        pp = getattr(r.compilation_result, "project_path", None) if r.compilation_result else None
+        try:
+            return Path(pp).name if pp else ""
+        except Exception:
+            return ""
+
+    def _is_self_sourced(r: GradingResult) -> bool:
+        """该结果是否用的是「该生自己提交的源码」（学号在源码目录名中）。"""
+        return bool(r.student_id) and r.student_id in _source_token(r)
+
+    # 按学号分组
+    by_id: Dict[str, List[GradingResult]] = {}
+    for r in results:
+        by_id.setdefault(r.student_id, []).append(r)
+
+    best: Dict[str, GradingResult] = {}
+    for sid, rs in by_id.items():
+        if len(rs) == 1:
+            best[sid] = rs[0]
+            continue
+        # 多份：优先自评；同为自评或同为非自评时再比最高分
+        self_rs = [r for r in rs if _is_self_sourced(r)]
+        pool = self_rs if self_rs else rs
+        best[sid] = max(pool, key=lambda r: (r.total_score, r.bonus_total))
+
+    # 同组勿重复提交：该生关联了 >1 个不同源码目录 → 追加提醒（advisory，不扣分）
+    for sid, rs in by_id.items():
+        tokens = {_source_token(r) for r in rs if _source_token(r)}
+        if len(tokens) > 1 and sid in best:
+            best[sid].issues.append({
+                "type": "submission",
+                "category": "提交规范",
+                "criterion": "同组勿重复提交",
+                "points_lost": 0,
+                "severity": "info",
+                "message": "检测到你的学号关联了多份不同的源码提交（同组多人各自上传了不同版本）。",
+                "fix": "同组只需由组长提交一份报告 + 一份源码；组员不必各自重复上传，以免机器批阅归因混乱、反馈与本人提交不符。",
+                "expected": "每组一份报告 + 一份源码",
+            })
+
+    # 按首次出现顺序输出
+    seen = set()
+    out = []
+    for r in results:
+        if r.student_id in seen:
+            continue
+        seen.add(r.student_id)
+        out.append(best[r.student_id])
+    return out
 
 
 class AutoGradingEngine:
@@ -131,6 +308,8 @@ class AutoGradingEngine:
         # 初始化子模块
         self.build_checker = BuildChecker(self.config)
         self.validator = SubmissionValidator()
+        # 编译结果缓存（按 source_path）：小组成员共享同一工程，避免重复编译
+        self._build_cache: Dict[Path, BuildResult] = {}
 
         # 延迟导入（避免循环依赖）
         try:
@@ -167,18 +346,30 @@ class AutoGradingEngine:
         if dup:
             raise ValueError(f"rubric 类别 id 重复: {dup}")
 
-        total_points = rubric.get('total_points', 100)
-        base_sum = sum(c.get('points', 0) for c in cats if not c.get('points_outside_base'))
-        if abs(base_sum - total_points) > 0.01:
-            raise ValueError(
-                f"rubric 基础分值和({base_sum}) != total_points({total_points})；"
-                f"请检查 data/rubrics/rubric.json"
-            )
+        if 'task_difficulty' in rubric:
+            # 任务 rubric：统一 /100，校验 categories points 和 == 100
+            total = sum(c.get('points', 0) for c in cats)
+            if abs(total - 100) > 0.01:
+                raise ValueError(
+                    f"任务 rubric 类别分值和({total}) != 100；请检查 data/rubrics/final-project.json")
+            # 校验难度系数
+            for tk, ratio in (rubric.get('task_difficulty') or {}).items():
+                if not (0 < float(ratio) <= 1.0):
+                    raise ValueError(f"任务难度比非法 {tk}={ratio}，须在 (0,1]")
+        else:
+            total_points = rubric.get('total_points', 100)
+            base_sum = sum(c.get('points', 0) for c in cats if not c.get('points_outside_base'))
+            if abs(base_sum - total_points) > 0.01:
+                raise ValueError(
+                    f"rubric 基础分值和({base_sum}) != total_points({total_points})；"
+                    f"请检查 data/rubrics/rubric.json"
+                )
 
         for c in cats:
             if c.get('grading_method', 'keyword') == 'keyword':
                 for crit in c.get('criteria', []):
-                    if not crit.get('keywords'):
+                    # keywords 或 keywords_by_task 至少有一个
+                    if not crit.get('keywords') and not crit.get('keywords_by_task'):
                         print(f"警告: 准则 '{crit.get('description')}' 未配置 keywords")
 
     # --------------------------------------------------------------
@@ -189,6 +380,13 @@ class AutoGradingEngine:
             student_id=submission.student_id,
             name=submission.name,
             class_name=submission.class_name
+        )
+
+        # 透传小组信息（同组共用工程/报告；供反馈按组生成）
+        result.group_key = getattr(submission, 'group_key', '') or submission.student_id
+        result.group_members = list(
+            getattr(submission, 'group_members', [])
+            or [(submission.student_id, submission.name)]
         )
 
         # 1. 提交完整性校验（advisory，不参与计分）
@@ -204,11 +402,46 @@ class AutoGradingEngine:
             result.grade = self._calculate_grade_default(result.total_score, result.max_score)
             return result
 
-        # 2. RubricGrader 跑一次 keyword/manual 类别（需要报告文本）
+        # 任务感知：final-project 等带 task_difficulty 的 rubric，按学生所选任务构造
+        # active_rubric（统一 /100 刻度，但 keyword 准则的关键词按任务取，避免跨任务误扣）。
+        # 非任务 rubric（07-car-gear 等）active_rubric = self.rubric，行为零变化。
+        self._source_cache: Dict[Path, str] = getattr(self, '_source_cache', {})
+        if 'task_difficulty' in self.rubric:
+            task_key, task_src = detect_task(submission, self.rubric, self._source_cache)
+            result.detected_task = task_key
+            result.detected_task_source = task_src
+            task_names = {'task1': '任务一·多功能灯光系统',
+                          'task2': '任务二·温度报警系统',
+                          'task3': '任务三·定时迎宾灯系统'}
+            result.detected_task_name = (self.rubric.get('task_names') or {}).get(task_key) \
+                                        or task_names.get(task_key, task_key)
+            result.difficulty_ratio = float(self.rubric['task_difficulty'].get(task_key, 1.0))
+            result.task_full_marks = round(result.difficulty_ratio * 100, 1)
+            active_rubric = self._build_task_active_rubric(task_key)
+            self._active_rubric = active_rubric
+            # 声明与源码信号冲突（报告说任务A、代码像任务B）→ advisory 提示教师关注
+            if task_src == 'report':
+                code_task, _ = detect_task(
+                    submission, {**self.rubric, 'task_detection': {
+                        **(self.rubric.get('task_detection') or {}),
+                        'report_declare': {}}}, self._source_cache)
+                if code_task not in (task_key, self.rubric.get('task_detection', {}).get('fallback', 'task1')):
+                    result.issues.append({
+                        'type': 'submission', 'category': '任务识别',
+                        'criterion': '报告声明与源码不一致', 'points_lost': 0,
+                        'severity': 'info',
+                        'message': f"报告声明为 {result.detected_task_name}，但源码更像 {code_task}；已按报告声明评分，请教师复核。",
+                        'fix': '若实际做的是另一任务，请修正报告「所选任务」说明。', 'expected': '',
+                    })
+        else:
+            self._active_rubric = self.rubric
+            active_rubric = self.rubric
+
+        # 2. RubricGrader 跑一次 keyword/manual 类别（需要报告文本）；任务 rubric 用 active_rubric
         rg_result = None
         if self.rubric_grader and submission.report_text:
             try:
-                grader = self.rubric_grader(self.rubric)
+                grader = self.rubric_grader(active_rubric)
                 rg_result = grader.grade(
                     submission.student_id,
                     submission.name,
@@ -228,13 +461,14 @@ class AutoGradingEngine:
         is_leader = detect_team_leader(submission.report_text or "", submission.name or "")
         result.is_team_leader = is_leader
 
-        # 3. 按 grading_method 派发，逐类产出 CategoryScore
+        # 3. 按 grading_method 派发，逐类产出 CategoryScore（任务 rubric 用 active_rubric）
         category_scores: List[CategoryScore] = []
         base_earned = 0.0
         bonus_total = 0.0
-        excluded_points = 0.0   # 工具链缺失等「非学生责任」被排除的基数分（如编译 15 分）
+        excluded_points = 0.0   # 工具链缺失等「非学生责任」被排除的基数分
+        rates_for_predict: Dict[str, float] = {}  # category_id -> 得分率（供功能预测）
 
-        for cat in self.rubric.get('categories', []):
+        for cat in active_rubric.get('categories', []):
             method = cat.get('grading_method', 'keyword')
 
             cs = None
@@ -246,7 +480,11 @@ class AutoGradingEngine:
                 cs = self._grade_source_check(submission, cat)
             elif method == 'conditional':
                 cs = self._grade_conditional(cat, is_leader)
-            else:  # keyword / manual
+            elif method == 'manual':
+                cs = self._grade_manual(cat)
+            elif method == 'predicted':
+                cs = self._grade_predicted(cat, rates_for_predict)
+            else:  # keyword
                 cs = self._category_from_rubric_grader(rg_result, cat, submission)
 
             if cs is None:
@@ -262,13 +500,19 @@ class AutoGradingEngine:
             if method == 'build' and cs.details:
                 br = cs.details[0].get('build_result')
                 result.compilation_result = br
-                # 工具链缺失（SKIPPED）：非学生责任，汇总时把该类分值排除出总分与等级基数，
-                # 避免无工具链持续拖低预测分。仅对基础分内类别生效（bonus 类本就单列）。
-                if (br is not None and getattr(br, 'status', None) == BuildStatus.SKIPPED
+                # 编译"无法评估"（无源码/无 Makefile/工具链缺失/超时/错误）：非学生责任，
+                # 汇总时把该类分值排除出总分与等级基数，避免误判为编译失败拖低预测分。
+                # 仅真正编译失败的 FAILED 才计入。仅对基础分内类别生效（bonus 类本就单列）。
+                if (br is not None
+                        and getattr(br, 'status', None) in _UNASSESSABLE_BUILD_STATES
                         and not cat.get('points_outside_base')):
                     excluded_points += cat.get('points', 0)
             if method == 'code_analysis' and cs.details:
                 result.code_analysis = cs.details[0].get('analysis')
+
+            # 记录源码三项得分率，供 functionality(predicted) 复用
+            if method in ('build', 'source_check', 'code_analysis') and cs.max_points > 0:
+                rates_for_predict[cat['id']] = cs.earned_points / cs.max_points
 
             category_scores.append(cs)
             if cat.get('points_outside_base'):
@@ -278,27 +522,50 @@ class AutoGradingEngine:
 
         result.category_scores = category_scores
 
-        # 4. 汇总：base 封顶 total_points，bonus 单列
-        total_points = self.rubric.get('total_points', 100)
-        if excluded_points > 0:
-            # 存在被排除的编译类（工具链缺失）：按「可评类别」折算总分与等级。
-            # max_score 收缩为可评基数（如 100-15=85），等级按 base_earned/可评基数 折算回
-            # /total_points 再套 grading_scale，保证学生不被工具链缺失系统性压低等级。
-            assessable_max = max(total_points - excluded_points, 0.01)
-            result.max_score = round(assessable_max, 1)
-            result.total_score = round(min(base_earned, assessable_max), 1)
-            effective = (base_earned / assessable_max) * total_points
-            if 'grading_scale' in self.rubric:
-                result.grade = self._calculate_grade(effective, self.rubric['grading_scale'])
+        # 4. 汇总
+        if 'task_difficulty' in self.rubric:
+            # 任务 rubric：统一 /100 评价 + 难度系数缩放最终分。
+            # 评价分 = Σ base_earned（categories 和=100，无 points_outside_base 除外项）。
+            # 工具链缺失时编译被排除：评价分按可评基数折算回 /100（与下方同思路）。
+            total_points = 100
+            if excluded_points > 0:
+                assessable_max = max(total_points - excluded_points, 0.01)
+                eval_score = round((base_earned / assessable_max) * total_points, 1)
             else:
-                result.grade = self._calculate_grade_default(result.total_score, result.max_score)
-        else:
-            result.total_score = round(min(base_earned, total_points), 1)
-            result.max_score = total_points
+                eval_score = round(min(base_earned, total_points), 1)
+            # 组长加分（任务书约定）：评价分 +leader_bonus，封顶 100；再按难度系数缩放。
+            # granted 为实际生效的加分（评价分已接近满分时不足 5），累入 bonus_total 供反馈展示。
+            leader_bonus = float(self.rubric.get('leader_bonus', 0) or 0)
+            if leader_bonus > 0 and is_leader:
+                granted = round(min(leader_bonus, max(total_points - eval_score, 0.0)), 1)
+                eval_score = round(min(eval_score + granted, total_points), 1)
+                bonus_total += granted
+            result.evaluation_score = eval_score
+            result.total_score = round(eval_score * result.difficulty_ratio, 1)  # 期末最终分
+            result.max_score = 100.0
             if 'grading_scale' in self.rubric:
                 result.grade = self._calculate_grade(result.total_score, self.rubric['grading_scale'])
             else:
                 result.grade = self._calculate_grade_default(result.total_score, result.max_score)
+        else:
+            # 非任务 rubric：原逻辑（base 封顶 total_points，编译 skip 时按可评基数折算）
+            total_points = self.rubric.get('total_points', 100)
+            if excluded_points > 0:
+                assessable_max = max(total_points - excluded_points, 0.01)
+                result.max_score = round(assessable_max, 1)
+                result.total_score = round(min(base_earned, assessable_max), 1)
+                effective = (base_earned / assessable_max) * total_points
+                if 'grading_scale' in self.rubric:
+                    result.grade = self._calculate_grade(effective, self.rubric['grading_scale'])
+                else:
+                    result.grade = self._calculate_grade_default(result.total_score, result.max_score)
+            else:
+                result.total_score = round(min(base_earned, total_points), 1)
+                result.max_score = total_points
+                if 'grading_scale' in self.rubric:
+                    result.grade = self._calculate_grade(result.total_score, self.rubric['grading_scale'])
+                else:
+                    result.grade = self._calculate_grade_default(result.total_score, result.max_score)
         result.bonus_total = round(bonus_total, 1)
 
         # 6. 生成结构化反馈（issues + thinking_check + 兼容 strengths/weaknesses）
@@ -310,15 +577,85 @@ class AutoGradingEngine:
     # 各 grading_method 打分
     # --------------------------------------------------------------
     def _grade_compilation(self, submission: ProcessedSubmission, cat: Dict) -> Optional[CategoryScore]:
-        """build：真实编译检查。无源码返回 None（由调用方记 0 分）。"""
-        if not submission.source_path or not submission.project_info:
-            return None
+        """build：真实编译检查。
 
+        - 无源码/工程：按 source_state 分类，在学生反馈中给出**具体原因 + 改进方法**。
+          * 纯 Keil 工程（keil_only）：判为真实编译失败（FAILED，0 分计入总分）。
+          * 损坏/嵌套/空/未提交：无法评估（SKIPPED，排除出总分），但仍带反馈。
+        - 同一 source_path 的编译结果缓存：小组多名成员共享同一工程，只编译一次。
+        """
+        from .source_state import STATE_KEIL_ONLY, STATE_OK
         max_points = cat.get('points', 10)
-        build_result = self.build_checker.check_build(
-            submission.source_path,
-            f"{submission.student_id}-{submission.name}"
-        )
+        name = f"{submission.student_id}-{submission.name}"
+
+        ss = getattr(submission, 'source_state', None)
+        # 无可机器编译的工程（含格式问题）：按状态分类给反馈
+        if not submission.source_path or not submission.project_info \
+                or (ss is not None and not getattr(ss, 'is_machine_buildable', True) and ss.state != STATE_OK):
+            # 即便 source_path/project_info 在(如纯 Keil：有 project_info 但无 Makefile)，
+            # 也由 source_state 统一出口，确保反馈带具体原因与改进方法。
+            if ss is not None and not getattr(ss, 'is_machine_buildable', True):
+                reason = ss.feedback_reason
+                fix = ss.feedback_fix
+                st = ss.state
+                # 纯 Keil 工程：判为真实编译失败（计入总分），其余格式问题判 SKIPPED（排除）
+                if st == STATE_KEIL_ONLY:
+                    status, feedback = BuildStatus.FAILED, f"{reason} {fix}"
+                else:
+                    status, feedback = BuildStatus.SKIPPED, f"{reason} {fix}"
+                br = BuildResult(
+                    status=status,
+                    project_name=name,
+                    project_path=Path(submission.source_path or ''),
+                    success=False,
+                    error_message=reason,
+                )
+                return CategoryScore(
+                    category_id=cat['id'],
+                    category_name=cat.get('name', '编译检查'),
+                    max_points=max_points,
+                    earned_points=0.0,
+                    details=[{
+                        'build_result': br,
+                        'feedback': feedback,
+                        'source_state': st,
+                        'reason': reason,
+                        'fix': fix,
+                        'error_count': 0,
+                        'warning_count': 0,
+                        'error_message': '',
+                    }]
+                )
+            # 无 source_state（兼容旧调用）：退化为原"无法评估"
+            return CategoryScore(
+                category_id=cat['id'],
+                category_name=cat.get('name', '编译检查'),
+                max_points=max_points,
+                earned_points=0.0,
+                details=[{
+                    'build_result': BuildResult(
+                        status=BuildStatus.SKIPPED,
+                        project_name=name,
+                        project_path=Path(submission.source_path or ''),
+                        success=False,
+                        error_message='未提取到可编译的源码工程（可能为 .7z 等未支持格式或学生未提交）',
+                    ),
+                    'feedback': '已跳过：未提取到源码工程（不代表代码无法编译）',
+                    'error_count': 0,
+                    'warning_count': 0,
+                    'error_message': '',
+                }]
+            )
+
+        cache_key = Path(submission.source_path)
+        if cache_key in self._build_cache:
+            build_result = self._build_cache[cache_key]
+        else:
+            build_result = self.build_checker.check_build(
+                submission.source_path,
+                f"{submission.student_id}-{submission.name}"
+            )
+            self._build_cache[cache_key] = build_result
 
         if build_result.status == BuildStatus.SUCCESS:
             earned_points = max_points
@@ -380,6 +717,64 @@ class AutoGradingEngine:
             earned_points=round(earned, 1),
             details=[{'feedback': feedback, 'is_leader': is_leader, 'condition': condition}]
         )
+
+    def _grade_manual(self, cat: Dict) -> CategoryScore:
+        """manual 类别（如实验态度）：取 rubric 的 default_points（教师可后续覆盖）。"""
+        max_points = cat.get('points', 0)
+        earned = float(cat.get('default_points', 0))
+        return CategoryScore(
+            category_id=cat['id'],
+            category_name=cat.get('name', cat['id']),
+            max_points=max_points,
+            earned_points=round(earned, 1),
+            details=[{'feedback': f'默认 {earned:g} 分（教师可调）', 'manual': True}]
+        )
+
+    def _grade_predicted(self, cat: Dict, rates: Dict[str, float]) -> CategoryScore:
+        """predicted 类别（功能实现）：由指定类目（predict_from）的得分率均值预测。
+
+        功能实现需硬件实测，机器无法直接评；用源码前三项（编译+非阻塞+代码质量）的得分率
+        均值作侧面估计（代码质量高 → 功能更可能完成）。教师实测后可覆盖此预测值。
+        """
+        max_points = cat.get('points', 0)
+        src_ids = cat.get('predict_from', []) or []
+        rs = [rates.get(i) for i in src_ids if rates.get(i) is not None]
+        rate = (sum(rs) / len(rs)) if rs else 0.0
+        earned = round(rate * max_points, 1)
+        comp = ', '.join(f'{i}={rates.get(i, 0)*100:.0f}%' for i in src_ids)
+        return CategoryScore(
+            category_id=cat['id'],
+            category_name=cat.get('name', cat['id']),
+            max_points=max_points,
+            earned_points=earned,
+            details=[{
+                'feedback': f'机器预测（基于 {comp} 的均值 {rate*100:.0f}%）；教师实测可覆盖',
+                'predicted': True, 'predict_rate': round(rate, 3),
+                'predict_from': src_ids,
+            }]
+        )
+
+    def _build_task_active_rubric(self, task_key: str) -> Dict:
+        """构造任务感知 active_rubric：顶层 categories（/100 统一刻度），但 keyword 准则的
+        keywords 解析为 keywords_by_task[task]（兜底 keywords），使 RubricGrader 只按所选
+        任务的关键词评分，修复「单任务学生被跨任务关键词拖低」的失真。"""
+        import copy
+        rubric = self.rubric
+        active = copy.deepcopy(rubric)
+        cats = active.get('categories', [])
+
+        def _resolve(criteria):
+            for crit in criteria:
+                kbt = crit.get('keywords_by_task')
+                if kbt and task_key in kbt:
+                    crit['keywords'] = list(kbt[task_key])
+            return criteria
+
+        for cat in cats:
+            if cat.get('grading_method', 'keyword') == 'keyword' and cat.get('criteria'):
+                _resolve(cat['criteria'])
+        active['total_points'] = 100
+        return active
 
     def _grade_code_quality(self, submission: ProcessedSubmission, cat: Dict) -> Optional[CategoryScore]:
         """code_analysis：真实源码静态分析（优先），否则报告代码块；都没有返回 None。"""
@@ -551,13 +946,30 @@ class AutoGradingEngine:
             lost = round(cs.max_points - cs.earned_points, 1)
 
             if method == 'build':
-                br = cs.details[0].get('build_result') if cs.details else None
-                if br is not None and getattr(br, 'status', None) == BuildStatus.SKIPPED:
-                    # 工具链缺失（非学生责任）：不计为失分错误项；编译行已用灰色 + 注释说明，
-                    # 且 grade_submission 已把该类排除出总分。避免红色「无法编译」误导学生。
+                d = cs.details[0] if cs.details else {}
+                br = d.get('build_result')
+                src_state = d.get('source_state')
+                # 格式问题（损坏/嵌套/空/未提交/纯Keil）：**必须**告知学生具体原因与改进方法，
+                # 即便被归为「无法评估」(SKIPPED) 也反馈（用户要求：格式问题一定说清）。
+                if src_state:
+                    reason = d.get('reason') or d.get('feedback', '源码工程无法用于机器编译')
+                    issues.append({
+                        'type': 'build',
+                        'category': cs.category_name,
+                        'criterion': '编译/源码格式',
+                        'points_lost': lost,
+                        'severity': 'error',
+                        'message': reason,
+                        'detail': d.get('error_message', ''),
+                        'expected': '提交标准 GCC 工程：根目录含 Makefile（CubeMX 导出时 Toolchain 选 Makefile）',
+                        'fix': d.get('fix') or '请按反馈原因修正源码打包/工程类型后重新提交。',
+                    })
+                    continue
+                if br is not None and getattr(br, 'status', None) in _UNASSESSABLE_BUILD_STATES:
+                    # 编译"无法评估"（工具链缺失/超时等非学生责任，且无格式问题）：
+                    # grade_submission 已把该类排除出总分；此处不再显示误导性"编译失败"。
                     continue
                 if cs.earned_points < cs.max_points and cs.details:
-                    d = cs.details[0]
                     issues.append({
                         'type': 'build',
                         'category': cs.category_name,
@@ -618,7 +1030,8 @@ class AutoGradingEngine:
                     })
 
         # 思考题核对：依据校验器在"七、思考题"章节内检测到的题号（避免正文其它编号误判）+ 参考答案
-        result.thinking_check = self._build_thinking_check(result.validation_report, ref)
+        result.thinking_check = self._build_thinking_check(
+            result.validation_report, ref, result.detected_task or '')
 
         result.issues = issues
 
@@ -633,22 +1046,36 @@ class AutoGradingEngine:
             if cs.max_points > 0 and cs.earned_points >= cs.max_points
         ]
 
-    def _build_thinking_check(self, validation_report, ref: Dict) -> List[Dict]:
-        """逐题 Q1~Q7：是否作答（依据校验器在七、章节的检测）+ 参考答案方向。"""
+    def _build_thinking_check(self, validation_report, ref: Dict, detected_task: str = "") -> List[Dict]:
+        """逐题核对：题号集与参考方向均由 rubric 驱动（不再写死 Q1~Q7）。
+
+        - 题号集：``reference_answers.thinking_question_ids``；缺省回退参考方向键，
+          再缺省回退 Q1~Q7（兼容汽车档位 rubric）。
+        - 参考方向：``thinking_questions``（通用）叠加
+          ``thinking_questions_by_task[任务]``（任务专属，如期项目 Q3）。
+        - rubric 声明 ``thinking_check=false`` 时不生成该表。
+        """
         # rubric 声明 thinking_check=false（如综合项目思考题为选做）时不生成该表
         if not (self.rubric or {}).get('thinking_check', True):
             return []
-        answers = ref.get('thinking_questions', {}) if isinstance(ref, dict) else {}
+        answers = dict(ref.get('thinking_questions', {}) if isinstance(ref, dict) else {})
+        by_task = ref.get('thinking_questions_by_task', {}) if isinstance(ref, dict) else {}
+        if detected_task and isinstance(by_task, dict) and by_task.get(detected_task):
+            answers.update(by_task[detected_task])
+        # 题号集：显式优先 → 参考方向键 → 回退 Q1~Q7
+        ids = ref.get('thinking_question_ids') if isinstance(ref, dict) else None
+        if not ids:
+            ids = sorted(answers.keys()) or [f'Q{i}' for i in range(1, 8)]
         missing = set()
         if validation_report is not None:
             missing = set(validation_report.missing_questions or [])
         return [
             {
-                'id': f'Q{i}',
-                'answered': f'Q{i}' not in missing,
-                'expected': answers.get(f'Q{i}', ''),
+                'id': qid,
+                'answered': qid not in missing,
+                'expected': answers.get(qid, ''),
             }
-            for i in range(1, 8)
+            for qid in ids
         ]
 
     def _expected_answer(self, category_id: str, criterion_desc: str, ref: Dict) -> str:
@@ -682,7 +1109,9 @@ class AutoGradingEngine:
     # 工具
     # --------------------------------------------------------------
     def _rubric_category(self, cat_id: str) -> Optional[Dict]:
-        for c in (self.rubric or {}).get('categories', []):
+        # 任务 rubric 下从 active_rubric 取（keywords 已按任务解析）
+        src = getattr(self, '_active_rubric', None) or self.rubric or {}
+        for c in src.get('categories', []):
             if c.get('id') == cat_id:
                 return c
         return None
@@ -742,7 +1171,10 @@ class AutoGradingEngine:
             result = self.grade_submission(submission)
             results.append(result)
             print(f"  得分: {result.total_score:.1f}/{result.max_score:.1f} (加分{result.bonus_total:.0f}) ({result.grade})")
-        return results
+        # 小组按成员展开后，同一学生可能出现在多份上传报告中（学习通「按人导出」，
+        # 同组成员各自上传）；按学号去重，保留得分最高的一份（同组多版本取最优，
+        # 对学生最有利且确定）。个人实验无团队成员表→不展开→去重为空操作。
+        return dedupe_team_members(results)
 
     def generate_class_report(self, results: List[GradingResult]) -> Dict:
         if not results:
@@ -809,7 +1241,18 @@ def main():
     from .submission_processor import SubmissionProcessor
 
     processor = SubmissionProcessor(args.base_dir)
-    engine = AutoGradingEngine(rubric_path=args.rubric)
+    rubric_path = args.rubric
+    if rubric_path is None:
+        # 未显式指定 --rubric 时，按 experiment_id 解析（与 facade 路径一致），
+        # 避免 CLI 误用默认/空 rubric 把综合项目按其它标准评。
+        from .config import AutoGradingConfig
+        rubric_path = AutoGradingConfig().get_rubric_path(args.experiment_id)
+    if not rubric_path.exists():
+        # rubric 缺失（常见于 cwd 不在仓库根）时直接报错退出，避免静默产出 0 分错误结果
+        print(f"[错误] 评分标准文件不存在：{rubric_path}"
+              f"（请检查 experiment_id / --rubric，或在仓库根目录运行）")
+        return
+    engine = AutoGradingEngine(rubric_path=rubric_path)
 
     submissions = processor.process_class_submissions(args.class_name, args.experiment_id)
     print(f"找到 {len(submissions)} 个提交")

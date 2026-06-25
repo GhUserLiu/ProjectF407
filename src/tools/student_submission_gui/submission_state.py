@@ -26,6 +26,7 @@ class SourceKind(str, Enum):
     NONE = "none"
     DIRECTORY = "directory"
     ZIP = "zip"
+    SEVEN_ZIP = "7z"
 
 
 @dataclass

@@ -1,17 +1,25 @@
 # -*- mode: python ; coding: utf-8 -*-
 """
-学生端作业自检与自评系统 — PyInstaller 打包脚本
-Student Self-Check & Self-Grade GUI — PyInstaller spec
+学生端作业自检与自评系统 — PyInstaller 打包脚本（单一通用产物）
+Student Self-Check & Self-Grade GUI — PyInstaller spec (universal build)
 
-构建：
-    pyinstaller --noconfirm build_student.spec
+构建（须在 conda 环境 stm32f407-win7 下，或直接：scripts\\build_student_exe.bat）：
+    conda run -n stm32f407-win7 python -m PyInstaller --noconfirm build_student.spec
 
 产物：
-    dist/StudentSelfCheck.exe          （单文件，windowed）
+    dist/StudentSelfCheck.exe          （单文件，windowed，覆盖 Win7/8.1/10/11）
+
+为什么是 Python 3.8 + PyQt5（而非 3.13 + PyQt6）：
+- Python 3.9+ 依赖 api-ms-win-core-path-l1-1-0.dll，Win7 无此 API Set，启动即崩。
+- Qt6 运行时最低要求 Windows 10 1809+，不支持 Win7。
+- 用 Py3.8 + PyQt5==5.15.2 后，单一 exe 覆盖 Win7-11（Qt5.15.2 是最后支持 Win7 的 Qt）。
+- 学生端 GUI 经 qt_compat.py 双绑定 shim，本 spec 由 PyQt5 环境调用即打 PyQt5；
+  代码在 PyQt6（开发机/教师端主线）下同样可运行。
 
 说明：
 - 单文件（onefile）、无控制台（windowed）。启动时 PyInstaller 会解压到临时目录。
-- 只读资源（rubric.json / config.yaml）随包打入，运行时由 runtime.bundle_root() 定位。
+- 只读资源（rubric.json / rubric_enhanced.json / final-project.json / config.yaml）
+  随包打入，运行时由 runtime.bundle_root() 定位。
 - 报告输出到用户主目录下的「STM32学生自检」（由 runtime.writable_root() 决定）。
 - 显式排除学生端用不到的重型依赖（torch/sentence-transformers/pandas/sklearn/jieba 等），
   这些仅服务于教师端查重/语义检测，不在学生端运行时导入图中。
@@ -35,6 +43,10 @@ a = Analysis(
         'tools.plagiarism.grading.grading',
         'tools.plagiarism.image.image_counter',
         'tools.plagiarism.code_analysis.code_analyzer',
+        # .7z 源码包解压：seven_zip_validator 内 try-import py7zr，需显式声明两个
+        # 否则 PyInstaller 静态分析漏抓，学生选 .7z 期末项目源码时会因 py7zr 缺失降级
+        'tools.security.seven_zip_validator',
+        'py7zr',
         # 运行时依赖（多数可自动发现，显式声明更稳）
         'defusedxml',
         'docx',

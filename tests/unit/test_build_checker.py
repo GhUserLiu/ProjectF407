@@ -77,3 +77,48 @@ class TestBuildResult:
         assert r.success is True
         assert r.error_count == 0
         assert r.status == BuildStatus.SUCCESS
+
+
+class TestGccBuildCommand:
+    """验证 _check_gcc_build 下发的 make 命令形态。
+
+    回归：旧实现 ``make -C <dir>``，-C 收到的 Windows 反斜杠路径会被 MSYS make 解析坏。
+    修复后应仅 ``['make', 'clean', 'all']``，并依赖 cwd（已设为 makefile.parent）。
+    """
+
+    def test_make_cmd_has_no_dash_c(self, tmp_path, monkeypatch):
+        # 准备一个含 Makefile 的工程根
+        proj = tmp_path / "proj"
+        proj.mkdir()
+        (proj / "Makefile").write_text("all:\n", encoding="utf-8")
+
+        captured = {}
+
+        class _FakeCompleted:
+            returncode = 0
+            stdout = ""
+            stderr = ""
+
+        def fake_run(cmd, *args, **kwargs):
+            captured["cmd"] = list(cmd)
+            captured["cwd"] = kwargs.get("cwd")
+            return _FakeCompleted()
+
+        # 真实工具链是否在 PATH 不影响本测试：强制视为可用，跳过 SKIPPED 分支
+        import tools.auto_grading.build_checker as bc
+        monkeypatch.setattr(bc.subprocess, "run", fake_run)
+
+        checker = BuildChecker()
+        monkeypatch.setattr(checker, "make_available", True)
+        monkeypatch.setattr(checker, "gcc_available", True)
+
+        result = checker.check_build(proj, "test-proj")
+
+        # 命令不得含 -C，也不得带路径参数
+        assert captured["cmd"] == ["make", "clean", "all"]
+        assert "-C" not in captured["cmd"]
+        # cwd 仍指向 Makefile 所在目录（make 据此定位 Makefile）
+        assert captured["cwd"] == str(proj)
+        # returncode=0 且无 error → 编译成功
+        assert result.status == BuildStatus.SUCCESS
+        assert result.success is True

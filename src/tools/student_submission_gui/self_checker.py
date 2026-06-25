@@ -32,6 +32,7 @@ from tools.auto_grading.grading_engine import AutoGradingEngine, GradingResult
 from tools.auto_grading.submission_validator import ValidationReport
 from tools.auto_grading.build_checker import BuildStatus
 from tools.security.zip_validator import safe_extract_zip, ZipValidationError, ZipLimits
+from tools.security.seven_zip_validator import safe_extract_7z
 
 from .id_card import StudentIdentity
 from .runtime import bundle_root
@@ -100,23 +101,25 @@ class SelfChecker:
             report_text = self._processor._read_report(report_path)
             code_blocks = self._processor._extract_code_blocks(report_text)
 
-            # 2. 解析源码工程（zip 安全解压到 tempdir 后分析）
+            # 2. 解析源码工程（zip / 7z 安全解压到 tempdir 后分析）
             resolved_source: Optional[Path] = None
             project_info = None
             if source_path:
                 src = Path(source_path)
-                if src.is_file() and src.suffix.lower() == ".zip":
+                suffix = src.suffix.lower()
+                if src.is_file() and suffix in (".zip", ".7z"):
                     try:
-                        extracted = self._extract_zip(src, temp_dirs)
+                        extracted = self._extract_archive(src, suffix, temp_dirs)
                         resolved_source = self._unwrap_wrapper(extracted)
                     except ZipValidationError as e:
-                        # 解压失败（超限/损坏/恶意）不阻断整轮自检：降级为「无源码」，
-                        # 仍可基于报告评分；warning 由 worker 记入日志供学生知情。
+                        # 解压失败（超限/损坏/恶意，含 .7z 但未装 py7zr）不阻断整轮
+                        # 自检：降级为「无源码」，仍可基于报告评分；warning 由 worker
+                        # 记入日志供学生知情。
                         warnings.append(
                             f"源码压缩包无法解压已忽略（{e}）；"
                             "编译/代码质量将基于报告内容或记为缺失。"
                         )
-                # 其它情况（不存在、非 zip、目录——学生端 UI 已统一为选 zip）忽略，留给校验器提示
+                # 其它情况（不存在、非压缩包、目录——学生端 UI 已统一为选压缩包）忽略，留给校验器提示
 
                 if resolved_source and resolved_source.exists():
                     project_info = self._processor._analyze_project(resolved_source)
@@ -156,20 +159,26 @@ class SelfChecker:
             raise
 
     # ----------------------------------------------------------
-    # 源码 zip 处理
+    # 源码压缩包处理（zip / 7z）
     # ----------------------------------------------------------
-    def _extract_zip(self, zip_path: Path, temp_dirs: List[Path]) -> Path:
-        """安全解压源码 zip 到临时目录。
+    def _extract_archive(self, archive_path: Path, suffix: str, temp_dirs: List[Path]) -> Path:
+        """安全解压源码压缩包（zip / 7z）到临时目录。
 
+        - suffix 取自调用方（已 lower），按扩展名选择解压器：
+          .zip → safe_extract_zip；.7z → safe_extract_7z（未装 py7zr 时抛
+          ZipValidationError，由上层降级为「无源码」）
         - mkdtemp 置于 OS temp（不放仓库，避免污染 git/体积膨胀）
         - atexit 兜底清理（Ctrl-C/关窗）；正常完成由 worker finally 清理
-        - safe_extract_zip 防路径穿越/zip 炸弹
+        - 两者均防路径穿越 / 压缩炸弹（共享 _SOURCE_LIMITS）
         """
         tmp = Path(tempfile.mkdtemp(prefix="student_src_"))
         temp_dirs.append(tmp)
         atexit.register(lambda: shutil.rmtree(tmp, ignore_errors=True))
         try:
-            safe_extract_zip(zip_path, tmp, limits=_SOURCE_LIMITS)
+            if suffix == ".7z":
+                safe_extract_7z(archive_path, tmp, limits=_SOURCE_LIMITS)
+            else:
+                safe_extract_zip(archive_path, tmp, limits=_SOURCE_LIMITS)
         except ZipValidationError:
             # 解压失败：立即清理并从清单移除，避免后续误清理已删目录
             shutil.rmtree(tmp, ignore_errors=True)

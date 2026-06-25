@@ -12,9 +12,6 @@
       "Bash(pandoc \"c:\\\\Users\\\\liuzh\\\\Projects\\\\Workspace\\\\stm32f407\\\\docs\\\\07_car_gear_experiment.md\" -o \"c:\\\\Users\\\\liuzh\\\\Projects\\\\Workspace\\\\stm32f407\\\\docs\\\\07_car_gear_experiment.pdf\" --pdf-engine=xelatex -V CJKmainfont=\"SimSun\")",
       "Bash(pandoc \"c:\\\\Users\\\\liuzh\\\\Projects\\\\Workspace\\\\stm32f407\\\\docs\\\\07_car_gear_experiment.md\" -o \"c:\\\\Users\\\\liuzh\\\\Projects\\\\Workspace\\\\stm32f407\\\\docs\\\\07_car_gear_experiment.pdf\" --pdf-engine=xelatex -V CJKmainfont=\"Microsoft YaHei\" -V geometry:margin=2cm)",
       "Bash(pandoc \"c:\\\\Users\\\\liuzh\\\\Projects\\\\Workspace\\\\stm32f407\\\\docs\\\\07_car_gear_experiment.md\" -o \"c:\\\\Users\\\\liuzh\\\\Projects\\\\Workspace\\\\stm32f407\\\\docs\\\\07_car_gear_experiment.pdf\" --pdf-engine=xelatex -V CJKmainfont=\"SimSun\" -V geometry:margin=1in -V fontsize=12pt)",
-      "Bash(pandoc \"c:\\\\Users\\\\liuzh\\\\Projects\\\\Workspace\\\\stm32f407\\\\docs\\\\experiment_report_template.md\" -o \"c:\\\\Users\\\\liuzh\\\\Projects\\\\Workspace\\\\stm32f407\\\\docs\\\\实验报告模板.docx\")",
-      "Bash(pandoc \"c:\\\\Users\\\\liuzh\\\\Projects\\\\Workspace\\\\stm32f407\\\\docs\\\\experiment_report_template_enhanced.md\" -o \"c:\\\\Users\\\\liuzh\\\\Projects\\\\Workspace\\\\stm32f407\\\\docs\\\\实验报告模板.docx\" --toc --toc-depth=3)",
-      "Bash(python \"c:\\\\Users\\\\liuzh\\\\Projects\\\\Workspace\\\\stm32f407\\\\scripts\\\\generate_template.py\")",
       "Bash(git add *)",
       "Bash(git commit -m 'docs: 完善实验七任务书和报告模板 *)",
       "Bash(git push *)",
@@ -110,7 +107,12 @@
       "Bash(rm -rf \"data/汽服2301B班\" \"data/汽服2302B班\")",
       "Bash(python -m py_compile src/tools/teaching_management_gui/data_source.py src/tools/teaching_management_gui/ui/panels/data_source_panel.py src/tools/teaching_management_gui/ui/main_window.py)",
       "Bash(PYTHONIOENCODING=utf-8 QT_QPA_PLATFORM=offscreen python -u -c ' *)",
-      "Bash(python -m py_compile src/tools/teaching_management_gui/data_source.py src/tools/teaching_management_gui/ui/panels/data_source_panel.py src/tools/teaching_management_gui/ui/main_window.py src/tools/teaching_management_gui/workers/grading_worker.py src/tools/teaching_management_gui/workers/plagiarism_worker.py src/tools/teaching_management_gui/ui/panels/grading_panel.py src/tools/teaching_management_gui/ui/panels/plagiarism_panel.py src/tools/teaching_management_gui/ui/panels/feedback_panel.py)"
+      "Bash(python -m py_compile src/tools/teaching_management_gui/data_source.py src/tools/teaching_management_gui/ui/panels/data_source_panel.py src/tools/teaching_management_gui/ui/main_window.py src/tools/teaching_management_gui/workers/grading_worker.py src/tools/teaching_management_gui/workers/plagiarism_worker.py src/tools/teaching_management_gui/ui/panels/grading_panel.py src/tools/teaching_management_gui/ui/panels/plagiarism_panel.py src/tools/teaching_management_gui/ui/panels/feedback_panel.py)",
+      "Bash(PYTHONPATH=src python -)",
+      "Bash(PYTHONPATH=src python -m py_compile src/tools/student_submission_gui/ui/panels/files_panel.py src/tools/student_submission_gui/ui/panels/grade_panel.py src/tools/student_submission_gui/self_checker.py src/tools/student_submission_gui/workers/check_worker.py src/tools/security/zip_validator.py src/tools/auto_grading/build_checker.py src/tools/auto_grading/grading_engine.py)",
+      "Bash(PYTHONPATH=src python -m py_compile src/tools/auto_grading/grading_engine.py src/tools/auto_grading/submission_validator.py src/tools/student_submission_gui/ui/panels/grade_panel.py)",
+      "Bash(PYTHONPATH=src PYTHONIOENCODING=utf-8 python -c \"from tools.student_submission_gui.experiments import experiment_choices; print\\(experiment_choices\\(\\)\\)\")",
+      "Bash(PYTHONPATH=src PYTHONIOENCODING=utf-8 python -)"
     ],
     "additionalDirectories": [
       "c:\\Users\\liuzh\\Projects\\Workspace\\stm32f407\\docs\\teaching\\2026-春季\\汽服2302B班\\07-car-gear\\results\\feedback\\md",

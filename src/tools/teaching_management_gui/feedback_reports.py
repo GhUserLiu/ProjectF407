@@ -86,7 +86,15 @@ def build_student_feedback(
 
     # 1. 成绩
     lines.append("【成绩与定级】")
-    lines.append(f"总分：{total}/{max_score}（{overall_rate*100:.1f}%），等级：{grade}")
+    # 任务感知（final-project）：评价/100 × 难度系数 = 期末最终
+    eval_score = report.get("evaluation_score")
+    task_name = report.get("detected_task_name")
+    ratio = report.get("difficulty_ratio")
+    if task_name and eval_score is not None and ratio is not None:
+        lines.append(f"识别任务：{task_name}（难度系数 ×{ratio}，来源：{report.get('detected_task_source','')}）")
+        lines.append(f"评价分：{eval_score:.1f}/100　→　期末最终：{total:.1f}/{max_score:.0f}，等级：{grade}")
+    else:
+        lines.append(f"总分：{total}/{max_score}（{overall_rate*100:.1f}%），等级：{grade}")
     if bonus:
         lines.append(f"含基础分外加分：{bonus:.0f} 分（如组长加分）")
     lines.append("")
@@ -112,9 +120,27 @@ def build_student_feedback(
             cname = cs.get("category_name") or cs.get("category_id", "")
             e = float(cs.get("earned_points", 0) or 0)
             m = float(cs.get("max_points", 0) or 0)
+            # 编译类"无法评估"（已跳过/无 Makefile/工具链缺失等）：不计入总分，
+            # 单独标注，避免显示误导性的"0/15 ⚠失分较多"。
+            details = cs.get("details") or []
+            d0 = details[0] if isinstance(details, list) and details else {}
+            br = d0.get("build_result") if isinstance(d0, dict) else None
+            bstatus = (br.get("status") or "").lower() if isinstance(br, dict) else ""
+            fb_txt = d0.get("feedback", "") if isinstance(d0, dict) else ""
+            if bstatus in ("skipped", "not_found", "error", "timeout") or "已跳过" in fb_txt:
+                lines.append(f"- {cname}：已跳过（未提取到可编译工程，不计入总分）")
+                continue
+            # 功能预测 / 态度：非失分项，标注来源（机器预测 / 教师可调）
+            is_predicted = bool(d0.get("predicted")) if isinstance(d0, dict) else False
+            is_manual = bool(d0.get("manual")) if isinstance(d0, dict) else False
             rate = _safe_rate(e, m)
-            flag = "" if rate >= 0.6 else "  ⚠失分较多"
-            lines.append(f"- {cname}：{e}/{m}（{rate*100:.0f}%）{flag}")
+            tag = ""
+            if is_predicted:
+                tag = " （机器预测，教师实测可覆盖）"
+            elif is_manual:
+                tag = "（默认，教师可调）"
+            flag = "" if (rate >= 0.6 or is_predicted or is_manual) else "  ⚠失分较多"
+            lines.append(f"- {cname}：{e}/{m}（{rate*100:.0f}%）{flag}{tag}")
         lines.append("")
 
     # 3. 必须修正的问题（逐条：缺失关键词 + 正确答案 + 影响分值）
@@ -190,6 +216,78 @@ def _closing(overall_rate: float) -> str:
     if overall_rate >= 0.6:
         return "按「必须修正的问题」与「提升一级的具体动作」逐项落实，下次可显著提分。"
     return "待改进项较多，请优先完成「提交校验」与失分最大的几项，循序渐进。"
+
+
+# ============================================================
+# 小组反馈（同组共用一份工程/报告，每组生成 1 份）
+# ============================================================
+def pick_group_leader(member_reports: List[Dict]) -> Dict:
+    """从同组多份报告里选出代表整组的那份（作为反馈正文基准）。
+
+    优先 ``is_team_leader``；否则学号 == ``group_key``（报告文件名解析出的组长）；
+    都没有则取第一份。同组成员共用同一份工程/报告，正文内容一致，仅总分/组长加分不同。
+    """
+    if not member_reports:
+        return {}
+    for r in member_reports:
+        if r.get('is_team_leader'):
+            return r
+    gk = member_reports[0].get('group_key')
+    if gk:
+        for r in member_reports:
+            if r.get('student_id') == gk:
+                return r
+    return member_reports[0]
+
+
+def build_group_feedback(
+    member_reports: List[Dict],
+    class_name: str = "",
+    experiment_id: str = "",
+    include_strengths: bool = True,
+    include_weaknesses: bool = True,
+    include_suggestions: bool = True,
+    concise: bool = False,
+) -> str:
+    """生成一份**小组**反馈：组员名册表（各自总分/等级/组长标记）+ 共享的批阅正文。
+
+    同组共用同一份工程与报告，正文取组长那份（代表整组工作）；失分点与改进对全组适用。
+    """
+    if not member_reports:
+        return ""
+    leader = pick_group_leader(member_reports)
+    roster = sorted(member_reports, key=lambda r: r.get('student_id', ''))
+
+    lines: List[str] = []
+    lines.append(f"小组反馈（组长：{leader.get('name', '')}，学号 {leader.get('student_id', '')}）")
+    lines.append(f"班级：{class_name}　实验：{experiment_id}　组员 {len(roster)} 人")
+    lines.append("")
+    lines.append("【组员与成绩】（本组共用同一份工程与报告；组长额外计组长加分）")
+    lines.append("| 学号 | 姓名 | 总分 | 等级 | 组长加分 | 角色 |")
+    lines.append("|---|---|---|---|---|---|")
+    for r in roster:
+        is_lead = bool(r.get('is_team_leader'))
+        role = "组长" if is_lead else "组员"
+        bonus = float(r.get('bonus_total', 0) or 0)
+        mx = r.get('max_score', 100)
+        lines.append(
+            f"| {r.get('student_id', '')} | {r.get('name', '')} | "
+            f"{r.get('total_score', 0)}/{mx} | {r.get('grade', '')} | "
+            f"{bonus:.0f} | {role} |"
+        )
+    lines.append("")
+    lines.append("以下为该组共享工程/报告的批阅反馈（失分点与改进方向对全组适用）：")
+    lines.append("")
+
+    # 正文复用单生反馈：去掉开头个人称呼段，从首个【块开始拼接
+    full = build_student_feedback(
+        leader, class_name, experiment_id,
+        include_strengths, include_weaknesses, include_suggestions, concise,
+    )
+    idx = full.find("\n【")
+    body = full[idx + 1:] if idx != -1 else full
+    lines.append(body)
+    return "\n".join(lines)
 
 
 # ============================================================
