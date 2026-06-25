@@ -106,6 +106,9 @@ class AutoGradingFacade:
         - final-project → data/rubrics/final-project.json
         - 07-car-gear    → data/rubrics/07-car-gear.json 不存在 → 回退 rubric.json（行为不变）
         避免 facade 永远只装 rubric.json、让综合项目被汽车档位标准误评。
+
+        注意：每次调用都新建 AutoGradingEngine，会重置其编译结果缓存（_build_cache），
+        故应在流水线起始处调用一次、整条流水线复用同一引擎，切勿中途换引擎。
         """
         rubric_path = self.config.get_rubric_path(experiment_id)
         return AutoGradingEngine(
@@ -225,7 +228,8 @@ class AutoGradingFacade:
     def run_single_submission(
         self,
         report_path: Path,
-        source_path: Optional[Path] = None
+        source_path: Optional[Path] = None,
+        experiment_id: Optional[str] = None
     ) -> Optional[GradingResult]:
         """
         评分单个提交
@@ -233,11 +237,17 @@ class AutoGradingFacade:
         Args:
             report_path: 报告文件路径
             source_path: 源代码目录路径（可选）
+            experiment_id: 实验 ID（可选）；提供时按其装载对应 rubric，
+                与 run_full_pipeline 一致，避免误用默认 rubric.json
 
         Returns:
             评分结果
         """
         print(f"评分单个提交: {report_path.name}")
+
+        # 按实验 id 装载对应 rubric（与 run_full_pipeline 一致）
+        if experiment_id:
+            self.engine = self._make_engine(experiment_id)
 
         # 处理提交
         submission = self.processor.process_single_submission(
@@ -292,6 +302,15 @@ class AutoGradingFacade:
                 'max_score': grading_result.max_score,
                 'bonus_total': grading_result.bonus_total,
                 'grade': grading_result.grade,
+                'group_key': grading_result.group_key,
+                'group_members': grading_result.group_members,
+                'is_team_leader': grading_result.is_team_leader,
+                'detected_task': grading_result.detected_task,
+                'detected_task_name': grading_result.detected_task_name,
+                'detected_task_source': grading_result.detected_task_source,
+                'evaluation_score': grading_result.evaluation_score,
+                'difficulty_ratio': grading_result.difficulty_ratio,
+                'task_full_marks': grading_result.task_full_marks,
                 'category_scores': [
                     {
                         'category_id': cs.category_id,

@@ -163,6 +163,16 @@ class ObservableFacade:
         self.log_message.emit("自动化批阅系统")
         self.log_message.emit("=" * 70)
 
+        # 按实验 id 装载对应 rubric（与 facade.run_full_pipeline 一致）。
+        # 否则 GUI 路径会一直用 AutoGradingFacade.__init__ 里默认的 rubric.json
+        # （汽车档位标准），把综合项目等按错误标准评分。
+        self.facade.engine = self.facade._make_engine(experiment_id)
+        self.log_message.emit(
+            "rubric: " + str(
+                getattr(self.facade.engine.rubric, 'get', lambda *a: None)(
+                    'experiment_name', None)
+                or self.facade.engine.rubric_path or '(默认)'))
+
         # 阶段1: 整理提交格式
         if not skip_organization:
             self.log_message.emit("阶段1: 整理提交格式")
@@ -193,8 +203,8 @@ class ObservableFacade:
 
         # 阶段2: 处理提交数据
         self.log_message.emit("阶段2: 处理提交数据")
-        self.stage_started.emit("compile", "编译检查")  # 使用compile stage_id
-        self.stage_progress.emit("compile", 1, 10)
+        self.stage_started.emit("process", "处理提交数据")
+        self.stage_progress.emit("process", 1, 10)
 
         submissions = self.facade.processor.process_class_submissions(
             class_name,
@@ -202,8 +212,8 @@ class ObservableFacade:
             expand_team=True,   # 批阅按团队成员展开为每人一条；查重链路保持默认 False
         )
 
-        self.stage_progress.emit("compile", 10, 10)
-        self.stage_completed.emit("compile")
+        self.stage_progress.emit("process", 10, 10)
+        self.stage_completed.emit("process")
 
         result.total_submissions = len(submissions)
         self.log_message.emit(f"  处理完成: {len(submissions)} 个提交")
@@ -212,9 +222,9 @@ class ObservableFacade:
             self.log_message.emit("警告: 没有找到提交数据")
             return result
 
-        # 阶段3: 批量评分
+        # 阶段3: 批量评分（stage_id "analyze" 为 GUI 进度条约定，勿改名）
         self.log_message.emit("阶段3: 批量评分")
-        self.stage_started.emit("analyze", "代码分析")  # 使用analyze stage_id
+        self.stage_started.emit("analyze", "评分中")
 
         grading_results = []
         total = len(submissions)
@@ -226,13 +236,20 @@ class ObservableFacade:
             self.log_message.emit(f"评分 ({i+1}/{total}): {submission.student_id}-{submission.name}")
             self.stage_progress.emit("analyze", i + 1, total)
 
-            grading_result = self.facade.engine.grade_submission(submission)
+            try:
+                grading_result = self.facade.engine.grade_submission(submission)
+            except Exception as e:
+                # 单个提交异常不应中断整批：跳过该生并记录，其余继续评分
+                self.log_message.emit(f"  跳过：评分异常 {e}")
+                continue
             grading_results.append(grading_result)
 
             self.log_message.emit(f"  得分: {grading_result.total_score:.1f}/{grading_result.max_score:.1f} ({grading_result.grade})")
 
-        self.stage_progress.emit("analyze", total, total)
-        self.stage_completed.emit("analyze")
+        cancelled = self.is_cancelled()
+        if not cancelled:
+            self.stage_progress.emit("analyze", total, total)
+            self.stage_completed.emit("analyze")
 
         # 小组按成员展开后，同一学生可能出现在多份上传报告中；按学号去重保留最高分
         from tools.auto_grading.grading_engine import dedupe_team_members
@@ -241,28 +258,33 @@ class ObservableFacade:
         result.grading_results = grading_results
         result.successful_graded = len(grading_results)
 
-        # 阶段4: 生成报告
-        self.log_message.emit("阶段4: 生成报告")
-        self.stage_started.emit("grade", "报告评分")  # 使用grade stage_id
-        self.stage_progress.emit("grade", 1, 10)
+        # 阶段4: 生成报告。取消则不落盘部分结果，避免与 grading_cancelled 信号不一致。
+        if not cancelled:
+            self.log_message.emit("阶段4: 生成报告")
+            self.stage_started.emit("report", "生成报告")
+            self.stage_progress.emit("report", 1, 10)
 
-        if grading_results:
-            class_report = self.facade.engine.generate_class_report(grading_results)
-            self.facade._save_reports(result, class_report)
-            self.log_message.emit(f"  班级报告已生成")
-            self.log_message.emit(f"  个人报告已生成")
-            self.stage_progress.emit("grade", 10, 10)
+            # completed_at 必须在 _save_reports 之前赋值，否则批阅汇总.json 里会是 null
+            result.completed_at = datetime.now()
+            class_report = None
+            if grading_results:
+                class_report = self.facade.engine.generate_class_report(grading_results)
+                self.facade._save_reports(result, class_report)
+                self.log_message.emit("  班级报告已生成")
+                self.log_message.emit("  个人报告已生成")
+                self.stage_progress.emit("report", 10, 10)
+            self.stage_completed.emit("report")
 
-        self.stage_completed.emit("grade")
-
-        result.completed_at = datetime.now()
-
-        self.log_message.emit("=" * 70)
-        self.log_message.emit("批阅完成！")
-
-        if grading_results:
-            avg_score = sum(r.total_score for r in grading_results) / len(grading_results)
-            self.log_message.emit(f"平均分: {avg_score:.1f}")
+            self.log_message.emit("=" * 70)
+            self.log_message.emit("批阅完成！")
+            # 平均分/等级分布取自 generate_class_report（单一事实来源），避免与班级报告.json 不一致
+            if class_report:
+                self.log_message.emit(f"平均分: {class_report['average_score']:.1f}")
+                self.log_message.emit(f"等级分布: {class_report['grade_distribution']}")
+            self.log_message.emit(f"完成时间: {result.completed_at.strftime('%Y-%m-%d %H:%M:%S')}")
+            self.log_message.emit(f"耗时: {(result.completed_at - result.started_at).total_seconds():.1f}秒")
+        else:
+            self.log_message.emit("已取消，不生成报告")
 
         return result
 

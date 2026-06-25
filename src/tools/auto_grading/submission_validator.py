@@ -344,40 +344,65 @@ class SubmissionValidator:
                 fix='补充实验现象照片、LED 状态截图或示波器波形'))
 
     def _rule_thinking_questions(self, submission, sections: Dict[str, str], report: ValidationReport):
-        """规则7：思考题题号齐全（rubric 声明 thinking_check=false 时跳过，如综合项目为选做）"""
+        """规则7：思考题题号齐全（rubric 声明 thinking_check=false 时跳过）。
+
+        题号集由 rubric 驱动（``reference_answers.thinking_question_ids``，缺省 Q1~Q7），
+        避免对期末项目（题数为 3）仍按汽车档位的 7 题判定与提示。
+        """
         if not self._thinking_check:
             return
+        ref = (self._rubric or {}).get('reference_answers', {}) or {}
+        # 题号集须与 grading_engine._build_thinking_check 保持一致：优先显式
+        # thinking_question_ids；否则取所有可能出现题目的键并集（通用 + 各任务专属）；
+        # 都没有再回退 Q1~Q7。校验阶段尚不知所选任务，故用并集作为「全部可能题号」。
+        tqs = ref.get('thinking_questions', {}) or {}
+        by_task = ref.get('thinking_questions_by_task', {}) or {}
+        key_union = set(tqs.keys())
+        for task_map in by_task.values():
+            if isinstance(task_map, dict):
+                key_union |= set(task_map.keys())
+        ids = ref.get('thinking_question_ids') or sorted(key_union) or [f'Q{i}' for i in range(1, 8)]
+        id_label = '、'.join(ids)
+        expected_nums = {n for n in (self._qid_num(q) for q in ids) if n > 0}
+
         q_text = ''
         for name, content in sections.items():
             if any(kw in name for kw in ['思考题', '思考']):
                 q_text = content
                 break
         if not q_text:
-            # 章节缺失已提示；这里不重复报
+            # 报告无思考题章节：只记录 missing_questions 供反馈列出参考方向，不重复报 issue
+            report.missing_questions = list(ids)
             return
         answered = set()
         for pat in QUESTION_PATTERNS:
             for m in pat.finditer(q_text):
                 try:
                     n = int(m.group(1))
-                    if 1 <= n <= 7:
+                    if n in expected_nums:
                         answered.add(n)
                 except (ValueError, IndexError):
                     continue
-        report.missing_questions = [f'Q{i}' for i in range(1, 8) if i not in answered]
+        report.missing_questions = [qid for qid in ids if self._qid_num(qid) not in answered]
 
         body = re.sub(r'\s', '', q_text)
         if len(answered) == 0 and len(body) < 150:
             report.issues.append(ValidationIssue(
                 rule='thinking_questions', severity='warning', section='七、思考题',
-                message=f'思考题章节内容偏少（{len(body)}字）且未见 Q1~Q7 题号，可能未逐题作答',
-                fix='逐题作答 Q1~Q7 并显式标注题号，结合参考答案核对'))
-        elif len(answered) < 4:
+                message=f'思考题章节内容偏少（{len(body)}字）且未见题号，可能未逐题作答',
+                fix=f'逐题作答 {id_label} 并显式标注题号，结合参考答案核对'))
+        elif len(answered) < len(expected_nums):
             report.issues.append(ValidationIssue(
                 rule='thinking_questions', severity='info', section='七、思考题',
-                message=f'思考题仅检测到 {len(answered)} 个题号标注，建议逐题标注 Q1~Q7 以便核对',
-                fix='按 Q1~Q7 显式标注题号作答'))
-        # 检测到 ≥4 个题号：视为基本作答，不再提示
+                message=f'思考题仅检测到 {len(answered)} 个题号标注，建议逐题标注 {id_label} 以便核对',
+                fix=f'按 {id_label} 显式标注题号作答'))
+        # 检测到的题号数 >= 题号集：视为基本作答，不再提示
+
+    @staticmethod
+    def _qid_num(qid: str) -> int:
+        """从题号标识（如 'Q3'）取数字部分，取不到返回 -1。"""
+        m = re.search(r'(\d+)', qid or '')
+        return int(m.group(1)) if m else -1
 
     # ---------- 辅助 ----------
     def _category_name(self, cat_id: str) -> str:

@@ -162,7 +162,13 @@ class AutoGradingConfig:
         specific = self.rubrics_dir / f"{experiment_code}.json"
         if specific.exists():
             return specific
-        return self.rubrics_dir / "rubric.json"
+        # 未找到该实验专属 rubric：回退通用 rubric.json。
+        # 07-car-gear 等本就以 rubric.json 为标准，属预期；其它 experiment 多半是
+        # 拼写错误或漏建 rubric——回退会被当成汽车档位标准误评，故显式告警提示核对。
+        fallback = self.rubrics_dir / "rubric.json"
+        print(f"[评分标准] 未找到 {specific.name}，回退到 {fallback.name}"
+              f"（请确认 experiment '{experiment_code}' 是否应使用此标准）")
+        return fallback
 
     def get_class_dir(self, semester: str, class_name: str) -> Path:
         """获取班级目录"""
