@@ -77,6 +77,7 @@ class GradingResult:
     detected_task: str = ""                 # 任务键 task1/task2/task3（无任务 rubric 时为空）
     detected_task_name: str = ""            # 任务中文名
     detected_task_source: str = ""          # 检测来源 report/code/default
+    detected_task_ambiguous: bool = False   # 任务判定不够权威（无显式声明且信号混杂/回退）→ 反馈提示核对
     evaluation_score: float = 0.0           # 评价分 /100（任务统一刻度）
     difficulty_ratio: float = 1.0           # 任务难度比（0.8/0.9/1.0）
     task_full_marks: float = 100.0          # 任务满分（80/90/100，= 难度比×100）
@@ -227,14 +228,18 @@ def _report_main_body(text: str) -> str:
 def detect_task(submission: "ProcessedSubmission",
                 rubric: Dict,
                 source_cache: Dict[Path, str]) -> Tuple[str, str]:
-    """检测学生所选任务，返回 (task_key, source)。source ∈ {'report','code','default'}。
+    """检测学生所选任务，返回 (task_key, source, ambiguous)。
+
+    source ∈ {'report','code','default'}；ambiguous=True 表示判定不够权威（未见显式
+    "选择任务X"声明、且多个任务特征信号并存，或回退到源码/默认），反馈层据此提示学生/教师核对。
 
     优先级：
-    1. 显式声明（"选择了任务X"等 choose-动词 + 任务号；正文优先，已砍思考题）→ 'report'
-    2. 关键字声明（report_declare 词命中正文，按 priority）→ 'report'
-    3. 源码信号（学生自有代码里的 HAL_RTC/闹钟→task3；HAL_ADC/温度→task2；
-       _collect_source_text 已排除 HAL/CMSIS 厂商库）→ 'code'
-    4. fallback（默认 task1）→ 'default'
+    1. 显式声明（"选择了任务X"等 choose-动词 + 任务号；正文优先，已砍思考题）→ 'report', 不 ambiguous
+    2. 关键字声明（report_declare 词命中正文，按 priority）→ 'report'；多于一个任务的关键字都命中
+       → 信号混杂 → ambiguous=True（如聂智聪组：转向灯 与 RTC/任务三 并存）
+    3. 源码信号（学生自有代码 HAL_RTC/闹钟→task3；HAL_ADC/温度→task2；已排除 HAL/CMSIS 厂商库）
+       → 'code', ambiguous=True（无任何报告信号，不够权威）
+    4. fallback（默认 task1）→ 'default', ambiguous=True
 
     显式声明先于关键字：避免"在任务一/二/三中选择了实验任务一"里的列举词"任务三"
     把实际做的 task1 误判成 task3。报告（作者意图）先于源码。
@@ -254,24 +259,26 @@ def detect_task(submission: "ProcessedSubmission",
     if m:
         tn = m.group(1)
         tk = 'task1' if tn in ('任务一', '任务1') else 'task2' if tn in ('任务二', '任务2') else 'task3'
-        return tk, 'report'
+        return tk, 'report', False
 
-    # 2) 关键字声明：只扫正文（已砍思考题段），按 priority 顺序
-    for tk in priority:
-        for kw in declare.get(tk, []):
-            if kw and kw in main:
-                return tk, 'report'
+    # 2) 关键字声明：只扫正文（已砍思考题段），按 priority 顺序。
+    #    多于一个任务的关键字都命中 → 信号混杂，标记 ambiguous 供反馈提示核对。
+    present = [tk for tk in priority
+               if any(kw and kw in main for kw in declare.get(tk, []))]
+    if present:
+        return present[0], 'report', len(present) > 1
 
     # 3) 源码信号（_collect_source_text 已排除 HAL/CMSIS 等厂商库，避免样板误触）
+    #    走到这说明报告里毫无任务信号，不够权威 → ambiguous
     code = _collect_source_text(submission, source_cache)
     if code:
         for tk in priority:
             for kw in signals.get(tk, []):
                 if kw and kw in code:
-                    return tk, 'code'
+                    return tk, 'code', True
 
     # 4) 默认
-    return fallback, 'default'
+    return fallback, 'default', True
 
 
 def dedupe_team_members(results: List[GradingResult]) -> List[GradingResult]:
@@ -491,9 +498,10 @@ class AutoGradingEngine:
         # 非任务 rubric（07-car-gear 等）active_rubric = self.rubric，行为零变化。
         self._source_cache: Dict[Path, str] = getattr(self, '_source_cache', {})
         if 'task_difficulty' in self.rubric:
-            task_key, task_src = detect_task(submission, self.rubric, self._source_cache)
+            task_key, task_src, task_ambiguous = detect_task(submission, self.rubric, self._source_cache)
             result.detected_task = task_key
             result.detected_task_source = task_src
+            result.detected_task_ambiguous = task_ambiguous
             task_names = {'task1': '任务一·多功能灯光系统',
                           'task2': '任务二·温度报警系统',
                           'task3': '任务三·定时迎宾灯系统'}
@@ -505,7 +513,7 @@ class AutoGradingEngine:
             self._active_rubric = active_rubric
             # 声明与源码信号冲突（报告说任务A、代码像任务B）→ advisory 提示教师关注
             if task_src == 'report':
-                code_task, _ = detect_task(
+                code_task, _, _ = detect_task(
                     submission, {**self.rubric, 'task_detection': {
                         **(self.rubric.get('task_detection') or {}),
                         'report_declare': {}}}, self._source_cache)

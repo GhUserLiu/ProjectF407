@@ -94,6 +94,13 @@ def build_student_feedback(
     if task_name and eval_score is not None and ratio is not None:
         lines.append(f"识别任务：{task_name}（难度系数 ×{ratio}，来源：{report.get('detected_task_source','')}）")
         lines.append(f"评价分：{eval_score:.1f}/100　→　期末最终：{total:.1f}/{max_score:.0f}，等级：{grade}")
+        # 任务判定不权威（无显式声明且信号混杂/回退到源码或默认）→ 提示学生核对、给出建议
+        if report.get("detected_task_ambiguous"):
+            lines.append(
+                f"⚠【请核对任务】报告未见明确的「选择任务X」声明、且多个任务的特征信号并存，"
+                f"系统暂按「{task_name}」（×{ratio}）评分。若与你们实际完成的任务不符，请在报告"
+                "「所选任务及理由」处明确写出所选任务号（如「选择任务一」），或由教师在评分中调整任务归属与系数。"
+            )
     else:
         lines.append(f"总分：{total}/{max_score}（{overall_rate*100:.1f}%），等级：{grade}")
     if bonus:

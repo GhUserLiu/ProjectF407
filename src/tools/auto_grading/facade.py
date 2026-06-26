@@ -314,6 +314,7 @@ class AutoGradingFacade:
                 'detected_task': grading_result.detected_task,
                 'detected_task_name': grading_result.detected_task_name,
                 'detected_task_source': grading_result.detected_task_source,
+                'detected_task_ambiguous': grading_result.detected_task_ambiguous,
                 'evaluation_score': grading_result.evaluation_score,
                 'difficulty_ratio': grading_result.difficulty_ratio,
                 'task_full_marks': grading_result.task_full_marks,
