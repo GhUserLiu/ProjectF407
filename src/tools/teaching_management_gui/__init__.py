@@ -11,5 +11,5 @@ Auto Grading System GUI
 - 查看和导出报告
 """
 
-__version__ = "2.1.0"
+__version__ = "2.2.0"
 __author__ = "STM32F407 Teaching Team"

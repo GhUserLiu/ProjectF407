@@ -29,6 +29,7 @@ from tools.teaching_management_gui.ui.panels.data_source_panel import DataSource
 from tools.teaching_management_gui.ui.panels.grading_panel import GradingPanel
 from tools.teaching_management_gui.ui.panels.plagiarism_panel import PlagiarismPanel
 from tools.teaching_management_gui.ui.panels.feedback_panel import FeedbackPanel
+from tools.teaching_management_gui import __version__
 
 
 class MainWindow(QMainWindow):
@@ -42,7 +43,7 @@ class MainWindow(QMainWindow):
 
     def setup_ui(self):
         """设置界面"""
-        self.setWindowTitle("教学管理系统 v2.0")
+        self.setWindowTitle(f"教学管理系统 v{__version__}")
         self.setMinimumSize(1200, 800)
 
         # 创建中央窗口
@@ -146,7 +147,7 @@ class MainWindow(QMainWindow):
         # 底部信息
         layout.addStretch()
 
-        version_label = QLabel("v2.0")
+        version_label = QLabel(f"v{__version__}")
         version_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         version_label.setStyleSheet("color: #95a5a6; font-size: 12px;")
         layout.addWidget(version_label)
@@ -273,8 +274,8 @@ class MainWindow(QMainWindow):
         QMessageBox.about(
             self,
             "关于",
-            """
-            <h3>教学管理系统 v2.0</h3>
+            f"""
+            <h3>教学管理系统 v{__version__}</h3>
             <p>STM32F407教学项目专用工具</p>
             <p><b>功能模块：</b></p>
             <ul>

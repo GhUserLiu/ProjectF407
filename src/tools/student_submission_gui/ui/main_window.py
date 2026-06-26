@@ -26,6 +26,7 @@ from tools.student_submission_gui.ui.panels.files_panel import FilesPanel
 from tools.student_submission_gui.ui.panels.check_panel import CheckPanel
 from tools.student_submission_gui.ui.panels.grade_panel import GradePanel
 from tools.student_submission_gui.submission_state import shared
+from tools.student_submission_gui import __version__
 
 
 # 导航项：(id, 显示名, tooltip, 状态栏文案)
@@ -52,7 +53,7 @@ class MainWindow(QMainWindow):
 
     # ---------------- UI ----------------
     def setup_ui(self):
-        self.setWindowTitle("学生端 · 作业自检与自评系统 v2.0")
+        self.setWindowTitle(f"学生端 · 作业自检与自评系统 v{__version__}")
         self.setMinimumSize(1100, 760)
 
         central = QWidget()
@@ -209,8 +210,8 @@ class MainWindow(QMainWindow):
     def _show_about(self):
         QMessageBox.about(
             self, "关于",
-            """
-            <h3>学生端 · 作业自检与自评系统 v2.0</h3>
+            f"""
+            <h3>学生端 · 作业自检与自评系统 v{__version__}</h3>
             <p>提交前用本地文件自检与自评的辅助工具。</p>
             <p><b>功能：</b></p>
             <ul>
