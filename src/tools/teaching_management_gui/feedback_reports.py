@@ -13,6 +13,7 @@ Feedback & Report Generators
 均以纯文本/Markdown 生成，便于写 .md 与 .docx。
 """
 
+import re
 from collections import Counter
 from datetime import datetime
 from typing import Dict, List, Optional
@@ -246,6 +247,36 @@ def _members_share_source(member_reports: List[Dict]) -> bool:
         return tuple(scores.get(cid) for cid in _CODE_CATEGORY_IDS)
 
     return len({_code_sig(r) for r in member_reports}) == 1
+
+
+def _distinct_submitters(member_reports: List[Dict]) -> int:
+    """同组「各自提交了源码」的去重人数（用于"同组只交一份"提醒）。
+
+    优先用批阅时盖章的 ``group_submitter_count``（组内应一致，取 max 容错）；
+    缺失（旧数据 / 未重跑批阅）则回退：从各成员 compilation 类目的
+    ``build_result.project_name`` 解析学号前缀去重计数——project_name 形如
+    ``23071140125-靳皓杰``，自我归因后指向该生本人提交的源码，故去重数即提交人数。
+    无法判定（无 compilation 类目 / 无 project_name）返回 0，反馈层据此不声称。
+    """
+    known = [int(r.get("group_submitter_count") or 0) for r in member_reports]
+    pos = [c for c in known if c > 0]
+    if pos:
+        return max(pos)
+
+    owners: set = set()
+    for r in member_reports:
+        comp = next((c for c in (r.get("category_scores") or [])
+                     if c.get("category_id") == "compilation"), None)
+        if not comp:
+            continue
+        details = comp.get("details") or []
+        br = (details[0].get("build_result") if details else None) or {}
+        m = re.match(r"(\d{6,})", br.get("project_name") or "")
+        if m:
+            owners.add(m.group(1))
+    return len(owners)
+
+
 def pick_group_leader(member_reports: List[Dict]) -> Dict:
     """从同组多份报告里选出代表整组的那份（作为反馈正文基准）。
 
@@ -293,12 +324,29 @@ def build_group_feedback(
     leader = pick_group_leader(member_reports)
     roster = sorted(member_reports, key=lambda r: r.get('student_id', ''))
     shared = _members_share_source(roster)
+    submitter_count = _distinct_submitters(roster)
+    multi_submit = submitter_count >= 2
 
     lines: List[str] = []
     lines.append(f"小组反馈（组长：{leader.get('name', '')}，学号 {leader.get('student_id', '')}）")
     lines.append(f"班级：{class_name}　实验：{experiment_id}　组员 {len(roster)} 人")
     lines.append("")
-    if shared:
+    # ≥2 人各自提交：置顶提醒"同组只交一份"，并修正"共用同一份报告"的虚假措辞
+    if multi_submit:
+        lines.append(
+            f"【提交提醒】本组有 {submitter_count} 名成员各自上传了报告与源码"
+            "（学习通「按人导出」），机器已按每人各自提交分别评分，故下表总分可能不同。"
+        )
+        lines.append(
+            "▶ 下次只需由组长一人提交一份报告 + 一份源码即可；组员不必重复上传，"
+            "以免机器归因混乱、反馈与本人提交不符。"
+        )
+        lines.append("")
+        lines.append(
+            "【组员与成绩】（本组多人各自提交，工程/报告并非共用一份；下表按每人各自提交评定，"
+            "总分可能不同；组长另计组长加分）"
+        )
+    elif shared:
         lines.append("【组员与成绩】（本组共用同一份工程与报告；组长额外计组长加分）")
     else:
         lines.append(
@@ -318,7 +366,13 @@ def build_group_feedback(
             f"{bonus:.0f} | {role} |"
         )
     lines.append("")
-    if shared:
+    if multi_submit:
+        lines.append(
+            "以下批阅反馈以组长那份为代表：报告部分（概述/设计/代码说明/调试/总结）对全组基本适用；"
+            "但因多人各自提交，代码与编译部分仅反映组长提交的源码，组员请结合上表本人的代码类分项"
+            "与「必须修正的问题」对照查看。"
+        )
+    elif shared:
         lines.append("以下为该组共享工程/报告的批阅反馈（失分点与改进方向对全组适用）：")
     else:
         lines.append(

@@ -23,8 +23,13 @@ from tools.auto_grading.grading_engine import (
 from tools.auto_grading.build_checker import BuildResult, BuildStatus
 
 
-def _make_result(sid, name, source_dir_name, score, bonus=0.0, issues=None):
-    """构造一个 GradingResult，compilation_result.project_path 指向给定源码目录名。"""
+def _make_result(sid, name, source_dir_name, score, bonus=0.0, issues=None,
+                 group_key="", group_members=None):
+    """构造一个 GradingResult，compilation_result.project_path 指向给定源码目录名。
+
+    source_dir_name=None 表示无源码（compilation_result 置空，模拟 not_submitted）。
+    group_key/group_members 用于测试组级 group_submitter_count 盖章。
+    """
     r = GradingResult(
         student_id=sid,
         name=name,
@@ -33,15 +38,18 @@ def _make_result(sid, name, source_dir_name, score, bonus=0.0, issues=None):
         max_score=100.0,
         bonus_total=bonus,
         grade="N/A",
+        group_key=group_key,
+        group_members=list(group_members or []),
         issues=list(issues or []),
     )
     # project_path.name 即源码目录名（模拟 organizer 产出的 ...-源代码 目录）
-    r.compilation_result = BuildResult(
-        status=BuildStatus.SKIPPED,
-        project_name=f"{sid}-{name}",
-        project_path=Path(source_dir_name),
-        success=False,
-    )
+    if source_dir_name is not None:
+        r.compilation_result = BuildResult(
+            status=BuildStatus.SKIPPED,
+            project_name=f"{sid}-{name}",
+            project_path=Path(source_dir_name),
+            success=False,
+        )
     return r
 
 
@@ -109,3 +117,63 @@ class TestOrderPreservation:
         # 按首次出现顺序：张磊 在前
         assert out[0].student_id == "23071140140"
         assert out[1].student_id == "23071140138"
+
+
+class TestSubmitterCount:
+    """group_submitter_count：本组「各自提交源码」的去重人数（≥2 触发重复提交提醒）。"""
+
+    GK = "23071140125"
+    MEMBERS = [("23071140125", "靳皓杰"), ("23071140135", "薛松涛"), ("23071140136", "李志飞")]
+
+    def test_count_three_when_all_members_self_submit(self):
+        """3 人各自提交（每人源码目录含本人学号）→ count=3，全组同值。"""
+        out = dedupe_team_members([
+            _make_result("23071140125", "靳皓杰", "汽服2301B班-23071140125-靳皓杰-源代码", 81.9,
+                         group_key=self.GK, group_members=self.MEMBERS),
+            _make_result("23071140135", "薛松涛", "汽服2301B班-23071140135-薛松涛-源代码", 65.0,
+                         group_key=self.GK, group_members=self.MEMBERS),
+            _make_result("23071140136", "李志飞", "汽服2301B班-23071140136-李志飞-源代码", 76.9,
+                         group_key=self.GK, group_members=self.MEMBERS),
+        ])
+        assert {r.group_submitter_count for r in out} == {3}
+
+    def test_count_one_when_only_leader_submits(self):
+        """仅组长提交，组员回退到组长源码（学号不命中）→ count=1。"""
+        leader_src = "汽服2301B班-23071140125-靳皓杰-源代码"
+        out = dedupe_team_members([
+            _make_result("23071140125", "靳皓杰", leader_src, 81.9,
+                         group_key=self.GK, group_members=self.MEMBERS),
+            _make_result("23071140135", "薛松涛", leader_src, 81.9,
+                         group_key=self.GK, group_members=self.MEMBERS),
+            _make_result("23071140136", "李志飞", leader_src, 81.9,
+                         group_key=self.GK, group_members=self.MEMBERS),
+        ])
+        assert {r.group_submitter_count for r in out} == {1}
+
+    def test_count_two_when_two_of_three_submit(self):
+        """组长 + 一名组员各自提交，另一组员回退到组长源码 → count=2。"""
+        out = dedupe_team_members([
+            _make_result("23071140125", "靳皓杰", "汽服2301B班-23071140125-靳皓杰-源代码", 81.9,
+                         group_key=self.GK, group_members=self.MEMBERS),
+            _make_result("23071140135", "薛松涛", "汽服2301B班-23071140135-薛松涛-源代码", 65.0,
+                         group_key=self.GK, group_members=self.MEMBERS),
+            _make_result("23071140136", "李志飞", "汽服2301B班-23071140125-靳皓杰-源代码", 81.9,
+                         group_key=self.GK, group_members=self.MEMBERS),
+        ])
+        assert {r.group_submitter_count for r in out} == {2}
+
+    def test_count_zero_when_no_source(self):
+        """全组均无源码 → count=0（不误触发提醒）。"""
+        out = dedupe_team_members([
+            _make_result("23071140125", "靳皓杰", None, 50.0,
+                         group_key=self.GK, group_members=self.MEMBERS),
+            _make_result("23071140135", "薛松涛", None, 50.0,
+                         group_key=self.GK, group_members=self.MEMBERS),
+        ])
+        assert {r.group_submitter_count for r in out} == {0}
+
+    def test_count_not_set_for_individual_experiment(self):
+        """个人实验（无 group_key）→ 不盖章，保持默认 0。"""
+        r = _make_result("23071140141", "李全", "汽服2301B班-23071140141-李全-源代码", 50.0)
+        out = dedupe_team_members([r])
+        assert out[0].group_submitter_count == 0

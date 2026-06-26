@@ -69,6 +69,9 @@ class GradingResult:
     # 小组信息（同组共用同一份工程/报告；供反馈按组聚合）
     group_key: str = ""                     # 小组键（组长学号）；同组成员相同
     group_members: list = field(default_factory=list)  # [(学号, 姓名), ...]
+    # 本组「各自提交了源码」的去重成员数（未单独提交者回退到组长源码，不计数）；≥2 时
+    # 反馈层提示「同组只交一份」。0=未知/个人实验。全组同值，由 dedupe_team_members 盖章。
+    group_submitter_count: int = 0
 
     # 任务感知（final-project：任选其一，难度系数缩放最终分）
     detected_task: str = ""                 # 任务键 task1/task2/task3（无任务 rubric 时为空）
@@ -305,6 +308,19 @@ def dedupe_team_members(results: List[GradingResult]) -> List[GradingResult]:
                 "fix": "请教师核对同组组长归属，确保每组仅一人享受组长加分，必要时手动调整。",
                 "expected": "每组一名组长",
             })
+
+    # 本组「各自提交了源码」的去重成员数：组内 best 结果里非空 _source_token 的去重数。
+    # 未单独提交者会回退到组长源码（_is_self_sourced=False），不增加去重 token，故该值
+    # 即"真正上传过源码的人数"；≥2 时反馈层据此提示"同组只交一份"。全组各成员同值。
+    _group_tokens: Dict[str, set] = {}
+    for r in best.values():
+        if r.group_key:
+            tok = _source_token(r)
+            if tok:
+                _group_tokens.setdefault(r.group_key, set()).add(tok)
+    for r in best.values():
+        if r.group_key:
+            r.group_submitter_count = len(_group_tokens.get(r.group_key, ()))
 
     # 按首次出现顺序输出
     seen = set()
