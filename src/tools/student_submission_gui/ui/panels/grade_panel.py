@@ -8,6 +8,8 @@ Grade Panel — GradingResult 展示
 结构化失分与改进、思考题核对、导出自检报告。
 """
 
+from pathlib import Path
+
 from ...qt_compat import (
     QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
     QGroupBox, QLabel, QPushButton, QTableWidget, QTableWidgetItem,
@@ -46,7 +48,8 @@ class GradePanel(QWidget):
 
         # 常驻声明
         disclaimer = QLabel(
-            "⚠ 本结果为机器预测分，仅供参考。学习态度、组长加分等类别最终以教师评分为准。"
+            "⚠ 本结果为机器预测分，仅供参考。学习态度为教师评定项（默认预测）；"
+            "组长加分由报告团队信息自动判定。"
         )
         disclaimer.setWordWrap(True)
         disclaimer.setStyleSheet("background:#fff8e1; color:#b8860b; padding:8px; border-radius:4px;")
@@ -67,12 +70,24 @@ class GradePanel(QWidget):
             "QPushButton:hover{background:#3498db;}"
         )
         export_btn.clicked.connect(self._export)
+        self.pack_btn = QPushButton("📦 打包提交")
+        self.pack_btn.setToolTip("生成可直接上传学习通的规范提交压缩包（须先通过格式自检）")
+        self.pack_btn.setStyleSheet(
+            "QPushButton{background:#27ae60;color:white;font-weight:bold;padding:8px 16px;border-radius:5px;}"
+            "QPushButton:hover{background:#2ecc71;}"
+            "QPushButton:disabled{background:#bdc3c7;}"
+        )
+        self.pack_btn.clicked.connect(self._pack_submission)
         rerun_btn = QPushButton("↺ 重新检测")
         rerun_btn.clicked.connect(lambda: self.main_window.navigate("files"))
         ops.addStretch()
+        ops.addWidget(self.pack_btn)
         ops.addWidget(export_btn)
         ops.addWidget(rerun_btn)
         layout.addLayout(ops)
+
+        self._pkg_worker = None        # 持有 PackageWorker 引用防 GC
+        self._last_gate = None         # 缓存 assess_gate 结果，按钮即时响应
 
     def _create_score_group(self):
         box = QGroupBox("预测得分")
@@ -152,20 +167,39 @@ class GradePanel(QWidget):
             self.cat_table.setRowCount(0)
             self.issues_table.setRowCount(0)
             self.thinking_table.setRowCount(0)
+            self._last_gate = None
+            self.pack_btn.setEnabled(False)
             return
+
+        # 缓存打包闸门结果，供按钮即时响应（纯函数，<1ms）
+        from tools.student_submission_gui.submission_packager import assess_gate
+        identity = shared().state().identity
+        ok, blockers, warnings = assess_gate(result, identity)
+        self._last_gate = (ok, blockers, warnings)
+        self.pack_btn.setEnabled(True)
 
         g = result.grading
         self.score_label.setText(f"{g.total_score:.1f} / {g.max_score:.0f}")
         self.grade_label.setText(f"等级 {g.grade}")
         self.grade_label.setStyleSheet(f"font-size:22px; font-weight:bold; color:{_GRADE_COLOR.get(g.grade, '#333')};")
+        bs = build_status_of(g)
         bonus_text = f"基础分外加分：{g.bonus_total:.0f}"
         if g.is_team_leader:
             bonus_text += "（报告声明组长）"
-        if build_status_of(g) == BuildStatus.SKIPPED:
-            bonus_text += "\n（编译未检测：未安装工具链，已按可评类别折算等级）"
+        # SKIPPED/FAILED 的真实原因按源码工程状态区分，避免把「源码不可评估」误说成「未装工具链」
+        sstate = getattr(result, "source_state", "") or ""
+        if bs == BuildStatus.SKIPPED:
+            if sstate == "ok":
+                bonus_text += "\n（编译未检测：未安装工具链，已按可评类别折算等级）"
+            elif sstate in ("corrupted", "nested_archive", "empty", "not_submitted"):
+                reason = getattr(result, "source_state_reason", "") or "源码不可评估"
+                bonus_text += f"\n（编译未计入：{reason}）"
+        elif bs == BuildStatus.FAILED and sstate == "keil_only":
+            bonus_text += "\n（编译判 0：纯 Keil 工程，无 Makefile）"
+        if sstate in ("not_submitted", "empty"):
+            bonus_text = "未提交源码——可自评，但无法打包提交。\n" + bonus_text
         self.bonus_label.setText(bonus_text)
 
-        bs = build_status_of(g)
         self.cat_table.setRowCount(len(g.category_scores))
         for r, cs in enumerate(g.category_scores):
             method = self._method_of(cs)
@@ -286,3 +320,55 @@ class GradePanel(QWidget):
             f"自检报告已生成：\n{out_dir}\n（自检报告.md / 自检报告.json）"
         )
         QDesktopServices.openUrl(QUrl.fromLocalFile(str(out_dir)))
+
+    # ---------------- 打包提交 ----------------
+    def _pack_submission(self):
+        """格式合规则生成规范提交 zip；否则弹拦截框列出 blockers，不产出 zip。"""
+        result = shared().state().last_result
+        if not result:
+            QMessageBox.information(self, "无结果", "请先完成一次检测与自评。")
+            return
+        if self._pkg_worker is not None and self._pkg_worker.isRunning():
+            QMessageBox.information(self, "请稍候", "上一次打包仍在进行中。")
+            return
+        identity = shared().state().identity
+        gate = getattr(self, "_last_gate", None)
+        if gate is None:
+            from tools.student_submission_gui.submission_packager import assess_gate
+            gate = assess_gate(result, identity)
+        ok, blockers, warnings = gate
+        if not ok:
+            QMessageBox.warning(
+                self, "暂无法打包",
+                "存在以下格式问题，需先修正后再自检、再打包：\n\n• " + "\n• ".join(blockers)
+            )
+            return
+        # 通过 → 后台打包（拷贝/zip 大源码树不卡 GUI）
+        self.pack_btn.setEnabled(False)
+        from tools.student_submission_gui.workers.check_worker import PackageWorker
+        self._pkg_worker = PackageWorker(result, identity, writable_root())
+        self._pkg_worker.done.connect(lambda p, w=warnings: self._on_pack_done(p, w))
+        self._pkg_worker.blocked.connect(self._on_pack_blocked)
+        self._pkg_worker.failed.connect(self._on_pack_failed)
+        self._pkg_worker.finished_pack.connect(self._on_pack_finished)
+        self._pkg_worker.start()
+
+    def _on_pack_done(self, zip_path, warnings):
+        msg = f"已生成规范提交压缩包：\n{zip_path}\n\n请用此 zip（不要改名）上传学习通。"
+        if warnings:
+            msg += "\n\n提示：\n• " + "\n• ".join(warnings)
+        QMessageBox.information(self, "打包完成", msg)
+        # 打开所在文件夹，方便学生立即上传
+        QDesktopServices.openUrl(QUrl.fromLocalFile(str(Path(zip_path).parent)))
+
+    def _on_pack_blocked(self, blockers):
+        QMessageBox.warning(
+            self, "暂无法打包",
+            "存在以下格式问题，需先修正后再自检、再打包：\n\n• " + "\n• ".join(blockers)
+        )
+
+    def _on_pack_failed(self, msg):
+        QMessageBox.critical(self, "打包失败", msg)
+
+    def _on_pack_finished(self):
+        self.pack_btn.setEnabled(True)

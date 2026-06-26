@@ -21,7 +21,10 @@ from .self_checker import SelfCheckResult, build_status_of
 from .id_card import StudentIdentity
 
 
-DISCLAIMER = "机器预测分，仅供参考；学习态度/组长加分等类别最终以教师评分为准。"
+DISCLAIMER = (
+    "本结果为机器预测分，仅供参考。学习态度为教师评定项（此处为默认预测值）；"
+    "组长加分由报告团队信息自动判定；最终以教师评分为准。"
+)
 
 
 def _safe_dir_name(identity: StudentIdentity) -> str:
@@ -125,6 +128,14 @@ def result_to_dict(result: SelfCheckResult) -> Dict:
             ],
         },
         "toolchain": result.toolchain,
+        "source_state": {
+            "state": result.source_state,
+            "reason": result.source_state_reason,
+            "fix": result.source_state_fix,
+            # 仅 ok（含 Makefile）可被 make+gcc 机器编译；keil_only/empty/... 均不可
+            "is_machine_buildable": result.source_state == "ok",
+        },
+        "warnings": list(result.warnings),
         "disclaimer": DISCLAIMER,
     }
 
@@ -134,6 +145,10 @@ def _source_kind_label(result: SelfCheckResult) -> str:
     if not sub.source_path:
         return "未提供"
     if result.temp_dirs:
+        # 按真实后缀区分 7z / zip（旧实现一律标 zip，对 .7z 误导）
+        sfx = (result.archive_suffix or "").lower()
+        if sfx == ".7z":
+            return "7z（已解压）"
         return "zip（已解压）"
     return "目录"
 
@@ -176,9 +191,27 @@ def render_markdown(d: Dict) -> str:
     lines.append(f"- 报告文件：`{files['report_name'] or '—'}`")
     lines.append(f"- 源代码：{files['source_kind']}" + (f"（`{files['source']}`）" if files['source'] else ""))
 
+    # 源码工程状态（ok 不显示；其余给出具体原因 + 改进方法）
+    ss = d.get("source_state") or {}
+    if ss.get("state") and ss.get("state") != "ok":
+        _state_label = {
+            "keil_only": "纯 Keil 工程（无 Makefile，机器编译判 0）",
+            "empty": "源码为空",
+            "corrupted": "源码包损坏或格式异常",
+            "nested_archive": "压缩包嵌套（未解包到底）",
+            "not_submitted": "未提交源码",
+        }
+        lines.append("")
+        lines.append("## 二、源码工程状态")
+        lines.append(f"- **状态**：{_state_label.get(ss['state'], ss['state'])}")
+        if ss.get("reason"):
+            lines.append(f"- **原因**：{ss['reason']}")
+        if ss.get("fix"):
+            lines.append(f"- **改进**：{ss['fix']}")
+
     # 提交检测
     lines.append("")
-    lines.append("## 二、提交检测")
+    lines.append("## 三、提交检测")
     v = d["validation"]
     if v:
         badge = "✅ 通过" if v["passed"] else "❌ 存在问题"
@@ -201,7 +234,7 @@ def render_markdown(d: Dict) -> str:
 
     # 自评结果
     lines.append("")
-    lines.append("## 三、自评结果")
+    lines.append("## 四、自评结果")
     g = d["grading"]
     lines.append(f"- **总分**：**{g['total_score']} / {g['max_score']}**")
     lines.append(f"- **等级**：**{g['grade']}**")
@@ -220,7 +253,7 @@ def render_markdown(d: Dict) -> str:
 
     # 失分与改进
     lines.append("")
-    lines.append("## 四、失分与改进建议")
+    lines.append("## 五、失分与改进建议")
     if g["issues"]:
         grouped: Dict[str, List] = {}
         for it in g["issues"]:
@@ -242,18 +275,29 @@ def render_markdown(d: Dict) -> str:
 
     # 思考题核对
     lines.append("")
-    lines.append("## 五、思考题核对")
+    lines.append("## 六、思考题核对")
     for t in g["thinking_check"]:
         mark = "✅" if t["answered"] else "❌"
         lines.append(f"- {mark} **{t['id']}**：{t['expected'] or '（无参考答案）'}")
 
     # 工具链
     lines.append("")
-    lines.append("## 六、工具链")
+    lines.append("## 七、工具链")
     tc = d["toolchain"]
     lines.append(f"- make：{'已安装' if tc.get('make') else '未安装'}")
     lines.append(f"- arm-none-eabi-gcc：{'已安装' if tc.get('gcc') else '未安装'}")
-    lines.append("- 若工具链未安装，编译检查项将记 0 分但状态为「已跳过」，不代表代码无法编译。")
+    lines.append(
+        "- 若工具链未安装，含 Makefile 的可编译工程其编译项会记 0 分但状态为「已跳过」，"
+        "不代表代码无法编译；纯 Keil 工程无论工具链是否安装都判 0 分（见「源码工程状态」）。"
+    )
+
+    # 自检提示（文件名不规范等非致命警告）
+    warnings = d.get("warnings") or []
+    if warnings:
+        lines.append("")
+        lines.append("## 自检提示")
+        for w in warnings:
+            lines.append(f"- {w}")
 
     lines.append("")
     return "\n".join(lines)

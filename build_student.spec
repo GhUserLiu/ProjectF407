@@ -47,6 +47,14 @@ a = Analysis(
         # 否则 PyInstaller 静态分析漏抓，学生选 .7z 期末项目源码时会因 py7zr 缺失降级
         'tools.security.seven_zip_validator',
         'py7zr',
+        # source_state：学生端 SelfChecker 顶层 import，正常可被静态分析抓到；
+        # 但 grading_engine 内有函数级惰性 import，显式声明更稳（G3 源码状态分类）
+        'tools.auto_grading.source_state',
+        # 打包预处理（学生端新增）：PackageWorker 在后台线程惰性 import submission_packager，
+        # 后者又惰性 import 教师端的 submission_normalizer(flatten)；显式声明以免漏打包，
+        # 否则学生点「打包提交」时会因模块缺失报错。
+        'tools.student_submission_gui.submission_packager',
+        'tools.auto_grading.submission_normalizer',
         # 运行时依赖（多数可自动发现，显式声明更稳）
         'defusedxml',
         'docx',

@@ -175,3 +175,42 @@ class CheckWorker(QThread):
         """
         self._cancelled = True
         self.log_message.emit("正在取消…")
+
+
+class PackageWorker(QThread):
+    """打包提交工作线程。
+
+    自检通过后，若格式合规，生成规范提交 zip（拷贝源码→flatten→打内层 zip→装外层 zip）。
+    放后台线程：源码树可达数千文件/数百 MB，inline 会卡死 GUI。
+
+    闸门 assess_gate 是纯函数、<1ms，GUI 线程已即时跑过给拦截框；这里运行期再复检一次
+    作为安全网（source_path 可能在排队期间被清理）。
+    """
+
+    done = pyqtSignal(object)        # zip Path（成功）
+    blocked = pyqtSignal(list)       # blockers（运行期复检不过）
+    failed = pyqtSignal(str)         # 异常信息
+    finished_pack = pyqtSignal()     # 总是最后发，用于恢复按钮
+
+    def __init__(self, result, identity, project_root, out_dir=None):
+        super().__init__()
+        self._args = (result, identity, project_root, out_dir)
+
+    def run(self):
+        from tools.student_submission_gui.submission_packager import (
+            assess_gate, package_submission, PackagingError,
+        )
+        result, identity, project_root, out_dir = self._args
+        try:
+            gate_ok, blockers, _ = assess_gate(result, identity)
+            if not gate_ok:
+                self.blocked.emit(blockers)
+                return
+            zip_path = package_submission(result, identity, project_root, out_dir=out_dir)
+            self.done.emit(zip_path)
+        except PackagingError as e:
+            self.blocked.emit([str(e)])
+        except Exception as e:
+            self.failed.emit(str(e))
+        finally:
+            self.finished_pack.emit()

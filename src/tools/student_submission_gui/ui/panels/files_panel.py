@@ -57,7 +57,9 @@ class FilesPanel(QWidget):
             "1) 选择实验报告（.docx 推荐）与源代码（.zip / .7z）；\n"
             "2) 填写班级/学号/姓名（文件名规范时会自动回填）；\n"
             "3) 选择实验，点「开始检测与自评」。\n"
-            "说明：编译检查需 make + arm-none-eabi-gcc；未安装时编译项记 0 分但状态为「已跳过」，不代表代码无法编译。"
+            "说明：编译检查需 make + arm-none-eabi-gcc；未安装时编译项记 0 分但状态为「已跳过」，不代表代码无法编译。\n"
+            "⚠ 源码工程须含顶层 Makefile（用 CubeMX → Project Manager → Toolchain/IDE 选 Makefile 生成）；"
+            "纯 Keil(.uvprojx) 工程机器编译计 0 分。"
         )
         msg.setWordWrap(True)
         msg.setStyleSheet("color: #555;")
@@ -106,6 +108,14 @@ class FilesPanel(QWidget):
         grid.addWidget(w, 3, 2)
         self.source_badge = QLabel("")
         grid.addWidget(self.source_badge, 4, 1)
+        # 源码工程状态横幅（自检后按 source_state 显示，如纯 Keil → 编译计 0 提示）
+        self.source_state_banner = QLabel("")
+        self.source_state_banner.setWordWrap(True)
+        self.source_state_banner.setStyleSheet(
+            "color:#c0392b; background:#fdecea; padding:6px; border-radius:4px;"
+        )
+        self.source_state_banner.hide()
+        grid.addWidget(self.source_state_banner, 5, 1)
 
         grid.setColumnStretch(1, 1)
         box.setLayout(grid)
@@ -407,3 +417,27 @@ class FilesPanel(QWidget):
             self.status_pill.setText("⚠ 请补全：" + "、".join(missing))
             self.status_pill.setStyleSheet("color:#e67e22; font-weight:bold;")
             self.run_btn.setEnabled(False)
+        # 源码工程状态横幅：反映最近一次自检结果（如纯 Keil → 编译计 0 提示）
+        self._refresh_source_state_banner()
+
+    def _refresh_source_state_banner(self):
+        """按最近一次自检的 source_state 刷新源码横幅。
+
+        Keil-only → 提示用 CubeMX 重生成 Makefile；其余非 ok 状态 → 提示源码不可机器编译；
+        ok / 无结果 → 隐藏。复用 SelfCheckResult 上携带的 source_state，避免二次解压。
+        """
+        last = shared().state().last_result
+        sstate = getattr(last, "source_state", "") if last else ""
+        if not sstate or sstate == "ok":
+            self.source_state_banner.hide()
+            return
+        if sstate == "keil_only":
+            self.source_state_banner.setText(
+                "⚠ 检测到纯 Keil 工程（无 Makefile），机器编译将计 0 分。"
+                "请在 STM32CubeMX → Project Manager → Toolchain/IDE 选「Makefile」"
+                "重新生成工程后再提交。"
+            )
+        else:
+            reason = getattr(last, "source_state_reason", "") or "未找到可编译的工程结构"
+            self.source_state_banner.setText(f"⚠ 源码工程无法机器编译：{reason}")
+        self.source_state_banner.show()
