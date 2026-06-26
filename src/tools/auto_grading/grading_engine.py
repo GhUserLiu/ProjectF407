@@ -179,9 +179,16 @@ def _collect_source_text(submission: "ProcessedSubmission", cache: Dict[Path, st
     files = list(getattr(pi, 'main_files', [])) \
             + list(getattr(pi, 'source_files', [])) \
             + list(getattr(pi, 'header_files', []))
+    # 厂商/第三方库目录（HAL/CMSIS/...）含 HAL_RTC、ADC、BKP 等全部信号，会让"源码信号"
+    # 兜底把任何 CubeMX 工程都误判成 task3/2。任务检测只看学生自己的 Core/User 代码。
+    _VENDOR_MARKERS = ('/STM32F4xx_HAL_Driver/', '/CMSIS/', '/Third_Party/',
+                       '/Libraries/', '/Middlewares/')
     for f in files[:MAX_FILES]:
         try:
             if f.stat().st_size > MAX_FILE_BYTES:
+                continue
+            fp = str(f).replace('\\', '/')
+            if any(m in fp for m in _VENDOR_MARKERS):
                 continue
             parts.append(f.read_text(encoding='utf-8', errors='ignore'))
         except Exception:
@@ -191,17 +198,46 @@ def _collect_source_text(submission: "ProcessedSubmission", cache: Dict[Path, st
     return text
 
 
+# 任务显式声明：choose-动词 + 紧邻的"任务X"，权威判定学生所选任务。必须先于
+# report_declare 关键字——后者会把"在任务一/二/三中选择了实验任务一"里的列举词
+# "任务三"误判为 task3。负向 lookbehind 排除"没/不/未选择任务三"这类否定。
+_DECLARE_RE = re.compile(
+    r'(?<![没不未勿])'
+    r'(?:选择|选定|选做|选用|选取|选了|确定|最终确定|决定|所选|所做|所取|做的是|题目是|题为|本任务[是为])'
+    r'[^\n。；;,，]{0,18}?'
+    r'(任务[一二三123])'
+)
+
+
+def _report_main_body(text: str) -> str:
+    """砍掉「思考题」段，只留正文供任务检测。
+
+    思考题（含扩展思考）里常顺带提及其他任务号（"如果做任务三…"），会让关键字
+    误判。思考题一般在报告末尾，取首个"思考题"为切点；距开头太近（<200 字，疑似
+    目录/前言）则不切。无思考题段则返回原文。
+    """
+    if not text:
+        return ''
+    m = re.search(r'思考题', text)
+    if m and m.start() > 200:
+        return text[:m.start()]
+    return text
+
+
 def detect_task(submission: "ProcessedSubmission",
                 rubric: Dict,
                 source_cache: Dict[Path, str]) -> Tuple[str, str]:
     """检测学生所选任务，返回 (task_key, source)。source ∈ {'report','code','default'}。
 
-    优先级（task_detection.priority）：
-    1. 报告声明（「所选任务」区或全文出现 任务三/二/一 + 任务特征词）→ 'report'
-    2. 源码信号（HAL_RTC/闹钟→task3；HAL_ADC/温度→task2）→ 'code'
-    3. fallback（默认 task1）→ 'default'
+    优先级：
+    1. 显式声明（"选择了任务X"等 choose-动词 + 任务号；正文优先，已砍思考题）→ 'report'
+    2. 关键字声明（report_declare 词命中正文，按 priority）→ 'report'
+    3. 源码信号（学生自有代码里的 HAL_RTC/闹钟→task3；HAL_ADC/温度→task2；
+       _collect_source_text 已排除 HAL/CMSIS 厂商库）→ 'code'
+    4. fallback（默认 task1）→ 'default'
 
-    task3 优先于 task2（RTC 是最强信号）。报告声明优先于源码（作者意图）。
+    显式声明先于关键字：避免"在任务一/二/三中选择了实验任务一"里的列举词"任务三"
+    把实际做的 task1 误判成 task3。报告（作者意图）先于源码。
     """
     td = (rubric or {}).get('task_detection') or {}
     priority = td.get('priority', ['task3', 'task2', 'task1'])
@@ -210,14 +246,23 @@ def detect_task(submission: "ProcessedSubmission",
     fallback = td.get('fallback', 'task1')
 
     text = getattr(submission, 'report_text', '') or ''
+    main = _report_main_body(text)
 
-    # 1) 报告声明：任一声明词命中即判该任务（按 priority 顺序，强任务优先）
+    # 1) 显式声明优先（choose-动词 + 任务X）——作者意图，权威。必须先于关键字：
+    #    关键字会把"在任务一/二/三中选择了实验任务一"里的列举词"任务三"误判为 task3。
+    m = _DECLARE_RE.search(main) or _DECLARE_RE.search(text)
+    if m:
+        tn = m.group(1)
+        tk = 'task1' if tn in ('任务一', '任务1') else 'task2' if tn in ('任务二', '任务2') else 'task3'
+        return tk, 'report'
+
+    # 2) 关键字声明：只扫正文（已砍思考题段），按 priority 顺序
     for tk in priority:
         for kw in declare.get(tk, []):
-            if kw and kw in text:
+            if kw and kw in main:
                 return tk, 'report'
 
-    # 2) 源码信号
+    # 3) 源码信号（_collect_source_text 已排除 HAL/CMSIS 等厂商库，避免样板误触）
     code = _collect_source_text(submission, source_cache)
     if code:
         for tk in priority:
@@ -225,7 +270,7 @@ def detect_task(submission: "ProcessedSubmission",
                 if kw and kw in code:
                     return tk, 'code'
 
-    # 3) 默认
+    # 4) 默认
     return fallback, 'default'
 
 
