@@ -1,5 +1,27 @@
 # 更新日志
 
+## [2.0.0] - 2026-06-26 - 教师端/学生端 GUI v2.0
+
+### 教师端与学生端 GUI
+- 两个 GUI 统一升级到 **v2.0**（窗口标题、侧栏版本号、关于对话框、`__version__`）。
+- `启动教学管理系统.bat` 启动时打印版本横幅。
+
+### 修复（关键）
+- **编译检查吞错误**：`auto_grading/build_checker.py` 原用 `subprocess.run(text=True)`，
+  在中文 Windows 上按 GBK 解码 make/gcc/ld 输出；学生源码目录名固定含中文，链接诊断里
+  相应路径会出现 GBK 无法解码的字节，使读管道线程崩、`result.stderr` 变 `None`，
+  `result.stdout + result.stderr` 抛 `TypeError: can only concatenate str (not "NoneType")
+  to str`，被外层 `except` 记成 `status=error`，把真实编译/链接错误（如 `undefined reference`）
+  吞成一段谁都看不懂的 Python 报错。
+  - 改为按字节捕获 + `errors="replace"` 容错解码（新增 `_decode_subprocess_output`），
+    `_check_gcc_build` / `_check_keil_build` 同步改造；真实诊断不再被掩盖，判决仍正确。
+  - 案例：汽服2302B班 王倩倩小组 `undefined reference to HAL_EXTI_ConfigLine` 此前被吞。
+  - 新增回归测试：`tests/unit/test_build_checker.py::test_gcc_output_with_non_gbk_bytes_does_not_crash`。
+
+### 学生端新增
+- **提交打包**：新增 `submission_packager`，学生可在本地把报告+源码规范打包成提交包；
+  `self_check_report` / `self_checker` / `check_worker` / `files_panel` / `grade_panel` 同步更新。
+
 ## [2.5.0] - 2024-06-11 - 安全增强版
 
 ### 新增功能

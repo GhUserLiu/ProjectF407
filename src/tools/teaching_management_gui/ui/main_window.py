@@ -42,7 +42,7 @@ class MainWindow(QMainWindow):
 
     def setup_ui(self):
         """设置界面"""
-        self.setWindowTitle("教学管理系统 v1.0")
+        self.setWindowTitle("教学管理系统 v2.0")
         self.setMinimumSize(1200, 800)
 
         # 创建中央窗口
@@ -146,7 +146,7 @@ class MainWindow(QMainWindow):
         # 底部信息
         layout.addStretch()
 
-        version_label = QLabel("v1.0")
+        version_label = QLabel("v2.0")
         version_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         version_label.setStyleSheet("color: #95a5a6; font-size: 12px;")
         layout.addWidget(version_label)
@@ -274,7 +274,7 @@ class MainWindow(QMainWindow):
             self,
             "关于",
             """
-            <h3>教学管理系统 v1.0</h3>
+            <h3>教学管理系统 v2.0</h3>
             <p>STM32F407教学项目专用工具</p>
             <p><b>功能模块：</b></p>
             <ul>

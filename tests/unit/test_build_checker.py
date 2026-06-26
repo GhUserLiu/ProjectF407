@@ -122,3 +122,51 @@ class TestGccBuildCommand:
         # returncode=0 且无 error → 编译成功
         assert result.status == BuildStatus.SUCCESS
         assert result.success is True
+
+    def test_gcc_output_with_non_gbk_bytes_does_not_crash(self, tmp_path, monkeypatch):
+        """回归：中文 Windows 下 text=True 按 GBK 解码 make 输出，若诊断含中文路径
+        （学生源码目录命名固定带中文）会抛 UnicodeDecodeError，使读管道线程崩、
+        stdout/stderr 变 None，``stdout + stderr`` 随之抛 TypeError，把真实编译错误
+        吞成 "无法编译: can only concatenate str (not NoneType) to str"。
+
+        修复后按字节捕获 + errors="replace" 解码：含非法字节（0xAD/0xFF 等）也不再
+        崩溃，ASCII 诊断（GCC 的 file:line:col: error:）仍能被正则解析。
+        （案例：汽服2302B班 王倩倩小组 undefined reference to HAL_EXTI_ConfigLine）
+        """
+        proj = tmp_path / "proj"
+        proj.mkdir()
+        (proj / "Makefile").write_text("all:\n", encoding="utf-8")
+
+        # 模拟真实 make 输出：GCC 错误行 + ld 报错 + 中文路径混入的非法字节
+        stderr_bytes = (
+            "Core/Src/main.c:190:5: error: implicit declaration of function 'HAL_EXTI_ConfigLine'\n"
+            "collect2.exe: error: ld returned 1 exit status\n"
+        ).encode("utf-8") + b"\xff\xad\xed from-\xe6\xb1\xbd\xe6\x9c\x8d-path"
+
+        # SimpleNamespace 在函数作用域内构造，可直接引用上面的 stderr_bytes
+        # （类体的裸名无法看到外层函数局部，故不用 class 形式）
+        from types import SimpleNamespace
+        fake_completed = SimpleNamespace(
+            returncode=2,
+            stdout=b"rm -fR build\narm-none-eabi-gcc -c Core/Src/main.c\n",
+            stderr=stderr_bytes,
+        )
+
+        def fake_run(cmd, *args, **kwargs):
+            return fake_completed
+
+        import tools.auto_grading.build_checker as bc
+        monkeypatch.setattr(bc.subprocess, "run", fake_run)
+
+        checker = BuildChecker()
+        monkeypatch.setattr(checker, "make_available", True)
+        monkeypatch.setattr(checker, "gcc_available", True)
+
+        result = checker.check_build(proj, "test-proj")
+
+        # 不再因编码崩溃；真实诊断被解析；output 恒为 str 且保留 ld 错误
+        assert result.status == BuildStatus.FAILED
+        assert result.success is False
+        assert result.error_count == 1  # GCC 格式错误行（ld 错误不匹配正则，已知限制）
+        assert isinstance(result.output, str)
+        assert "ld returned 1 exit status" in result.output

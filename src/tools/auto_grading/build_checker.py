@@ -283,15 +283,14 @@ class BuildChecker:
             result = subprocess.run(
                 cmd,
                 capture_output=True,
-                text=True,
                 timeout=self.config.toolchain.build_timeout,
                 cwd=str(makefile.parent)
             )
         except subprocess.TimeoutExpired:
             raise
 
-        # 解析输出
-        output = result.stdout + result.stderr
+        # 解析输出（按字节捕获 + 容错解码，详见 _decode_subprocess_output）
+        output = self._decode_subprocess_output(result)
         issues = self._parse_gcc_output(output)
 
         # 统计错误和警告
@@ -369,14 +368,13 @@ class BuildChecker:
             result = subprocess.run(
                 cmd,
                 capture_output=True,
-                text=True,
                 timeout=self.config.toolchain.build_timeout
             )
         except subprocess.TimeoutExpired:
             raise
 
-        # 解析输出
-        output = result.stdout + result.stderr
+        # 解析输出（按字节捕获 + 容错解码，详见 _decode_subprocess_output）
+        output = self._decode_subprocess_output(result)
         issues = self._parse_keil_output(output)
 
         # 统计错误和警告
@@ -396,6 +394,29 @@ class BuildChecker:
             issues=issues,
             output=output
         )
+
+    @staticmethod
+    def _decode_subprocess_output(result) -> str:
+        """合并并解码子进程 stdout/stderr，恒返回 str。
+
+        不用 subprocess 的 text 模式：中文 Windows 下 text 模式按 GBK(CP936) 解码，
+        而 make / arm-none-eabi-gcc / ld 的诊断里若含中文路径（学生源码目录命名
+        固定带中文），经 MSYS-make → 原生 ld.exe 传递后会混入 GBK 无法解码的字节，
+        导致读管道线程抛 UnicodeDecodeError、stdout/stderr 变 None，`stdout + stderr`
+        随之抛 TypeError，把真实的链接错误吞成 "无法编译: can only concatenate..."。
+        改为按字节捕获、errors="replace" 容错解码：永不因编码崩溃，ASCII 诊断
+        （GCC 的 file:line:col: error:）完整保留供正则解析，中文路径即便变成替换
+        字符也不影响错误计数与成败判定。
+        """
+        parts = []
+        for stream in (result.stdout, result.stderr):
+            if not stream:
+                continue
+            if isinstance(stream, bytes):
+                parts.append(stream.decode("utf-8", errors="replace"))
+            else:
+                parts.append(stream)
+        return "".join(parts)
 
     def _parse_gcc_output(self, output: str) -> List[BuildIssue]:
         """解析GCC编译输出"""

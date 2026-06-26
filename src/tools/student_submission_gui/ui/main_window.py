@@ -52,7 +52,7 @@ class MainWindow(QMainWindow):
 
     # ---------------- UI ----------------
     def setup_ui(self):
-        self.setWindowTitle("学生端 · 作业自检与自评系统 v1.0")
+        self.setWindowTitle("学生端 · 作业自检与自评系统 v2.0")
         self.setMinimumSize(1100, 760)
 
         central = QWidget()
@@ -210,7 +210,7 @@ class MainWindow(QMainWindow):
         QMessageBox.about(
             self, "关于",
             """
-            <h3>学生端 · 作业自检与自评系统 v1.0</h3>
+            <h3>学生端 · 作业自检与自评系统 v2.0</h3>
             <p>提交前用本地文件自检与自评的辅助工具。</p>
             <p><b>功能：</b></p>
             <ul>
