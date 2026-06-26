@@ -8,7 +8,9 @@ REM
 REM 双击即可运行：自动定位仓库根目录、激活 conda 环境 stm32_teaching、
 REM 启动 PyQt6 GUI。整仓库迁移后仍可直接运行（以本 bat 所在目录为根）。
 REM
-REM 依赖：conda 环境 stm32_teaching（Python 3.11 + PyQt6），详见 requirements.txt
+REM 依赖：conda 环境 stm32_teaching（Python 3.11 + PyQt6）。
+REM   注意：PyQt6 为 GUI 依赖，未含于 requirements.txt（后者仅覆盖文档/数据/批阅等
+REM   依赖），需在环境内单独安装：pip install PyQt6
 REM ============================================================
 
 REM 切换到 UTF-8 代码页，保证中文输出（错误提示等）不乱码
@@ -37,6 +39,7 @@ if errorlevel 1 (
   echo            conda create -n stm32_teaching python=3.11
   echo            conda activate stm32_teaching
   echo            pip install -r requirements.txt
+  echo            pip install PyQt6     （GUI 依赖，未含于 requirements.txt）
   goto :end
 )
 

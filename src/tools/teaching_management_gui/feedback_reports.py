@@ -219,25 +219,58 @@ def _closing(overall_rate: float) -> str:
 
 
 # ============================================================
-# 小组反馈（同组共用一份工程/报告，每组生成 1 份）
+# 小组反馈（每组生成 1 份；正文取组长那份为代表）
 # ============================================================
+
+# 其得分由各成员「各自被归因的源码」决定的分项 id；用来判断同组是否真共用一份源码。
+_CODE_CATEGORY_IDS = ("compilation", "non_blocking", "code_quality", "functionality")
+
+
+def _members_share_source(member_reports: List[Dict]) -> bool:
+    """判断同组是否真的共用同一份源码工程（决定反馈措辞）。
+
+    每位成员的编译 / 非阻塞 / 代码质量 / 功能分项都源自其各自被归因的源码；这些分项
+    在全体成员间完全一致，才视为共用同一份源码——此时正文失分点对全组适用。只要有一
+    人不同（各成员分别上传了不同源码），就判定为「未共用」，正文不再声称代码部分对
+    全组适用。单人组（个人实验）无此问题，返回 True。
+
+    以分项得分为信号比 ``compilation_result.project_path`` 更稳：源码解压失败时后者
+    为空，但分项仍能反映各自的归因差异（见 ``dedupe_team_members`` 的自评归因）。
+    """
+    if len(member_reports) <= 1:
+        return True
+
+    def _code_sig(r: Dict) -> tuple:
+        scores = {c.get("category_id"): c.get("earned_points")
+                  for c in (r.get("category_scores") or [])}
+        return tuple(scores.get(cid) for cid in _CODE_CATEGORY_IDS)
+
+    return len({_code_sig(r) for r in member_reports}) == 1
 def pick_group_leader(member_reports: List[Dict]) -> Dict:
     """从同组多份报告里选出代表整组的那份（作为反馈正文基准）。
 
     优先 ``is_team_leader``；否则学号 == ``group_key``（报告文件名解析出的组长）；
-    都没有则取第一份。同组成员共用同一份工程/报告，正文内容一致，仅总分/组长加分不同。
+    都没有则取组员名册最全的一份。每一档内部都用「组员名册最全」做 tie-breaker——
+    名册越全，越可能含全体组员的心得/分工，避免"先少后全"提交时取到只含一人心得
+    的简版报告作为全组反馈正文。正文以该代表份为准；同组成员若各自提交源码，代码类
+    分项会不同（见 :func:`_members_share_source`），但报告正文内容通常一致。
     """
     if not member_reports:
         return {}
-    for r in member_reports:
-        if r.get('is_team_leader'):
-            return r
+
+    def _fulness(r: Dict) -> int:
+        return len(r.get('group_members') or [])
+
+    leaders = [r for r in member_reports if r.get('is_team_leader')]
+    if leaders:
+        return max(leaders, key=_fulness)
     gk = member_reports[0].get('group_key')
     if gk:
-        for r in member_reports:
-            if r.get('student_id') == gk:
-                return r
-    return member_reports[0]
+        gk_matches = [r for r in member_reports if r.get('student_id') == gk]
+        if gk_matches:
+            return max(gk_matches, key=_fulness)
+    # 都没有：取组员名册最全的那份，而非简单第一份
+    return max(member_reports, key=_fulness)
 
 
 def build_group_feedback(
@@ -249,20 +282,29 @@ def build_group_feedback(
     include_suggestions: bool = True,
     concise: bool = False,
 ) -> str:
-    """生成一份**小组**反馈：组员名册表（各自总分/等级/组长标记）+ 共享的批阅正文。
+    """生成一份**小组**反馈：组员名册表（各自总分/等级/组长标记）+ 批阅正文。
 
-    同组共用同一份工程与报告，正文取组长那份（代表整组工作）；失分点与改进对全组适用。
+    正文取组长那份（代表整组工作）。若各成员分别提交了源码（代码类分项不一致，
+    见 :func:`_members_share_source`），仅报告部分对全组适用——措辞会相应调整，
+    不再笼统声称「共用同一份工程/对全组适用」，以免反馈与本人提交不符。
     """
     if not member_reports:
         return ""
     leader = pick_group_leader(member_reports)
     roster = sorted(member_reports, key=lambda r: r.get('student_id', ''))
+    shared = _members_share_source(roster)
 
     lines: List[str] = []
     lines.append(f"小组反馈（组长：{leader.get('name', '')}，学号 {leader.get('student_id', '')}）")
     lines.append(f"班级：{class_name}　实验：{experiment_id}　组员 {len(roster)} 人")
     lines.append("")
-    lines.append("【组员与成绩】（本组共用同一份工程与报告；组长额外计组长加分）")
+    if shared:
+        lines.append("【组员与成绩】（本组共用同一份工程与报告；组长额外计组长加分）")
+    else:
+        lines.append(
+            "【组员与成绩】（本组报告内容一致；各成员分别提交了源码，代码类分项"
+            "（编译/非阻塞/代码质量/功能）按各自提交评定，故总分可能不同；组长另计组长加分）"
+        )
     lines.append("| 学号 | 姓名 | 总分 | 等级 | 组长加分 | 角色 |")
     lines.append("|---|---|---|---|---|---|")
     for r in roster:
@@ -276,7 +318,13 @@ def build_group_feedback(
             f"{bonus:.0f} | {role} |"
         )
     lines.append("")
-    lines.append("以下为该组共享工程/报告的批阅反馈（失分点与改进方向对全组适用）：")
+    if shared:
+        lines.append("以下为该组共享工程/报告的批阅反馈（失分点与改进方向对全组适用）：")
+    else:
+        lines.append(
+            "以下批阅反馈以组长那份为代表：报告部分（概述/设计/代码说明/调试/总结）对全组适用；"
+            "代码与编译部分仅反映组长提交的源码，组员请结合上表本人的代码类分项与「必须修正的问题」对照查看。"
+        )
     lines.append("")
 
     # 正文复用单生反馈：去掉开头个人称呼段，从首个【块开始拼接

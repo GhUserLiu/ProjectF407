@@ -144,5 +144,6 @@ from tools.plagiarism.grading import EnhancedGradingSystem
 
 ## 🔗 相关链接
 
-- [GUI 应用](../gui_app/)
+- [教师端 GUI 应用](../teaching_management_gui/)
+- [学生端 GUI 应用](../student_submission_gui/)
 - [教学工具](../../../docs/teaching/)

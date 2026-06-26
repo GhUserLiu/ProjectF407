@@ -17,6 +17,7 @@ Auto Grading Facade
 """
 
 import json
+import shutil
 
 from tools.common import atomic_write_json
 from pathlib import Path
@@ -287,7 +288,11 @@ class AutoGradingFacade:
 
         # 保存个人报告
         individuals_dir = output_dir / "个人报告"
-        individuals_dir.mkdir(exist_ok=True)
+        # 每次批阅前清空个人报告目录：下游 class_analysis.load_class_reports 会 glob 整目录
+        # 读取，若不清空，上次运行里"本次已不在班级/已改组"的学生评分文件会残留，污染
+        # 班级统计/排名/反馈（"第二次小范围查询却显示全班"的根因）。
+        shutil.rmtree(individuals_dir, ignore_errors=True)
+        individuals_dir.mkdir(parents=True, exist_ok=True)
 
         for grading_result in pipeline_result.grading_results:
             filename = f"{grading_result.student_id}-{grading_result.name}-评分.json"

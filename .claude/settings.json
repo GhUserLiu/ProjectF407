@@ -112,7 +112,9 @@
       "Bash(PYTHONPATH=src python -m py_compile src/tools/student_submission_gui/ui/panels/files_panel.py src/tools/student_submission_gui/ui/panels/grade_panel.py src/tools/student_submission_gui/self_checker.py src/tools/student_submission_gui/workers/check_worker.py src/tools/security/zip_validator.py src/tools/auto_grading/build_checker.py src/tools/auto_grading/grading_engine.py)",
       "Bash(PYTHONPATH=src python -m py_compile src/tools/auto_grading/grading_engine.py src/tools/auto_grading/submission_validator.py src/tools/student_submission_gui/ui/panels/grade_panel.py)",
       "Bash(PYTHONPATH=src PYTHONIOENCODING=utf-8 python -c \"from tools.student_submission_gui.experiments import experiment_choices; print\\(experiment_choices\\(\\)\\)\")",
-      "Bash(PYTHONPATH=src PYTHONIOENCODING=utf-8 python -)"
+      "Bash(PYTHONPATH=src PYTHONIOENCODING=utf-8 python -)",
+      "Bash(python -m py_compile src/tools/student_submission_gui/self_checker.py src/tools/student_submission_gui/self_check_report.py src/tools/student_submission_gui/ui/panels/grade_panel.py src/tools/student_submission_gui/ui/panels/files_panel.py src/tools/student_submission_gui/ui/main_window.py tests/unit/test_student_self_check.py)",
+      "Bash(PYTHONPATH=src python -m pytest tests/unit/test_student_self_check.py -v)"
     ],
     "additionalDirectories": [
       "c:\\Users\\liuzh\\Projects\\Workspace\\stm32f407\\docs\\teaching\\2026-春季\\汽服2302B班\\07-car-gear\\results\\feedback\\md",

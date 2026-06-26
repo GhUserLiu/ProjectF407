@@ -111,6 +111,12 @@ class SubmissionOrganizer:
         reports_dir = output_dir / "reports"
         source_dir = output_dir / "source"
 
+        # 每次整理前清空 reports/ 与 source/，避免上次运行的残留被复评。
+        # reports/ 只覆盖同名文件；source/ 仅在"本次找到源码包"时按学生 rmtree 重建——
+        # 故学生本次没交源码(改名/漏匹配/漏交)时，其旧 source 目录会被 processor 捡到
+        # 复评（与 reports 残留同源的污染）。两目录一并清空，保证"输入即本次"。
+        shutil.rmtree(reports_dir, ignore_errors=True)
+        shutil.rmtree(source_dir, ignore_errors=True)
         reports_dir.mkdir(parents=True, exist_ok=True)
         source_dir.mkdir(parents=True, exist_ok=True)
 
@@ -240,7 +246,7 @@ class SubmissionOrganizer:
             # 5. 查找并处理源代码
             source_archive = self._find_source_archive(student_temp)
             if source_archive:
-                source_file, src_kind = source_archive
+                source_file, src_kind, src_info = source_archive
                 # 创建源代码目录
                 source_name = f"{class_name}-{student_info.student_id}-{student_info.name}-源代码"
                 source_path = source_dir / source_name
@@ -275,6 +281,23 @@ class SubmissionOrganizer:
                     if stale_err.exists():
                         try:
                             stale_err.unlink()
+                        except Exception:
+                            pass
+                    # 源码提交冗余提示：交了多个归档时写标记，供 processor 带入学生反馈
+                    # （明确告知"提交了多份源码，已选用 X，其余未采用"）；单归档时清掉上轮
+                    # 残留标记，避免误报。
+                    note_path = source_dir / f"{source_name}.source_note"
+                    if src_info.get('multiple_archives'):
+                        others = ", ".join(src_info.get('others', []))
+                        try:
+                            note_path.write_text(
+                                f"提交包含多个源码压缩包，已自动选用「{src_info.get('chosen', '')}」；"
+                                f"其余未采用：{others}。", encoding='utf-8')
+                        except Exception:
+                            pass
+                    elif note_path.exists():
+                        try:
+                            note_path.unlink()
                         except Exception:
                             pass
                     result['source_path'] = str(source_path)
@@ -443,30 +466,59 @@ class SubmissionOrganizer:
 
         return None
 
-    def _find_source_archive(self, directory: Path) -> Optional[Tuple[Path, str]]:
+    def _find_source_archive(self, directory: Path) -> Optional[Tuple[Path, str, Dict]]:
         """查找源代码压缩包（.zip 或 .7z），含嵌套子目录（如 _unwrap 产生的 __unwrapped/）。
 
         学习通「按人导出(附件)」的综合项目源码常为 .7z，且经 _unwrap_nested_zips
         后位于 __unwrapped/ 子目录，故用 rglob 递归查找。
 
         Returns:
-            (path, kind)，kind ∈ {'zip', '7z'}；找不到返回 None。
+            (path, kind, info)；info = {multiple_archives, chosen, others}，供反馈告知
+            "提交了多份源码"。找不到返回 None。kind ∈ {'zip', '7z'}。
         """
         def _kind(p: Path) -> str:
             return '7z' if p.suffix.lower() == '.7z' else 'zip'
+
+        all_found = list(directory.rglob("*.zip")) + list(directory.rglob("*.7z"))
+
+        def _info(chosen: Path) -> Dict:
+            return {
+                'multiple_archives': len(all_found) > 1,
+                'chosen': chosen.name if chosen else '',
+                'others': [p.name for p in all_found if p != chosen],
+            }
 
         # 1) 按命名约定优先（明确为源码包的命名）
         named = ['*源代码*.zip', '*源码*.zip', '*code*.zip', '*project*.zip', '*工程*.zip',
                  '*源代码*.7z', '*源码*.7z']
         for pat in named:
             for f in directory.rglob(pat):
-                return f, _kind(f)
+                return f, _kind(f), _info(f)
 
-        # 2) 兜底：任意单一归档（zip/7z）
-        found = list(directory.rglob("*.zip")) + list(directory.rglob("*.7z"))
-        if len(found) == 1:
-            return found[0], _kind(found[0])
-        return None
+        # 2) 兜底：在所有归档里挑最可能是源码工程的那一个
+        if not all_found:
+            return None
+        if len(all_found) == 1:
+            return all_found[0], _kind(all_found[0]), _info(all_found[0])
+        # 多个归档（学生交了多个 zip，如"期末作业.zip"+"期末作业需要删除.zip"）：
+        # 旧逻辑直接 return None → 源码判 not_submitted（"未找到源码工程"），连累全源码类 0 分。
+        # 改为：优先挑内容像源码工程的（_looks_like_source_project 窥视 .c/.h/Core/Makefile 等）；
+        # 都不像则全部作为候选。再按「非垃圾命名 + 体积最大」排序取首个——垃圾命名
+        # （删除/废弃/旧/备份…）优先级低于正常命名，避免取到学生自己标记要删的版本。
+        project_archives = [f for f in all_found if self._looks_like_source_project(f)]
+        candidates = project_archives if project_archives else all_found
+
+        def _archive_score(p: Path) -> Tuple[int, int]:
+            try:
+                size = p.stat().st_size
+            except OSError:
+                size = 0
+            junk = any(kw in p.name for kw in
+                       ("删除", "delete", "废弃", "不要", "旧", "old", "备份", "backup"))
+            return (0 if junk else 1, size)  # 非垃圾优先，再按体积
+
+        best = sorted(candidates, key=_archive_score, reverse=True)[0]
+        return best, _kind(best), _info(best)
 
     def generate_summary_report(self, result: OrganizationResult, output_path: Path):
         """生成整理报告"""

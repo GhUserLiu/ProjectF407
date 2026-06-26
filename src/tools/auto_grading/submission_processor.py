@@ -51,6 +51,7 @@ class ProcessedSubmission:
     source_path: Optional[Path] = None       # 源代码目录路径
     project_info: Optional[ProjectInfo] = None  # 项目信息
     source_state: Optional[Any] = None       # 源码工程状态（SourceState）——格式问题的具体原因/改进
+    source_note: str = ""                     # 源码提交冗余等提示（如交了多个归档）——带入学生反馈
 
     # 提取的代码块（从报告中）
     code_blocks: List[str] = field(default_factory=list)
@@ -71,6 +72,7 @@ def parse_team_members(
     report_text: str,
     primary_id: str,
     primary_name: str,
+    roster: Optional[Dict[str, str]] = None,
 ) -> List[Tuple[str, str]]:
     """从报告"团队成员基本信息"表解析成员，返回 [(学号, 姓名), ...]。
 
@@ -79,10 +81,15 @@ def parse_team_members(
     本函数定位该章节，抽取"姓名 + 紧随的 11 位学号"对，去重并确保包含文件名里的
     组长(primary)。解析不到任何成员时回退为 [(primary_id, primary_name)]。
 
+    学号位数写错（学生把 11 位学号写成 9/10 位）会导致 11 位正则漏抓、同组被拆成
+    多个单人组。此时若传入 ``roster``（{姓名: 11位学号}，通常由全班报告文件名汇总），
+    会按姓名把表里出现过的组员补救回来。
+
     Args:
         report_text: 报告正文
         primary_id: 文件名解析出的学号（通常为组长）
         primary_name: 文件名解析出的姓名
+        roster: 可选的班级花名册 {姓名: 学号}，用于学号位数错误时按姓名补救组员
 
     Returns:
         [(学号, 姓名), ...]，至少 1 条。
@@ -114,6 +121,31 @@ def parse_team_members(
             continue
         seen.add(sid)
         pairs.append((sid, name))
+
+    # 3b) 学号位数写错（9/10 位）致 11 位正则漏抓时：按姓名补救。**只在"姓名 + 紧邻的
+    #     8~12 位数字串"结构里补救**（团队表即 姓名\n学号 相邻排列），绝不用裸
+    #     `姓名 in section`——那会把正文里顺带提到的非组员、或被长姓名包含的短姓名
+    #     （如"张三"匹配进"张三丰"）误拉入组，极端情况下会把两个互相提及的单人组
+    #     错误合并成同组。数字串恰好 11 位已在第 3 步命中，这里只处理非 11 位的。
+    if roster and len(pairs) < 2:
+        existing_names = {n for _, n in pairs}
+        for mm in re.finditer(r'([一-龥]{2,5})\s*([0-9]{8,12})', section):
+            nm = mm.group(1)
+            dg = mm.group(2)
+            if len(dg) == 11:
+                continue  # 规范学号已在第 3 步处理
+            for tok in _ROLE_TOKENS:
+                if nm.startswith(tok):
+                    nm = nm[len(tok):]
+                    break
+            if not nm or nm in existing_names or nm not in roster:
+                continue
+            rid = roster[nm]
+            if rid in seen:
+                continue
+            seen.add(rid)
+            existing_names.add(nm)
+            pairs.append((rid, nm))
 
     # 4) 确保包含文件名里的 primary（组长）；去重
     if primary_id and not any(sid == primary_id for sid, _ in pairs):
@@ -172,7 +204,25 @@ class SubmissionProcessor:
         submissions = []
 
         # 遍历报告文件
-        for report_file in reports_dir.glob("*-实验报告.*"):
+        report_files = list(reports_dir.glob("*-实验报告.*"))
+
+        # 预先由全班报告文件名汇总 {姓名: 学号} 花名册：文件名里的学号是规范 11 位
+        # （_parse_filename 用 \d{11}），可信；供 parse_team_members 在团队表学号位数
+        # 写错（9/10 位）时按姓名补救组员，避免同组被拆成多个单人组。
+        roster: Dict[str, str] = {}
+        if expand_team:
+            # 先收集每个姓名对应的所有学号；只把"姓名唯一"的纳入花名册。
+            # 同名(重名)者不参与补救，避免把 A 的学号错配给同名的 B。
+            name_to_ids: Dict[str, set] = {}
+            for rf in report_files:
+                rf_info = self._parse_filename(rf.stem)
+                if rf_info:
+                    _, rf_id, rf_name = rf_info
+                    if rf_name and rf_id:
+                        name_to_ids.setdefault(rf_name, set()).add(rf_id)
+            roster = {nm: ids.pop() for nm, ids in name_to_ids.items() if len(ids) == 1}
+
+        for report_file in report_files:
             # 从文件名提取学生信息
             info = self._parse_filename(report_file.stem)
             if not info:
@@ -185,6 +235,7 @@ class SubmissionProcessor:
             source_path = None
             project_info = None
             source_state = None
+            source_note = ""
 
             if source_dir.exists():
                 source_name = f"{class_name_parsed}-{student_id}-{name}-源代码"
@@ -196,6 +247,13 @@ class SubmissionProcessor:
                         extraction_error = err_marker.read_text(encoding='utf-8')
                     except Exception:
                         extraction_error = None
+                # 源码提交冗余提示（交了多个归档）—— organizer 写的 sidecar 标记
+                note_marker = source_dir / f"{source_name}.source_note"
+                if note_marker.exists():
+                    try:
+                        source_note = note_marker.read_text(encoding='utf-8')
+                    except Exception:
+                        source_note = ""
 
                 if student_source.exists():
                     source_path = student_source
@@ -212,7 +270,7 @@ class SubmissionProcessor:
 
             # 成员列表：批阅时按团队表展开为每位成员一条；查重时仅组长（文件名）一人
             if expand_team:
-                members = parse_team_members(report_text, student_id, name)
+                members = parse_team_members(report_text, student_id, name, roster=roster)
             else:
                 members = [(student_id, name)]
 
@@ -226,6 +284,7 @@ class SubmissionProcessor:
                     source_path=source_path,
                     project_info=project_info,
                     source_state=source_state,
+                    source_note=source_note,
                     code_blocks=code_blocks,
                     # 小组键取组员「最小学号」——与上传者无关的规范代表：学习通「按人导出」
                     # 时同组每人各传一份报告，若用上传者学号做键，同一队会被拆成多组。

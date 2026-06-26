@@ -3,7 +3,7 @@
 # 使用说明：
 #   pip install -r requirements.txt           # 安装所有核心依赖
 #   pip install -r requirements-dev.txt      # 安装开发工具（可选）
-#   pip install -r tools/gui_app/requirements.txt  # 安装GUI应用依赖
+#   pip install PyQt6                         # GUI应用依赖（教师端，未含于本列表）
 # ========================================
 
 # ========== 核心依赖（必需） ==========
@@ -51,5 +51,5 @@ python-dateutil==2.9.0.post0  # 日期处理
 #   pip install python-docx==1.1.2 openpyxl==3.1.5 defusedxml==0.7.1 \
 #                 numpy==1.26.4 pandas==2.2.3 jieba==0.42.1 scikit-learn==1.5.2
 #
-# GUI应用需要额外安装:
-#   pip install -r tools/gui_app/requirements.txt
+# GUI应用依赖（教师端 PyQt6，未含于上方依赖列表）:
+#   pip install PyQt6

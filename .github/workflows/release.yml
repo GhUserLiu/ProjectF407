@@ -53,10 +53,12 @@ jobs:
         pip install pyinstaller
         pip install -r requirements.txt
     
-    - name: 打包 GUI 应用
+    - name: GUI 打包说明（学生端 exe 由 Windows 端单独构建）
       run: |
-        cd tools/gui_app
-        pyinstaller build.spec --clean --noconfirm || true
+        # 学生端 GUI exe 由 scripts/build_student_exe.bat 在 Windows + conda
+        # 环境 stm32f407-win7（Python 3.8 + PyQt5）下构建，产物 dist/StudentSelfCheck.exe，
+        # 无法在本 ubuntu-latest 任务中运行，故本任务不打包 GUI，仅产出源码 tarball。
+        echo "GUI exe 由 Windows 端单独构建，本步骤跳过"
     
     - name: 创建发布包
       run: |

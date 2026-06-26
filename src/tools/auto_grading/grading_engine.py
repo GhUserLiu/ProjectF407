@@ -283,6 +283,29 @@ def dedupe_team_members(results: List[GradingResult]) -> List[GradingResult]:
                 "expected": "每组一份报告 + 一份源码",
             })
 
+    # 同组多名组长告警（罕见：同组多份报告各自声明了不同组长）。
+    # 仅提示教师复核——不改分：leader_bonus 已在 grade_submission 折进评价分/最终分，
+    # 此处安全地回扣需依赖 rubric 与重新定级，跨 rubric 类型不稳健；故用 advisory 暴露。
+    _leaders_by_group: Dict[str, List[GradingResult]] = {}
+    for r in best.values():
+        if r.is_team_leader and r.group_key:
+            _leaders_by_group.setdefault(r.group_key, []).append(r)
+    for gk, ldrs in _leaders_by_group.items():
+        if len(ldrs) <= 1:
+            continue
+        names = ", ".join(f"{r.name}({r.student_id})" for r in ldrs)
+        for r in ldrs:
+            r.issues.append({
+                "type": "submission",
+                "category": "组长归属",
+                "criterion": "同组唯一组长",
+                "points_lost": 0,
+                "severity": "warning",
+                "message": f"同组({gk})检测到多名组长：{names}；可能各成员报告里组长声明不一致，组长加分或被重复发放。",
+                "fix": "请教师核对同组组长归属，确保每组仅一人享受组长加分，必要时手动调整。",
+                "expected": "每组一名组长",
+            })
+
     # 按首次出现顺序输出
     seen = set()
     out = []
@@ -778,6 +801,14 @@ class AutoGradingEngine:
 
     def _grade_code_quality(self, submission: ProcessedSubmission, cat: Dict) -> Optional[CategoryScore]:
         """code_analysis：真实源码静态分析（优先），否则报告代码块；都没有返回 None。"""
+        # 是否存在真实源码文件（.c/.h）。无真实源码（源码包未解开/为空/损坏/未提交）时，
+        # 不得回退到报告正文里抽取的代码片段去评代码质量——那会让"空源码"拿到满分（虚高），
+        # 与 _grade_source_check 的空源码护栏一致。
+        has_real_source = bool(
+            submission.project_info
+            and (getattr(submission.project_info, 'source_files', [])
+                 or getattr(submission.project_info, 'header_files', []))
+        )
         code_to_analyze = ""
         if submission.source_path and submission.project_info:
             for main_file in submission.project_info.main_files:
@@ -785,9 +816,23 @@ class AutoGradingEngine:
                     code_to_analyze += main_file.read_text(encoding='utf-8', errors='ignore') + "\n\n"
                 except Exception:
                     pass
-        if not code_to_analyze and submission.code_blocks:
+        # 仅当存在真实源码（但 main 文件未识别到）时，才用报告代码块兜底分析；
+        # 无真实源码时不再兜底，落到下方 source_unassessable 分支记 0 分。
+        if not code_to_analyze and has_real_source and submission.code_blocks:
             code_to_analyze = "\n\n".join(submission.code_blocks)
         if not code_to_analyze.strip():
+            if not has_real_source:
+                # 无真实源码：记 0 分并标记（无 'analysis' 键 → _generate_feedback 不追加失分项）。
+                return CategoryScore(
+                    category_id=cat['id'],
+                    category_name=cat.get('name', '代码质量'),
+                    max_points=cat.get('points', 20),
+                    earned_points=0.0,
+                    details=[{
+                        'source_unassessable': True,
+                        'feedback': '无可评估的源代码（源码包未解开/为空/损坏/未提交），代码质量无法分析，记 0 分；具体原因与改进方法见「编译检查」项。',
+                    }]
+                )
             return None
 
         max_points = cat.get('points', 20)
@@ -858,6 +903,23 @@ class AutoGradingEngine:
         violations = []  # [{file, line, match}]
         files = list(getattr(submission.project_info, 'source_files', [])) \
               + list(getattr(submission.project_info, 'header_files', []))
+        if not files:
+            # 无可评估的真实源码（源码包未解开/为空/损坏/未提交）：不得因"0 违规"给满分，
+            # 否则会出现"没交源码的人 non_blocking 反而满分"的倒挂。记 0 分并标记；
+            # 具体原因与改进方法已在「编译检查」项（source_state）给出，此处不重复。
+            # hit_count=0 → _generate_feedback 的 source_check 分支不会再追加失分项。
+            return CategoryScore(
+                category_id=cat['id'],
+                category_name=cat.get('name', cat['id']),
+                max_points=max_points,
+                earned_points=0.0,
+                details=[{
+                    'hit_count': 0,
+                    'violations': [],
+                    'source_unassessable': True,
+                    'feedback': '无可评估的源代码（源码包未解开/为空/损坏/未提交），非阻塞检查无法进行，记 0 分；具体原因与改进方法见「编译检查」项。',
+                }]
+            )
         for f in files[:MAX_FILES]:
             try:
                 if f.stat().st_size > MAX_FILE_BYTES:
@@ -982,22 +1044,50 @@ class AutoGradingEngine:
                         'fix': '根据编译错误修正语法/链接；缺少源码工程则需补交。',
                     })
             elif method == 'code_analysis' and cs.details:
-                analysis = cs.details[0].get('analysis', {}) or {}
-                for ci in (analysis.get('issues') or [])[:8]:
+                d0 = cs.details[0]
+                if d0.get('source_unassessable'):
+                    # 无可评估源码：明确告知代码质量项为何 0 分（具体打包原因见编译项）。
                     issues.append({
                         'type': 'code',
                         'category': cs.category_name,
-                        'criterion': ci.get('category', '代码问题'),
-                        'points_lost': 0,  # 单条 issue 不单独计分，整体已反映在得分率
-                        'severity': ci.get('severity', 'info'),
-                        'message': ci.get('message', ''),
-                        'line': ci.get('line', 0),
-                        'fix': ci.get('suggestion', ''),
-                        'expected': '',
+                        'criterion': '代码质量',
+                        'points_lost': lost,
+                        'severity': 'info',
+                        'message': d0.get('feedback', '无可评估源码，代码质量无法分析'),
+                        'expected': '提交可编译的源码工程',
+                        'fix': '请提交完整的源码工程压缩包；具体原因与改进方法见「编译检查」项。',
                     })
+                else:
+                    analysis = d0.get('analysis', {}) or {}
+                    for ci in (analysis.get('issues') or [])[:8]:
+                        issues.append({
+                            'type': 'code',
+                            'category': cs.category_name,
+                            'criterion': ci.get('category', '代码问题'),
+                            'points_lost': 0,  # 单条 issue 不单独计分，整体已反映在得分率
+                            'severity': ci.get('severity', 'info'),
+                            'message': ci.get('message', ''),
+                            'line': ci.get('line', 0),
+                            'fix': ci.get('suggestion', ''),
+                            'expected': '',
+                        })
             elif method == 'source_check':
                 d = cs.details[0] if cs.details else {}
-                if d.get('hit_count', 0) > 0:
+                if d.get('source_unassessable'):
+                    # 无可评估源码（未解开/为空/损坏/未提交）：明确告知本项失分原因，
+                    # 不让学生对着 0 分一头雾水（具体打包原因见编译项）。
+                    issues.append({
+                        'type': 'source_check',
+                        'category': cs.category_name,
+                        'criterion': '非阻塞设计',
+                        'points_lost': lost,
+                        'severity': 'info',
+                        'message': d.get('feedback', '无可评估源码，非阻塞检查无法进行'),
+                        'detail': '',
+                        'expected': '提交可编译的源码工程',
+                        'fix': '请提交完整的源码工程压缩包；具体原因与改进方法见「编译检查」项。',
+                    })
+                elif d.get('hit_count', 0) > 0:
                     issues.append({
                         'type': 'source_check',
                         'category': cs.category_name,
@@ -1028,6 +1118,21 @@ class AutoGradingEngine:
                         'fix': (f"此处可回收 {p_lost:g} 分：围绕「{crit.get('description', '')}」"
                                 "把原理/做法/数据写清写准即可拿回（缺失关键词见上）。"),
                     })
+
+        # 源码提交冗余提示（学生交了多个源码归档）：advisory，不扣分，但明确告知，
+        # 让学生知道"提交了多份源码、机器自动选用了一份"，避免下次重复上传。
+        src_note = getattr(submission, 'source_note', '')
+        if src_note:
+            issues.append({
+                'type': 'submission',
+                'category': '提交规范',
+                'criterion': '源码提交冗余',
+                'points_lost': 0,
+                'severity': 'warning',
+                'message': src_note,
+                'fix': '请下次只提交一份源码压缩包（内含完整工程文件夹）；勿同时上传多个版本或"待删除"文件，以免机器批阅选错工程。',
+                'expected': '一份源码压缩包',
+            })
 
         # 思考题核对：依据校验器在"七、思考题"章节内检测到的题号（避免正文其它编号误判）+ 参考答案
         result.thinking_check = self._build_thinking_check(

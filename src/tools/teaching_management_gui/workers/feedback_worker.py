@@ -9,6 +9,7 @@ Feedback Generation Worker Thread
 """
 
 import os
+import shutil
 import sys
 import subprocess
 from collections import OrderedDict
@@ -90,6 +91,10 @@ def generate_group_feedback_files(
     success = 0
     log(f"批量生成小组反馈：{total} 个小组（来源 {len(reports)} 份个人报告）")
 
+    # 每个(班级,实验)的反馈目录在本次生成前清空一次，避免上次运行的不同组长/组人数残留
+    # 文件（如 同一组长出现 (1人)/(2人)/(3人) 多份并存）。一个(班级,实验)只在首遇时清。
+    cleaned_dirs: set = set()
+
     for i, ((cls, exp, gk), member_reports) in enumerate(groups.items()):
         if on_progress:
             on_progress(i, total)
@@ -103,6 +108,12 @@ def generate_group_feedback_files(
             base_dir = resolve_feedback_dir(cls, exp, semester) / "学生反馈"
             md_dir = base_dir / "md"
             word_dir = base_dir / "word"
+            # 该(班级,实验)首次遇到时清空 md/word 目录，确保目录内容 = 本次生成的组反馈
+            dir_key = (cls, exp)
+            if dir_key not in cleaned_dirs:
+                shutil.rmtree(md_dir, ignore_errors=True)
+                shutil.rmtree(word_dir, ignore_errors=True)
+                cleaned_dirs.add(dir_key)
             md_dir.mkdir(parents=True, exist_ok=True)
             word_dir.mkdir(parents=True, exist_ok=True)
 
