@@ -42,6 +42,22 @@ _UNASSESSABLE_BUILD_STATES = frozenset({
 })
 
 
+# 厂商/第三方库目录标记：评分时只看学生自有代码，排除 ST HAL/CMSIS 等。
+# HAL 库自身定义并使用 HAL_Delay（stm32f4xx_hal.c / _dsi.c / _eth.c …），若一并扫描，
+# 任何包含 HAL 库的工程都会被判成"违反非阻塞"——这并非学生代码问题。任务检测与
+# source_check 共用此清单，避免厂商代码污染学生侧评分。
+_VENDOR_MARKERS = (
+    '/STM32F4xx_HAL_Driver/', '/CMSIS/', '/Third_Party/',
+    '/Libraries/', '/Middlewares/',
+)
+
+
+def _is_vendor_file(path) -> bool:
+    """路径是否属于厂商/第三方库（按 POSIX 化后的全路径匹配目录标记）。"""
+    fp = str(path).replace('\\', '/')
+    return any(m in fp for m in _VENDOR_MARKERS)
+
+
 @dataclass
 class CategoryScore:
     """评分类别得分"""
@@ -182,14 +198,11 @@ def _collect_source_text(submission: "ProcessedSubmission", cache: Dict[Path, st
             + list(getattr(pi, 'header_files', []))
     # 厂商/第三方库目录（HAL/CMSIS/...）含 HAL_RTC、ADC、BKP 等全部信号，会让"源码信号"
     # 兜底把任何 CubeMX 工程都误判成 task3/2。任务检测只看学生自己的 Core/User 代码。
-    _VENDOR_MARKERS = ('/STM32F4xx_HAL_Driver/', '/CMSIS/', '/Third_Party/',
-                       '/Libraries/', '/Middlewares/')
     for f in files[:MAX_FILES]:
         try:
             if f.stat().st_size > MAX_FILE_BYTES:
                 continue
-            fp = str(f).replace('\\', '/')
-            if any(m in fp for m in _VENDOR_MARKERS):
+            if _is_vendor_file(f):
                 continue
             parts.append(f.read_text(encoding='utf-8', errors='ignore'))
         except Exception:
@@ -383,6 +396,58 @@ def dedupe_team_members(results: List[GradingResult]) -> List[GradingResult]:
         seen.add(r.student_id)
         out.append(best[r.student_id])
     return out
+
+
+def _summarize_build_failure(br: BuildResult) -> Tuple[str, str]:
+    """把编译失败结果转成 (给学生看的反馈句, 改进建议句)。
+
+    优先用 build_result.issues 里的真实诊断（编译错误 / 链接错误 / Makefile 语法错误），
+    让学生看到具体错在哪；只有提取不到任何诊断时才回退到笼统提示。改进建议按主要错误
+    类别给出可操作方向（链接失败→补 C_SOURCES/函数实现；Makefile 错误→重新生成/Tab 缩进；
+    编译错误→补头文件/修拼写）。
+    """
+    # 真实 error 诊断，按描述去重，最多取 3 条，附定位（链接/Makefile 不带行号则只取描述）
+    errs: List[str] = []
+    seen: set = set()
+    for it in (getattr(br, 'issues', None) or []):
+        if getattr(it, 'severity', '') != 'error':
+            continue
+        desc = (getattr(it, 'message', '') or '').strip()
+        if not desc:
+            continue
+        key = desc[:60]
+        if key in seen:
+            continue
+        seen.add(key)
+        has_loc = bool(getattr(it, 'line', 0)) and getattr(it, 'file', '') \
+            and not str(it.file).lower().endswith('.exe') and it.file not in ('ld', 'Makefile')
+        errs.append(f"{it.file}:{it.line}: {desc}" if has_loc else desc)
+
+    joined = "；".join(errs[:3])
+    more = f"（共 {br.error_count} 处）" if br.error_count > len(errs) and errs else ""
+    if joined:
+        feedback = f"编译失败：{joined}{more}"
+    elif br.error_message:
+        feedback = f"编译失败：{br.error_message}"
+    else:
+        feedback = "编译失败：未识别错误（未见 GCC/链接器诊断，可能为环境问题，请联系教师核对）"
+
+    # 改进建议：按主要错误类别
+    blob = (joined + "\n" + (getattr(br, 'output', '') or '')).lower()
+    if 'undefined reference' in blob or 'ld returned' in blob or 'cannot find -l' in blob \
+            or 'multiple definition' in blob:
+        fix = ('链接失败：通常是 Makefile 的 C_SOURCES 漏加了某个 .c 源文件，或调用了未实现/'
+               '未包含的函数。请把缺失的源文件加入 Makefile，或补全被引用函数的实现。')
+    elif 'missing separator' in blob or re.search(r'\*\*\*.+?stop\.', blob):
+        # Makefile 语法错误签名是 `*** ... Stop.`（missing separator / No rule to make target）。
+        # 不能用裸 `*** ` 判：普通编译/链接失败结尾都有 `make: *** [target] Error N`，会误判。
+        fix = ('Makefile 格式错误（配方行用了空格而非 Tab 等）。请用 STM32CubeMX 重新生成 '
+               'Makefile，或检查 Makefile 配方行均以 Tab 缩进；勿用空格。')
+    elif errs:
+        fix = '请按上面的错误信息修正源码：常见为缺少头文件包含、符号拼写错误、类型/函数未定义。'
+    else:
+        fix = '请在本机用 arm-none-eabi-gcc + make 复现编译，按报错修正后重新提交。'
+    return feedback, fix
 
 
 class AutoGradingEngine:
@@ -749,6 +814,7 @@ class AutoGradingEngine:
             )
             self._build_cache[cache_key] = build_result
 
+        fix_hint = ''  # 仅 FAILED 分支会填充（真实错误的可操作改进建议）
         if build_result.status == BuildStatus.SUCCESS:
             earned_points = max_points
             feedback = "编译通过"
@@ -758,14 +824,11 @@ class AutoGradingEngine:
             earned_points = 0
             feedback = "已跳过：本机未安装 make / arm-none-eabi-gcc（不代表代码无法编译）"
         elif build_result.status == BuildStatus.FAILED:
-            # 编译失败一律 0 分。error_count 来自 GCC 诊断正则，链接器等错误不会被匹配
-            # （error_count==0），旧实现据此判"编译通过但有警告"给 50%，把硬失败误判为通过。
-            # 纯警告的构建状态为 SUCCESS，已在上面拿满分；警告不应再降低编译分。
+            # 编译失败一律 0 分。把 build_result.issues 里的真实诊断（编译/链接/Makefile 错误）
+            # 摘要进反馈，让学生看到具体错在哪，而非笼统的「未识别错误」。fix_hint 同时供
+            # _generate_feedback 作为可操作的改进建议。纯警告构建状态为 SUCCESS，已拿满分。
             earned_points = 0
-            if build_result.error_count:
-                feedback = f"编译失败，{build_result.error_count}个错误"
-            else:
-                feedback = f"编译失败: {build_result.error_message or '未识别错误（可能为链接错误）'}"
+            feedback, fix_hint = _summarize_build_failure(build_result)
         else:
             earned_points = 0
             feedback = f"无法编译: {build_result.error_message}"
@@ -778,6 +841,7 @@ class AutoGradingEngine:
             details=[{
                 'build_result': build_result,
                 'feedback': feedback,
+                'fix_hint': fix_hint,
                 'error_count': build_result.error_count,
                 'warning_count': build_result.warning_count,
                 'error_message': build_result.error_message or '',
@@ -970,8 +1034,13 @@ class AutoGradingEngine:
             return None
 
         violations = []  # [{file, line, match}]
-        files = list(getattr(submission.project_info, 'source_files', [])) \
-              + list(getattr(submission.project_info, 'header_files', []))
+        # 仅扫描学生自有代码：排除 ST HAL/CMSIS 等厂商库——HAL 库自身定义并使用 HAL_Delay
+        # （stm32f4xx_hal.c 等），一并扫描会把任何含 HAL 库的工程都误判为"违反非阻塞"，
+        # 且受 MAX_FILES 截断 + rglob 顺序影响变成"摇骰子"（同一工程两次批阅结果不同）。
+        # 与任务检测同口径（_is_vendor_file）。
+        files = [f for f in (list(getattr(submission.project_info, 'source_files', []))
+                             + list(getattr(submission.project_info, 'header_files', [])))
+                 if not _is_vendor_file(f)]
         if not files:
             # 无可评估的真实源码（源码包未解开/为空/损坏/未提交）：不得因"0 违规"给满分，
             # 否则会出现"没交源码的人 non_blocking 反而满分"的倒挂。记 0 分并标记；
@@ -994,13 +1063,15 @@ class AutoGradingEngine:
                 if f.stat().st_size > MAX_FILE_BYTES:
                     continue
                 text = f.read_text(encoding='utf-8', errors='ignore')
+                # 工程内相对路径（Core/Src/main.c），比裸文件名更易定位
+                file_disp = str(f.relative_to(submission.source_path)).replace('\\', '/')
             except Exception:
                 continue
             for ln, line in enumerate(text.splitlines(), start=1):
                 for rx in compiled:
                     for m in rx.finditer(line):
                         violations.append({
-                            'file': getattr(f, 'name', str(f)),
+                            'file': file_disp,
                             'line': ln,
                             'match': m.group(0),
                         })
@@ -1110,7 +1181,7 @@ class AutoGradingEngine:
                         'message': d.get('feedback', '编译未通过'),
                         'detail': d.get('error_message', ''),
                         'expected': '工程应能通过 arm-none-eabi-gcc / make 编译，0 error',
-                        'fix': '根据编译错误修正语法/链接；缺少源码工程则需补交。',
+                        'fix': d.get('fix_hint') or '根据编译错误修正语法/链接；缺少源码工程则需补交。',
                     })
             elif method == 'code_analysis' and cs.details:
                 d0 = cs.details[0]

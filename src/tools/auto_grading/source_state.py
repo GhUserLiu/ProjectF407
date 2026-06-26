@@ -10,6 +10,7 @@ Source State Classifier
 状态分类（source_state）：
 - ok            : 正常可编译的 GCC 工程（含 Makefile）—— 不产生格式反馈
 - keil_only     : 纯 Keil 工程（有 MDK-ARM/.uvprojx，无 Makefile）—— GCC 编不了，判 0 + 改进方法
+- nested_project: 根目录无 Makefile，但子目录里有 Makefile/.c（压缩包多套一层/多工程混装）—— 简要提示
 - empty         : 源码目录为空（解压失败被清空 / 源码包内容为空）—— 简要提示
 - corrupted     : 源码包损坏或格式异常（非有效 zip / 7z 改名 / 其它解压错误）—— 简要提示
 - nested_archive: 解压出来仍是压缩包（zip 套 7z 等）—— 简要提示
@@ -20,7 +21,8 @@ Source State Classifier
   2. 目录里仍含 .zip/.7z（未解包完）  → nested_archive
   3. 有 Makefile                      → ok
   4. 有 MDK-ARM 或 .uvprojx、无Makefile → keil_only
-  5. 否则                             → empty（有文件但无工程结构）
+  5. 子目录有 Makefile/.c、根目录无   → nested_project
+  6. 否则                             → empty（有文件但无工程结构）
 
 用法：
     state = SourceStateClassifier.classify(source_path, extraction_error=...)
@@ -41,6 +43,7 @@ STATE_EMPTY = "empty"
 STATE_NOT_SUBMITTED = "not_submitted"
 STATE_CORRUPTED = "corrupted"
 STATE_NESTED_ARCHIVE = "nested_archive"
+STATE_NESTED_PROJECT = "nested_project"
 
 
 @dataclass
@@ -117,7 +120,13 @@ class SourceStateClassifier:
         if has_keil:
             return cls._keil_only()
 
-        # 6) 有文件但无任何工程结构 → 视为空/异常
+        # 6) 根目录无 Makefile/Keil，但子目录里有 Makefile 或 .c → 嵌套/多工程打包
+        #    （压缩包多套了一层文件夹，或多个工程混装；批阅工具按根目录找不到工程）
+        nested = cls._nested_detail(source_path)
+        if nested:
+            return cls._nested_project(nested)
+
+        # 7) 有文件但无任何工程结构 → 视为空/异常
         return cls._empty(detail=f"目录有 {len(entries)} 个条目但无工程结构")
 
     # ------------------------------------------------------------------
@@ -133,6 +142,62 @@ class SourceStateClassifier:
         if (d / "MDK-ARM").is_dir():
             return True
         return any(d.glob("*.uvprojx")) or any(d.glob("MDK-ARM/*.uvprojx"))
+
+    @classmethod
+    def _nested_detail(cls, d: Path) -> str:
+        """根目录无工程结构，但子目录里有 Makefile 或 .c 源文件 → 返回诊断串；否则 ''。
+
+        判定信号：Makefile 或 .c 出现在**子目录**（深度≥1）。根目录的 Makefile 已被
+        ``_has_makefile`` 排除（命中即 STATE_OK，不会走到这里），故这里命中即代表工程
+        被埋在子目录里——典型的"压缩包多套一层"或"多工程混装"。
+        """
+        sub_makefiles = []          # 子目录里的 Makefile 父目录
+        c_top_dirs = set()           # 含 .c 的顶层子目录名
+        c_count = 0
+        for p in d.rglob("*"):
+            if not p.is_file():
+                continue
+            parts = p.relative_to(d).parts
+            if len(parts) < 2:
+                continue            # 根目录文件不计
+            top = parts[0]
+            if p.name == "Makefile":
+                sub_makefiles.append(p.parent)
+                c_top_dirs.add(top)
+            elif p.suffix.lower() == ".c":
+                c_count += 1
+                c_top_dirs.add(top)
+            if c_count >= 300 and not sub_makefiles:
+                break               # 防爆：足够判定即可
+        if not sub_makefiles and c_count == 0:
+            return ""
+        sample = ", ".join(sorted(c_top_dirs)[:4])
+        if sub_makefiles:
+            mk = ", ".join(
+                sorted({str(p.relative_to(d)).replace("\\", "/") for p in sub_makefiles[:4]})
+            )
+            return (f"根目录无 Makefile，但子目录({sample})内有 Makefile({mk})——"
+                    "压缩包多套了一层文件夹，或多个工程混装在一起")
+        return (f"根目录无 Makefile/工程结构，但子目录({sample})内有 {c_count} 个 .c 源文件——"
+                "疑似压缩包多套了一层文件夹，或多个工程打包在一起")
+
+    @staticmethod
+    def _nested_project(detail: str) -> SourceState:
+        return SourceState(
+            state=STATE_NESTED_PROJECT,
+            is_machine_buildable=False,
+            feedback_reason=(
+                "源码包解压后是嵌套/多工程结构：根目录没有 Makefile，工程文件散落在子目录里。"
+                "批阅工具按根目录定位工程，找不到唯一的可编译工程，因此无法机器编译。"
+            ),
+            feedback_fix=(
+                "改进方法：请只提交一个工程文件夹——让含 Makefile 的工程目录成为压缩包的根"
+                "（解压后第一层就能直接看到 Makefile / Core / Drivers），不要在压缩包里再套一层"
+                "或多层文件夹，也不要把多个工程打包在一起。重新打包后请自己解压验证：解压出来"
+                "的第一层就有 Makefile。"
+            ),
+            detail=detail,
+        )
 
     @staticmethod
     def _keil_only() -> SourceState:

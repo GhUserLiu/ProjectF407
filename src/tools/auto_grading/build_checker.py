@@ -65,6 +65,22 @@ class BuildChecker:
         r'([^:]+):(\d+):(\d+):\s+(error|warning|note):\s+(.+)'
     )
 
+    # 链接器错误：undefined reference / cannot find -lxxx / multiple definition / ld returned。
+    # 这些不符合 file:line:col: error: 格式，GCC_ERROR_PATTERN 匹配不到 → error_count=0，
+    # 旧逻辑把链接失败当成"未识别错误"。补上后链接失败也能计入 error_count、并写进反馈。
+    GCC_LINKER_ERROR_PATTERN = re.compile(
+        r"(undefined reference to `[^']*'"
+        r"|cannot find -l\S+"
+        r"|multiple definition of `[^']*'"
+        r"|relocation truncated to fit"
+        r"|collect2\.\w*:\s*error:\s*ld returned \d+ exit status)"
+    )
+
+    # Makefile 语法错误：Makefile:NN: *** ... Stop.（配方行用了空格而非 Tab 等）
+    MAKEFILE_ERROR_PATTERN = re.compile(
+        r'(Makefile\S*:\s*\d+:.+?\*\*\*.+?Stop\.|Makefile\S*:\s*.+?\*\*\*.+?Stop\.)'
+    )
+
     # Keil编译输出模式
     KEIL_ERROR_PATTERN = re.compile(
         r'(.+)\((\d+)\):\s+(Error|Warning)\s+(\d+):\s+(.+)'
@@ -269,13 +285,19 @@ class BuildChecker:
                     error_message="未找到Makefile"
                 )
 
-        # 调用make命令
-        # 不传 -C <dir>：cwd 已设为 makefile.parent，-C 本就冗余；且在 Windows + MSYS make 下，
-        # -C 收到的反斜杠路径会被解析坏（实测报 "...QIMO\QIMO: No such file or directory"）。
-        # make 默认在 cwd 查找 Makefile，故去掉 -C 既修正 Windows 路径 bug，POSIX 行为不变。
+        # 清理 build/ 后只跑 `make all`（不再 `make clean all`）。
+        # 学生 CubeMX Makefile 的 clean 配方用 Unix `rm -rf/-fR build`；批阅启动环境
+        # （.bat 启动，非 git-bash）PATH 里常没有 rm.exe，于是 `make clean all` 死在 clean
+        # 步骤、根本编不到学生代码，把真实编译错误掩盖成「未识别错误」。CubeMX 的 clean
+        # 等价于删除 build/ 目录，故改用 shutil 自行清理：不依赖外部 rm，clean 失败也不再
+        # 阻断真正要评分的 make all。不传 -C：cwd 已设为 makefile.parent，-C 本就冗余；
+        # 且 Windows + MSYS make 下 -C 收到的反斜杠路径会被解析坏。
+        build_dir = makefile.parent / "build"
+        if build_dir.exists():
+            shutil.rmtree(build_dir, ignore_errors=True)
+
         cmd = [
             self.config.toolchain.make_path,
-            'clean',
             'all'
         ]
 
@@ -419,7 +441,12 @@ class BuildChecker:
         return "".join(parts)
 
     def _parse_gcc_output(self, output: str) -> List[BuildIssue]:
-        """解析GCC编译输出"""
+        """解析 GCC/make 输出：编译错误（file:line:col: error:）+ 链接错误 + Makefile 语法错误。
+
+        编译错误走 GCC_ERROR_PATTERN；链接错误（undefined reference 等）与 Makefile 语法
+        错误（*** ... Stop.）单列，统一记 severity='error'，使 error_count 反映真实失败、
+        且反馈能展示具体缺失符号/语法问题，而非笼统的「未识别错误」。
+        """
         issues = []
 
         for line in output.split('\n'):
@@ -432,6 +459,22 @@ class BuildChecker:
                     line=int(line_no),
                     column=int(col),
                     message=message.strip()
+                ))
+                continue
+            # 链接错误（不符合 file:line:col: error: 格式，上面的正则抓不到）
+            ml = self.GCC_LINKER_ERROR_PATTERN.search(line)
+            if ml:
+                issues.append(BuildIssue(
+                    severity='error', file='ld', line=0, column=0,
+                    message=ml.group(1).strip()
+                ))
+                continue
+            # Makefile 语法错误
+            mm = self.MAKEFILE_ERROR_PATTERN.search(line)
+            if mm:
+                issues.append(BuildIssue(
+                    severity='error', file='Makefile', line=0, column=0,
+                    message=mm.group(1).strip()
                 ))
 
         return issues
