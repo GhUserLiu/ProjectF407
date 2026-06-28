@@ -23,7 +23,7 @@ export BUILD_TYPE    # 让 all 的递归 $(MAKE) build_simple 继承 BUILD_TYPE�
 
 # ========== 安全参数验证 ==========
 # 定义允许的项目列表（白名单）
-ALLOWED_PROJECTS := 01-turn-signal 07-car-gear _template Test6 can-ids
+ALLOWED_PROJECTS := 01-turn-signal 07-car-gear _template Test6
 
 # 验证PROJECT参数是否在白名单中
 ifeq ($(filter $(PROJECT),$(ALLOWED_PROJECTS)),)
@@ -122,15 +122,6 @@ else
     DEBOUNCE_OBJ = $(BUILD_DIR)/debounce.o
 endif
 
-# can-ids 项目额外源文件（仅当项目目录下存在时才编译，对其它项目无影响）
-CANIDS_SRCS := $(wildcard $(PROJECT_DIR)/features.c \
-                          $(PROJECT_DIR)/model.c \
-                          $(PROJECT_DIR)/model_weights.c \
-                          $(PROJECT_DIR)/uart_retarget.c \
-                          $(PROJECT_DIR)/syscalls.c \
-                          $(PROJECT_DIR)/timing.c)
-CANIDS_OBJS := $(patsubst $(PROJECT_DIR)/%.c,$(BUILD_DIR)/%.o,$(CANIDS_SRCS))
-
 ASM_SOURCES = $(COMMON_DIR)/startup/startup_stm32f407xx.s
 LDSCRIPT = STM32F407XX_FLASH.ld
 
@@ -144,18 +135,11 @@ LDFLAGS = $(BASE_LDFLAGS)
 LDFLAGS += -T$(LDSCRIPT) -specs=nano.specs -lc -lm -nostartfiles
 LDFLAGS += -Wl,-Map=$(BUILD_DIR)/$(PROJECT).map
 
-# can-ids 需要浮点 printf（%.2f 等）且用到 libm(expf/sqrtf，引用 libc 的 __errno)，
-# 故用 --start-group 解决 -nostartfiles 下 libc/libm/libgcc 的循环引用；仅该项目追加。
-ifeq ($(PROJECT),can-ids)
-    LDFLAGS += -u _printf_float -Wl,--start-group -lc -lm -lgcc -Wl,--end-group
-endif
-
 # 目标文件
 OBJECTS = $(MAIN_OBJ) \
           $(BUILD_DIR)/core_stm32f4xx_hal.o \
           $(HAL_EXT_OBJ) \
           $(DEBOUNCE_OBJ) \
-          $(CANIDS_OBJS) \
           $(BUILD_DIR)/startup_stm32f407xx.o
 
 # 输出文件
@@ -204,12 +188,6 @@ $(BUILD_DIR)/startup_stm32f407xx.o: $(COMMON_DIR)/startup/startup_stm32f407xx.s
 
 # 项目特定源文件编译规则
 $(BUILD_DIR)/debounce.o: $(PROJECT_DIR)/debounce.c
-	@echo "Compiling $<..."
-	@mkdir -p $(BUILD_DIR)
-	$(CC) $(CFLAGS) -c $< -o $@
-
-# can-ids 额外源文件通用规则（features/model/model_weights/uart_retarget/syscalls/timing）
-$(BUILD_DIR)/%.o: $(PROJECT_DIR)/%.c
 	@echo "Compiling $<..."
 	@mkdir -p $(BUILD_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
