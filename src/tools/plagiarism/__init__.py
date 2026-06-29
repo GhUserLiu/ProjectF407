@@ -57,14 +57,8 @@ except (ImportError, RuntimeError) as e:
     print(f"[WARNING] Failed to import quality module in plagiarism __init__: {e}", file=sys.stderr)
     pass
 
-# ========== 代码分析模块 ==========
-try:
-    from .code import (
-        CodeAnalyzer,
-        CodeQualityAnalyzer
-    )
-except ImportError:
-    pass
+# 代码分析模块的 re-export 已移除（线上经 code_analysis.code_analyzer 直接导入；
+# 历史 `from .code import` 指向不存在的 code/ 包，恒静默失败）。
 
 # ========== 图像处理模块 ==========
 try:
@@ -86,21 +80,8 @@ except ImportError:
 
 # ========== 兼容旧版导入 ==========
 # 保留一些旧模块的直接导入以保持兼容性
-try:
-    from .code_obfuscation import CodeObfuscationDetector
-except ImportError:
-    pass
-
-try:
-    from .semantic import SemanticDetector
-except ImportError:
-    pass
-
-try:
-    from .ai_detection.enhanced_detector import EnhancedAIGeneratorDetector
-except ImportError:
-    pass
-
+# 注: code_obfuscation / semantic / ai_detection 等死链 re-export 已移除
+#     (包已删或从不存在, try/except 兜底恒静默失败, 详见死代码清理 commit)。
 try:
     from .image_similarity import ImageDetector
 except ImportError:
@@ -177,14 +158,8 @@ try:
 except ImportError:
     pass
 
-try:
-    # 从 code 模块导入代码分析
-    from .code import (
-        analyze_code_from_report,
-        CodeAnalysisResult
-    )
-except ImportError:
-    pass
+# 历史 `from .code import (analyze_code_from_report, CodeAnalysisResult)` 已移除
+# (.code 包不存在; 线上代码分析走 code_analysis.code_analyzer)。
 
 # 将兼容性导出添加到 __all__
 __all__.extend([
