@@ -129,18 +129,33 @@ class TestApplyPlagiarismPenaltyStandalone:
 
 
 class TestTeamLeaderDetection:
-    """组长判定：从报告文本提取；未声明则该组无组长（不加分）。"""
+    """组长判定：从报告文本提取；未声明则该组无组长（不加分）。
+
+    批阅按团队展开，组员**共享同一份报告文本**（submission_processor 的 expand_team：
+    一份报告 → 每位成员一条提交、report_text 相同）。故第一人称自称（"我是/本人担任/
+    作为组长"）无法归因到具体成员——共享报告里此句只出现一次却会被全组成员命中，会把
+    全组都判成组长、扰乱组长加分。因此 detect_team_leader 在「提供了姓名」时只认姓名
+    特异性写法（"组长：张三"/"张三（组长）"），第一人称自称一律 False；仅在「无姓名
+    （单作者报告）」退化路径下才用自称判定（_LEADER_SELF_PATTERNS）。
+    """
 
     @pytest.mark.parametrize("text,name,expect", [
-        ("本人担任组长，负责总体设计。", "张三", True),
-        ("我是组长，负责整合代码。", "张三", True),
-        ("作为组长，我协调组员分工。", "张三", True),
+        # 姓名特异性：姓名被声明为组长 → True
         ("组长：张三", "张三", True),
         ("张三（组长）", "张三", True),
+        # 声明他人为组长 / 完全未声明 → False
         ("组长：李四，我负责硬件接线。", "张三", False),   # 声明他人为组长
         ("李四（组长），本人负责硬件。", "张三", False),
         ("本实验基于 STM32F407 HAL 库。", "张三", False),  # 完全未声明
         ("", "张三", False),
+        # 第一人称自称 + 有姓名：无法归因到具体成员 → False（防共享报告全组命中）
+        ("本人担任组长，负责总体设计。", "张三", False),
+        ("我是组长，负责整合代码。", "张三", False),
+        ("作为组长，我协调组员分工。", "张三", False),
+        # 同样的自称在「无姓名（单作者报告）」退化路径下 → True（_LEADER_SELF_PATTERNS）
+        ("本人担任组长，负责总体设计。", "", True),
+        ("我是组长，负责整合代码。", "", True),
+        ("作为组长，我协调组员分工。", "", True),
     ])
     def test_detect(self, text, name, expect):
         assert detect_team_leader(text, name) is expect

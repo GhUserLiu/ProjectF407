@@ -82,6 +82,18 @@ def reports_dir(class_name: str, experiment_id: str, semester: Optional[str] = N
     return resolve_experiment(class_name, experiment_id, semester).reports_dir
 
 
+def cross_class_dir(semester: Optional[str] = None, kind: str = "plagiarism") -> Path:
+    """跨班级产物目录（学期根下 ``_跨班级比对/<kind>/``）。
+
+    多班级查重等「合并结果」此前只落到 ``entries[0]`` 班级目录，其余班归档时无痕迹；
+    统一落到学期根下的中立目录，位置可预测、各班都能找到。
+    """
+    from tools.common.path_config import get_teaching_paths
+    sem = semester or DEFAULT_SEMESTER
+    tp = get_teaching_paths(PROJECT_ROOT)
+    return tp.get_semester_dir(sem) / "_跨班级比对" / kind
+
+
 # 实验 ID 合法形态：字母/数字/下划线/短横线（如 07-car-gear），不含中文/空格/括号
 _EXPERIMENT_ID_RE = re.compile(r"^[A-Za-z0-9_-]+$")
 

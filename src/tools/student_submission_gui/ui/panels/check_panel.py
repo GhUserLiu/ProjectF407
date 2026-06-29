@@ -107,6 +107,8 @@ class CheckPanel(QWidget):
             self.badge.setText("—")
             self.badge.setStyleSheet("font-size:20px; color:#7f8c8d;")
             self.count_label.setText("请先在「我的作业」中开始检测")
+            self.count_label.setToolTip("")
+            self.count_label.setStyleSheet("font-size:14px;")
             self.issues_table.setRowCount(0)
             self._clear_grid(self.sections_grid)
             self.questions_label.setText("—")
@@ -124,6 +126,18 @@ class CheckPanel(QWidget):
             f"错误 {v.error_count} · 警告 {v.warning_count} · "
             f"提示 {sum(1 for i in v.issues if i.severity == 'info')}"
         )
+        # 自检 warning（非阻塞，如团队表学号位数不规范）不在 issues 表里，单独提示：
+        # 这些项在打包阶段会升级为 blocker，提前在此可见，避免到打包才撞墙。
+        warnings = list(getattr(result, "warnings", []) or [])
+        if warnings:
+            self.count_label.setText(
+                self.count_label.text() + f"  · 自检提示 {len(warnings)} 条")
+            self.count_label.setToolTip(
+                "自检提示（非阻塞，但打包时会拦截）：\n" + "\n".join(warnings))
+            self.count_label.setStyleSheet("font-size:14px; color:#e67e22;")
+        else:
+            self.count_label.setToolTip("")
+            self.count_label.setStyleSheet("font-size:14px;")
 
         # 问题清单
         issues = sorted(v.issues, key=lambda i: {"error": 0, "warning": 1, "info": 2}.get(i.severity, 3))

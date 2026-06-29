@@ -9,10 +9,14 @@ Class Analysis — shared, pure computation.
 """
 
 import json
+import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 from statistics import mean, median, pstdev
 from typing import Dict, List, Optional
+
+
+logger = logging.getLogger(__name__)
 
 
 def _rate(earned: float, mx: float) -> float:
@@ -153,6 +157,8 @@ def load_class_reports(class_name: str, experiment_id: str, semester: str = "202
     for f in sorted(individuals.glob("*-评分.json")):
         try:
             reports.append(json.loads(f.read_text(encoding="utf-8")))
-        except Exception:
-            pass
+        except Exception as e:
+            # 损坏/半截写入的个人报告：记日志可见，跳过该生而不静默吞掉，
+            # 避免下游统计基于缩水数据集却无任何告警。
+            logger.warning("解析个人报告失败，已跳过：%s (%s)", f, e)
     return reports

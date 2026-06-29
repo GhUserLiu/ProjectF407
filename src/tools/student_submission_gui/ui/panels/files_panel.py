@@ -25,6 +25,15 @@ from tools.student_submission_gui.self_checker import SelfChecker
 from tools.student_submission_gui.workers.check_worker import CheckWorker
 
 
+def _has_py7zr() -> bool:
+    """当前环境是否可导入 py7zr（解压 .7z 所需，打包 exe 已内置，源码直跑可能缺）。"""
+    try:
+        import importlib.util
+        return importlib.util.find_spec("py7zr") is not None
+    except Exception:
+        return False
+
+
 class FilesPanel(QWidget):
     """「我的作业」面板。"""
 
@@ -246,12 +255,19 @@ class FilesPanel(QWidget):
         p = Path(path)
         kind = SourceKind.SEVEN_ZIP if p.suffix.lower() == ".7z" else SourceKind.ZIP
         shared().update(source_path=p, source_kind=kind)
+        # 源码变更已作废上次自检结果：清理上一轮临时解压目录，避免残留 tempdir
+        # 让旧源码路径仍可被访问/打包。
+        SelfChecker.cleanup(self._live_tempdirs)
+        self._live_tempdirs = []
         self.source_edit.setText(str(p))
         self.source_badge.setText(f"已选源码（{p.suffix.lower().lstrip('.')}）")
         self.source_badge.setStyleSheet("color:#27ae60;")
 
     def _clear_source(self):
         shared().update(source_path=None, source_kind=SourceKind.NONE)
+        # 清除源码同样作废上次结果：清理上一轮临时解压目录。
+        SelfChecker.cleanup(self._live_tempdirs)
+        self._live_tempdirs = []
         self.source_edit.clear()
         self.source_badge.setText("")
 
@@ -306,8 +322,8 @@ class FilesPanel(QWidget):
         self.log("已请求取消（后台编译需运行至结束，结果将被忽略）")
         self.detail_label.setText("取消中…")
         self.cancel_btn.setEnabled(False)
-        # 给短任务快速结束的窗口；长编译会继续到结束再由 finished_run 恢复按钮
-        w.wait(3000)
+        # 不在 GUI 线程 wait：长编译会冻结界面。按钮最终态由 finished_run 哨兵
+        # （线程真正结束）恢复，避免在旧 worker 仍运行时启动新一轮。
 
     def cleanup_worker(self) -> bool:
         """窗口关闭前调用：等待并清理后台线程与临时解压目录。
@@ -421,23 +437,35 @@ class FilesPanel(QWidget):
         self._refresh_source_state_banner()
 
     def _refresh_source_state_banner(self):
-        """按最近一次自检的 source_state 刷新源码横幅。
+        """刷新源码横幅：优先反映最近一次自检的 source_state；无结果时反映当前
+        选择的源码是否存在环境问题（.7z 缺 py7zr）。
 
-        Keil-only → 提示用 CubeMX 重生成 Makefile；其余非 ok 状态 → 提示源码不可机器编译；
-        ok / 无结果 → 隐藏。复用 SelfCheckResult 上携带的 source_state，避免二次解压。
+        - 有结果且 source_state 非 ok：Keil-only → 提示用 CubeMX 重生成 Makefile；
+          其余 → 提示源码不可机器编译。
+        - 无结果（或 ok）但当前选了 .7z 且环境无 py7zr：提示解压缺失，源码将视为
+          缺失、编译/代码质量记 0，建议改选 .zip。
+        - 其余：隐藏。
         """
         last = shared().state().last_result
         sstate = getattr(last, "source_state", "") if last else ""
-        if not sstate or sstate == "ok":
-            self.source_state_banner.hide()
+        if sstate and sstate != "ok":
+            if sstate == "keil_only":
+                self.source_state_banner.setText(
+                    "⚠ 检测到纯 Keil 工程（无 Makefile），机器编译将计 0 分。"
+                    "请在 STM32CubeMX → Project Manager → Toolchain/IDE 选「Makefile」"
+                    "重新生成工程后再提交。"
+                )
+            else:
+                reason = getattr(last, "source_state_reason", "") or "未找到可编译的工程结构"
+                self.source_state_banner.setText(f"⚠ 源码工程无法机器编译：{reason}")
+            self.source_state_banner.show()
             return
-        if sstate == "keil_only":
+        s = shared().state()
+        if s.source_kind is SourceKind.SEVEN_ZIP and not _has_py7zr():
             self.source_state_banner.setText(
-                "⚠ 检测到纯 Keil 工程（无 Makefile），机器编译将计 0 分。"
-                "请在 STM32CubeMX → Project Manager → Toolchain/IDE 选「Makefile」"
-                "重新生成工程后再提交。"
+                "⚠ .7z 需 py7zr 才能解压，当前环境未安装。源码将被视为缺失，"
+                "编译/代码质量记 0 分。建议改选 .zip，或安装 py7zr 后再自检。"
             )
+            self.source_state_banner.show()
         else:
-            reason = getattr(last, "source_state_reason", "") or "未找到可编译的工程结构"
-            self.source_state_banner.setText(f"⚠ 源码工程无法机器编译：{reason}")
-        self.source_state_banner.show()
+            self.source_state_banner.hide()

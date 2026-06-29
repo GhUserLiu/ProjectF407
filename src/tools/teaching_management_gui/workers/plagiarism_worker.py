@@ -11,15 +11,11 @@ Plagiarism Detection Worker Thread (multi-class, cross-class)
 3. 结果带班级信息，落 plagiarism_results.json。
 """
 
-import sys
 from pathlib import Path
 from datetime import datetime
 from typing import Optional, Dict, List
 
 from PyQt6.QtCore import QThread, pyqtSignal
-
-project_root = Path(__file__).parent.parent.parent.parent.parent
-sys.path.insert(0, str(project_root))
 
 from tools.auto_grading import AutoGradingConfig  # noqa: E402
 from tools.auto_grading.facade import AutoGradingFacade  # noqa: E402
@@ -28,7 +24,10 @@ from tools.plagiarism.core.detector import (  # noqa: E402
     SimilarityMethod,
     SimilarityResult,
 )
-from tools.teaching_management_gui.path_helper import plagiarism_dir as resolve_plagiarism_dir  # noqa: E402
+from tools.teaching_management_gui.path_helper import (  # noqa: E402
+    plagiarism_dir as resolve_plagiarism_dir,
+    cross_class_dir as resolve_cross_class_dir,
+)
 from tools.common import atomic_write_json  # noqa: E402
 
 
@@ -50,7 +49,6 @@ class PlagiarismWorker(QThread):
     detection_completed = pyqtSignal(object)  # 结果载荷 dict
     detection_failed = pyqtSignal(str)
     detection_cancelled = pyqtSignal()  # 取消：不发结果，避免面板当成"完成"
-    error_occurred = pyqtSignal(str)
 
     def __init__(
         self,
@@ -160,7 +158,6 @@ class PlagiarismWorker(QThread):
             self.detection_completed.emit(payload)
 
         except Exception as e:
-            self.error_occurred.emit(str(e))
             self.detection_failed.emit(str(e))
 
     def _build_payload(
@@ -214,11 +211,19 @@ class PlagiarismWorker(QThread):
         }
 
     def _save_results(self, payload: dict) -> Optional[Path]:
-        """保存到第一个班级的 results/plagiarism/ 下（合并结果）。"""
+        """保存查重结果。
+
+        多班级（跨班级比对）时落学期根下 ``_跨班级比对/plagiarism/``（中立位置，
+        各班归档都能找到，此前只落 entries[0] 目录、其余班无痕迹）；单班级仍落
+        该班 ``results/plagiarism/``。
+        """
         if not self.entries:
             return None
-        e = self.entries[0]
-        out_dir = resolve_plagiarism_dir(e.class_name, e.experiment_id, self.semester)
+        if len(self.entries) > 1:
+            out_dir = resolve_cross_class_dir(self.semester, "plagiarism")
+        else:
+            e = self.entries[0]
+            out_dir = resolve_plagiarism_dir(e.class_name, e.experiment_id, self.semester)
         out_dir.mkdir(parents=True, exist_ok=True)
         out_path = out_dir / "plagiarism_results.json"
         atomic_write_json(out_path, payload, ensure_ascii=False, indent=2, default=str)

@@ -158,6 +158,10 @@ def detect_team_leader(report_text: str, student_name: str) -> bool:
     文本级自称（"我担任组长"）无法归因到具体成员，仅在未提供姓名（单作者报告）
     时作退化判定；提供姓名时不使用，避免同组所有成员都被判为组长。
     只声明他人为组长，或完全未声明 → False。
+
+    策略：实验报告模板已规定「组长」填写位，故姓名特异写法（组长：张三 / 张三（组长））
+    是预期通道，无需再匹配散文自称。检测不到组长即视为该组选择将 +5 组长加分全员平分
+    （见 _reconcile_leader_bonus：同组无人声明组长则全员平摊 ⌈leader_bonus/N⌉）。
     """
     if not report_text:
         return False

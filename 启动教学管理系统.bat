@@ -55,7 +55,7 @@ if errorlevel 1 (
 
 REM [4/4] 启动 GUI
 REM 版本横幅：需与 src/tools/teaching_management_gui/__init__.py 的 __version__ 保持一致
-echo 教学管理系统 v2.3
+echo 教学管理系统 v2.4
 echo 正在启动教学管理系统 ...
 python src\tools\teaching_management_gui\main.py
 set RC=%ERRORLEVEL%

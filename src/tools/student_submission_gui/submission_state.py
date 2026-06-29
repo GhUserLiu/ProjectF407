@@ -56,13 +56,33 @@ class SubmissionStateManager(QObject):
     def state(self) -> SubmissionState:
         return self._state
 
+    # 改变这些字段意味着「输入已变更」，必须作废上次自检结果（last_result）：
+    # 否则面板会展示与当前输入不符的旧分数/旧源码状态，打包也会基于旧源码
+    # 产出与最终版本不符的 zip（外层命新名、内层装旧源码）。
+    _RESULT_AFFECTING = frozenset({
+        "report_path", "source_path", "source_kind", "identity", "experiment_code",
+    })
+
     def update(self, **kwargs) -> None:
-        """合并更新字段；仅当值真正变化时发射信号。"""
+        """合并更新字段；仅当值真正变化时发射信号。
+
+        输入类字段（报告/源码/身份/实验）变化时，自动作废上次自检结果。
+        ``last_result`` 的赋值走 ``set_result()``；直接 ``update(last_result=...)``
+        也可，但不触发作废逻辑。
+        """
         changed = False
+        invalidate = False
         for k, v in kwargs.items():
-            if hasattr(self._state, k) and getattr(self._state, k) != v:
+            if not hasattr(self._state, k):
+                continue
+            if getattr(self._state, k) != v:
                 setattr(self._state, k, v)
                 changed = True
+                if k in self._RESULT_AFFECTING:
+                    invalidate = True
+        if invalidate and self._state.last_result is not None:
+            self._state.last_result = None
+            changed = True
         if changed:
             self.state_changed.emit()
 

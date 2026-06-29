@@ -18,9 +18,6 @@ from typing import Optional, List, Dict, Tuple
 
 from PyQt6.QtCore import QThread, pyqtSignal
 
-project_root = Path(__file__).parent.parent.parent.parent.parent
-sys.path.insert(0, str(project_root))
-
 from tools.teaching_management_gui.feedback_reports import (  # noqa: E402
     build_student_feedback,
     build_teacher_report,

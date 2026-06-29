@@ -7,16 +7,12 @@ Grading Worker Thread
 在后台线程中执行批阅任务，避免阻塞GUI。
 """
 
-import sys
+import threading
 from pathlib import Path
 from datetime import datetime
 from typing import Optional
 
 from PyQt6.QtCore import QThread, pyqtSignal
-
-# 添加项目根目录到路径
-project_root = Path(__file__).parent.parent.parent.parent.parent
-sys.path.insert(0, str(project_root))
 
 from tools.auto_grading import AutoGradingFacade, AutoGradingConfig
 from tools.auto_grading.facade import PipelineResult
@@ -30,7 +26,6 @@ class GradingWorker(QThread):
     stage_started = pyqtSignal(str, str)  # (stage_id, stage_name)
     stage_progress = pyqtSignal(str, int, int)  # (stage_id, current, total)
     stage_completed = pyqtSignal(str)  # (stage_id)
-    error_occurred = pyqtSignal(str)  # (error_message)
     log_message = pyqtSignal(str)  # (message)
     grading_completed = pyqtSignal(object)  # (list[GradingResult]，跨班级合并)
     grading_cancelled = pyqtSignal()  # 取消：不发部分结果，避免被面板当成"完成"
@@ -56,6 +51,9 @@ class GradingWorker(QThread):
         self.config = config or AutoGradingConfig()
         self.config.semester = semester
         self.is_cancelled = False
+        # 取消事件：cancel() 置位后，引擎内 build_checker 正在跑的 make 编译会在
+        # 下一次轮询（~0.2s）被 kill，而不必等它跑完或超时。
+        self._cancel_event = threading.Event()
 
     def run(self):
         """对每个班级条目依次执行批阅，合并所有 GradingResult。"""
@@ -86,6 +84,7 @@ class GradingWorker(QThread):
                     self.stage_completed,
                     self.log_message,
                     lambda: self.is_cancelled,
+                    self._cancel_event,
                 )
                 result = facade.run_full_pipeline(
                     zip_path,
@@ -104,12 +103,12 @@ class GradingWorker(QThread):
                 self.grading_completed.emit(all_results)
 
         except Exception as e:
-            self.error_occurred.emit(str(e))
             self.grading_failed.emit(str(e))
 
     def cancel(self):
         """取消批阅"""
         self.is_cancelled = True
+        self._cancel_event.set()   # 通知引擎内 build_checker kill 当前 make 子进程
         self.log_message.emit("正在取消...")
 
 
@@ -123,7 +122,8 @@ class ObservableFacade:
         stage_progress_sig,
         stage_completed_sig,
         log_message_sig,
-        is_cancelled_func
+        is_cancelled_func,
+        cancel_event: Optional[threading.Event] = None,
     ):
         """
         初始化
@@ -135,6 +135,7 @@ class ObservableFacade:
             stage_completed_sig: 阶段完成信号
             log_message_sig: 日志消息信号
             is_cancelled_func: 检查是否取消的函数
+            cancel_event: 取消事件（注入引擎 build_checker，使 make 编译可被中断）
         """
         self.config = config
         self.stage_started = stage_started_sig
@@ -142,6 +143,7 @@ class ObservableFacade:
         self.stage_completed = stage_completed_sig
         self.log_message = log_message_sig
         self.is_cancelled = is_cancelled_func
+        self._cancel_event = cancel_event
 
         # 创建实际的门面
         self.facade = AutoGradingFacade(config)
@@ -167,6 +169,10 @@ class ObservableFacade:
         # 否则 GUI 路径会一直用 AutoGradingFacade.__init__ 里默认的 rubric.json
         # （汽车档位标准），把综合项目等按错误标准评分。
         self.facade.engine = self.facade._make_engine(experiment_id)
+        # 注入取消事件：让引擎内 build_checker 的 make 编译可被取消（命中即 kill 子进程）
+        bc = getattr(self.facade.engine, "build_checker", None)
+        if bc is not None and hasattr(bc, "set_cancel_event"):
+            bc.set_cancel_event(self._cancel_event)
         self.log_message.emit(
             "rubric: " + str(
                 getattr(self.facade.engine.rubric, 'get', lambda *a: None)(

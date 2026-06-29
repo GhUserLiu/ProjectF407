@@ -15,16 +15,10 @@ Self-Check Worker Thread
   统一清理，保证结果展示期间 source_path 仍有效。
 """
 
-import sys
 from pathlib import Path
 from typing import Optional
 
 from ..qt_compat import QThread, pyqtSignal
-
-# 定位项目根目录（本文件位于 src/tools/student_submission_gui/workers/）
-project_root = Path(__file__).parent.parent.parent.parent.parent
-if str(project_root) not in sys.path:
-    sys.path.insert(0, str(project_root))
 
 from tools.auto_grading.config import AutoGradingConfig
 from tools.auto_grading.submission_validator import detect_report_format

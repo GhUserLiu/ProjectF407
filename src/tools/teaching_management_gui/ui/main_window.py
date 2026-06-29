@@ -10,12 +10,6 @@ Teaching Management System Main Window
 - 反馈生成
 """
 
-import sys
-from pathlib import Path
-
-# 修复导入路径
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
-
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QListWidget, QStackedWidget, QListWidgetItem,
@@ -292,3 +286,28 @@ class MainWindow(QMainWindow):
         current_panel = self.content_stack.currentWidget()
         if hasattr(current_panel, 'log'):
             current_panel.log(message)
+
+    def closeEvent(self, event):
+        """关闭前停止后台 worker，避免在批阅/查重/反馈运行中销毁 QThread。
+
+        学生端 MainWindow 已有等价 closeEvent→cleanup_worker；教师端此前缺失，
+        运行中点 X/Ctrl+Q 会让仍 running 的 QThread 被销毁（PyQt6 警告/闪退），
+        并留下孤儿 make/gcc 子进程。任一 worker 在跑时先确认，给教师保留长任务。
+        """
+        panels = [getattr(self, name, None)
+                  for name in ("grading_panel", "plagiarism_panel", "feedback_panel")]
+        if any(p is not None and hasattr(p, "is_running") and p.is_running() for p in panels):
+            if QMessageBox.question(
+                self, "确认退出",
+                "有任务正在进行中，退出将终止后台任务（当前编译/比对阶段会运行至结束）。\n确认退出？",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            ) != QMessageBox.StandardButton.Yes:
+                event.ignore()
+                return
+        for panel in panels:
+            if panel is not None and hasattr(panel, "stop_and_wait"):
+                try:
+                    panel.stop_and_wait()
+                except Exception:
+                    pass
+        super().closeEvent(event)

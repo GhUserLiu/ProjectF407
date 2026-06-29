@@ -83,7 +83,8 @@ class TestGccBuildCommand:
     """验证 _check_gcc_build 下发的 make 命令形态。
 
     回归：旧实现 ``make -C <dir>``，-C 收到的 Windows 反斜杠路径会被 MSYS make 解析坏。
-    修复后应仅 ``['make', 'clean', 'all']``，并依赖 cwd（已设为 makefile.parent）。
+    现仅 ``['make', 'all']``（clean 由 ``shutil.rmtree(build)`` 自行完成，不再依赖学生
+    Makefile 里可能缺 rm 的 clean 配方，也不再用 -C），cwd 设为 makefile.parent。
     """
 
     def test_make_cmd_has_no_dash_c(self, tmp_path, monkeypatch):
@@ -114,8 +115,8 @@ class TestGccBuildCommand:
 
         result = checker.check_build(proj, "test-proj")
 
-        # 命令不得含 -C，也不得带路径参数
-        assert captured["cmd"] == ["make", "clean", "all"]
+        # 命令不得含 -C，也不得带路径参数；clean 由 shutil.rmtree 完成，故仅 make all
+        assert captured["cmd"] == ["make", "all"]
         assert "-C" not in captured["cmd"]
         # cwd 仍指向 Makefile 所在目录（make 据此定位 Makefile）
         assert captured["cwd"] == str(proj)
@@ -164,9 +165,11 @@ class TestGccBuildCommand:
 
         result = checker.check_build(proj, "test-proj")
 
-        # 不再因编码崩溃；真实诊断被解析；output 恒为 str 且保留 ld 错误
+        # 不再因编码崩溃；真实诊断被解析；output 恒为 str 且保留 ld 错误。
+        # error_count=2：GCC 格式错误行 + 链接错误行（GCC_LINKER_ERROR_PATTERN 把
+        # "collect2.exe: error: ld returned 1 exit status" 也计入 error）。
         assert result.status == BuildStatus.FAILED
         assert result.success is False
-        assert result.error_count == 1  # GCC 格式错误行（ld 错误不匹配正则，已知限制）
+        assert result.error_count == 2
         assert isinstance(result.output, str)
         assert "ld returned 1 exit status" in result.output

@@ -10,11 +10,6 @@ Student Self-Check & Self-Grade Main Window
 - 自评结果：rubric 预测得分 + 失分与改进（GradingResult）
 """
 
-import sys
-from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
-
 from ..qt_compat import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QListWidget, QStackedWidget, QListWidgetItem,

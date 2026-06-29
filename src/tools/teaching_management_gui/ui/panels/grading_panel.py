@@ -8,17 +8,14 @@ Auto Grading Panel
 结果合并到一张表（含「班级」列）。
 """
 
-import sys
 from pathlib import Path
 from datetime import datetime
-
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent.parent))
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout,
     QGroupBox, QLabel, QPushButton,
     QTableWidget, QTableWidgetItem, QHeaderView, QProgressBar,
-    QTextEdit, QSplitter, QFileDialog, QMessageBox,
+    QTextEdit, QSplitter, QFileDialog, QMessageBox, QComboBox, QInputDialog,
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
@@ -150,6 +147,14 @@ class GradingPanel(QWidget):
     def _create_results_panel(self):
         group = QGroupBox("学生列表")
         layout = QVBoxLayout()
+        # 班级筛选（多班级批阅合并时按班定位）
+        filter_row = QHBoxLayout()
+        filter_row.addWidget(QLabel("筛选班级:"))
+        self.class_filter = QComboBox()
+        self.class_filter.currentIndexChanged.connect(self._apply_class_filter)
+        filter_row.addWidget(self.class_filter)
+        filter_row.addStretch()
+        layout.addLayout(filter_row)
         self.results_table = QTableWidget()
         self.results_table.setColumnCount(8)
         self.results_table.setHorizontalHeaderLabels([
@@ -201,6 +206,10 @@ class GradingPanel(QWidget):
 
     # ---------------- 批量批阅 ----------------
     def start_grading(self):
+        # 防止在上一轮 worker 仍存活时覆盖引用（导致 QThread 被提前销毁）
+        if self.grading_worker is not None and self.grading_worker.isRunning():
+            QMessageBox.information(self, "请稍候", "上一次批阅仍在进行中。")
+            return
         entries = shared().entries()
         if not entries:
             QMessageBox.warning(self, "警告", "请先到「数据源」页选择班级压缩包")
@@ -224,7 +233,13 @@ class GradingPanel(QWidget):
         self.grading_worker.grading_completed.connect(self.on_grading_completed)
         self.grading_worker.grading_failed.connect(self.on_grading_failed)
         self.grading_worker.grading_cancelled.connect(self.on_grading_cancelled)
+        # 内置 finished：线程真正结束后丢弃引用，便于回收与新一轮启动
+        self.grading_worker.finished.connect(self._on_worker_finished)
         self.grading_worker.start()
+
+    def _on_worker_finished(self):
+        """QThread 内置 finished：丢弃 worker 引用，便于对象回收与新一轮启动。"""
+        self.grading_worker = None
 
     def on_stage_started(self, stage_id, stage_name):
         self.detail_label.setText(stage_name)
@@ -273,6 +288,8 @@ class GradingPanel(QWidget):
 
     def _fill_results_table(self):
         results = self.all_results
+        # 填充期间暂停排序，避免每行插入都触发重排；填完再开
+        self.results_table.setSortingEnabled(False)
         self.results_table.setRowCount(len(results))
         for row, r in enumerate(results):
             compilation_score = code_score = report_score = 0
@@ -285,42 +302,99 @@ class GradingPanel(QWidget):
                     code_score = cs.earned_points
                 elif cs.category_id == "report_quality":
                     report_score = cs.earned_points
-            cells = [
-                r.class_name, r.student_id, r.name,
-                "✓" if compilation_ok else "✗",
-                f"{code_score:.0f}", f"{report_score:.0f}",
-                f"{r.total_score:.1f}", r.grade,
+            row_key = f"{r.class_name}|{r.student_id}"
+            grade_color = (Qt.GlobalColor.darkGreen if r.grade == "A"
+                           else (Qt.GlobalColor.red if r.grade == "F" else None))
+            # (显示文本, 数值排序依据或 None, 前景色或 None)
+            coldefs = [
+                (r.class_name, None, None),
+                (r.student_id, None, None),
+                (r.name, None, None),
+                ("✓" if compilation_ok else "✗", None,
+                 Qt.GlobalColor.green if compilation_ok else Qt.GlobalColor.red),
+                (f"{code_score:.0f}", float(code_score), None),
+                (f"{report_score:.0f}", float(report_score), None),
+                (f"{r.total_score:.1f}", float(r.total_score), None),
+                (r.grade, None, grade_color),
             ]
-            for col, val in enumerate(cells):
-                item = QTableWidgetItem(str(val))
-                if col == 3:
-                    item.setForeground(Qt.GlobalColor.green if compilation_ok else Qt.GlobalColor.red)
-                if col == 7:
-                    if r.grade == "A":
-                        item.setForeground(Qt.GlobalColor.darkGreen)
-                    elif r.grade == "F":
-                        item.setForeground(Qt.GlobalColor.red)
+            for col, (text, num, color) in enumerate(coldefs):
+                item = QTableWidgetItem()
+                item.setData(Qt.ItemDataRole.DisplayRole, text)
+                if num is not None:
+                    # 数值列给 EditRole 一个 float，点表头时按数值而非字典序排序
+                    item.setData(Qt.ItemDataRole.EditRole, num)
+                if color is not None:
+                    item.setForeground(color)
+                if col == 0:
+                    # 行键：排序/筛选后行序与 all_results 不再一一对应，据此回查结果
+                    item.setData(Qt.ItemDataRole.UserRole, row_key)
                 self.results_table.setItem(row, col, item)
+        self.results_table.setSortingEnabled(True)
+        # 重建班级筛选下拉
+        self.class_filter.blockSignals(True)
+        self.class_filter.clear()
+        classes = []
+        for r in results:
+            if r.class_name not in classes:
+                classes.append(r.class_name)
+        self.class_filter.addItem("全部")
+        self.class_filter.addItems(classes)
+        self.class_filter.blockSignals(False)
+        self._apply_class_filter()
+
+    def _apply_class_filter(self, *_):
+        """按筛选班级隐藏不匹配的行（与排序兼容：隐藏行不参与显示但不删除）。"""
+        cls = self.class_filter.currentText()
+        for row in range(self.results_table.rowCount()):
+            item = self.results_table.item(row, 0)
+            cell_class = item.data(Qt.ItemDataRole.DisplayRole) if item else ""
+            self.results_table.setRowHidden(row, cls != "全部" and cell_class != cls)
 
     def cancel_grading(self):
-        if self.is_grading:
-            if QMessageBox.question(self, "确认", "确定取消批阅？",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-            ) == QMessageBox.StandardButton.Yes:
-                self.is_grading = False
-                if self.grading_worker:
-                    self.grading_worker.cancel()
-                if self.grading_worker and self.grading_worker.isRunning():
-                    self.grading_worker.wait(3000)
-                self.start_btn.setEnabled(True)
-                self.cancel_btn.setEnabled(False)
+        if not self.is_grading:
+            return
+        if QMessageBox.question(self, "确认", "确定取消批阅？",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        ) != QMessageBox.StandardButton.Yes:
+            return
+        if self.grading_worker:
+            self.grading_worker.cancel()
+        self.cancel_btn.setEnabled(False)
+        self.detail_label.setText("取消中…（当前编译/阶段结束后停止，部分结果将被丢弃）")
+        # 不在 GUI 线程 wait()：批阅中途的 make 编译无法立即中断，wait 会冻结
+        # 界面最多 build_timeout。start_btn 保持禁用，待 on_grading_cancelled 信号
+        # （线程真正收尾）再恢复——避免在旧 worker 仍运行时启动新一轮，导致
+        # self.grading_worker 引用被覆盖、仍 running 的 QThread 被销毁而崩溃。
+
+    def is_running(self) -> bool:
+        """后台批阅线程是否仍在运行（供主窗口关窗判断）。"""
+        return self.grading_worker is not None and self.grading_worker.isRunning()
+
+    def stop_and_wait(self):
+        """窗口关闭前调用：协作取消并等待线程退出，超时强制终止。
+
+        与「取消」按钮不同（仅置标志、不阻塞），本方法会 wait 到线程结束，
+        确保关窗时不留仍 running 的 QThread（否则 PyQt6 会警告/闪退），
+        也不留孤儿 make/gcc 子进程。
+        """
+        w = self.grading_worker
+        if w is not None and w.isRunning():
+            w.cancel()
+            if not w.wait(5000):
+                w.terminate()
+                w.wait(2000)
 
     # ---------------- 详情 / 报告 ----------------
     def show_student_detail(self, index):
-        row = index.row()
-        if row >= len(self.all_results):
+        # 排序/筛选后行序与 all_results 不再对应：用行键（班级|学号）回查
+        key_item = self.results_table.item(index.row(), 0)
+        if key_item is None:
             return
-        r = self.all_results[row]
+        row_key = key_item.data(Qt.ItemDataRole.UserRole)
+        r = next((x for x in self.all_results
+                  if f"{x.class_name}|{x.student_id}" == row_key), None)
+        if r is None:
+            return
         detail = (
             f"<h3>{r.class_name} - {r.name}</h3>"
             f"<table border=1 cellpadding=4>"
@@ -335,19 +409,34 @@ class GradingPanel(QWidget):
         QMessageBox.information(self, "学生详情", detail)
 
     def view_class_report(self):
-        """打开班级报告对话框（对第一个已选班级）。"""
+        """打开班级报告对话框。多班级时让教师选择要查看的班（此前只取 entries[0]，
+        其余班的报告 GUI 无入口）。"""
         entries = shared().entries()
         if not entries:
             QMessageBox.warning(self, "提示", "请先在「数据源」页选择班级")
             return
-        e = entries[0]
-        report_dir = resolve_grading_dir(e.class_name, e.experiment_id, shared().semester())
+        # 去重 (班级, 实验)，多班级时弹选择框
+        uniq = []
+        for en in entries:
+            if (en.class_name, en.experiment_id) not in uniq:
+                uniq.append((en.class_name, en.experiment_id))
+        if len(uniq) > 1:
+            labels = [f"{c}（{e}）" for c, e in uniq]
+            choice, ok = QInputDialog.getItem(
+                self, "选择班级", "要查看哪个班级的报告？", labels, 0, False)
+            if not ok:
+                return
+            class_name, experiment_id = uniq[labels.index(choice)]
+        else:
+            class_name, experiment_id = uniq[0]
+        semester = shared().semester()
+        report_dir = resolve_grading_dir(class_name, experiment_id, semester)
         if not report_dir.exists():
             QMessageBox.warning(self, "报告不存在",
-                f"未找到 {e.class_name} 的批阅报告：\n{report_dir}\n请先执行批阅。")
+                f"未找到 {class_name} 的批阅报告：\n{report_dir}\n请先执行批阅。")
             return
-        self.log(f"打开班级报告：{e.class_name}（其它班级报告见各自 results/grading/）")
-        ClassReportDialog(e.class_name, e.experiment_id, self).exec()
+        self.log(f"打开班级报告：{class_name}（其它班级报告见各自 results/grading/）")
+        ClassReportDialog(class_name, experiment_id, semester, self).exec()
 
     def export_report(self):
         """供主窗口「导出报告」菜单调用。"""

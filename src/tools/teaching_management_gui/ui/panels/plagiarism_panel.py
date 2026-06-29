@@ -8,11 +8,7 @@ Plagiarism Detection Panel
 结果合并到一张表。
 """
 
-import sys
-from pathlib import Path
 from datetime import datetime
-
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent.parent))
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout,
@@ -32,6 +28,7 @@ from tools.plagiarism.core.detector import SimilarityMethod
 from tools.teaching_management_gui.data_source import shared
 from tools.teaching_management_gui.path_helper import (
     reports_dir as resolve_reports_dir,
+    cross_class_dir as resolve_cross_class_dir,
 )
 
 
@@ -183,6 +180,10 @@ class PlagiarismPanel(QWidget):
 
     # ---------------- 查重 ----------------
     def start_detection(self):
+        # 防止在上一轮 worker 仍存活时覆盖引用（导致 QThread 被提前销毁）
+        if self.plagiarism_worker is not None and self.plagiarism_worker.isRunning():
+            QMessageBox.information(self, "请稍候", "上一次查重仍在进行中。")
+            return
         entries = shared().entries()
         if not entries:
             QMessageBox.warning(self, "警告", "请先到「数据源」页选择班级压缩包")
@@ -221,7 +222,13 @@ class PlagiarismPanel(QWidget):
         self.plagiarism_worker.detection_completed.connect(self.on_detection_completed)
         self.plagiarism_worker.detection_failed.connect(self.on_detection_failed)
         self.plagiarism_worker.detection_cancelled.connect(self.on_detection_cancelled)
+        # 内置 finished：线程真正结束后丢弃引用，便于回收与新一轮启动
+        self.plagiarism_worker.finished.connect(self._on_worker_finished)
         self.plagiarism_worker.start()
+
+    def _on_worker_finished(self):
+        """QThread 内置 finished：丢弃 worker 引用，便于对象回收与新一轮启动。"""
+        self.plagiarism_worker = None
 
     def on_progress(self, percent):
         self.overall_progress.setValue(int(percent))
@@ -283,17 +290,31 @@ class PlagiarismPanel(QWidget):
                 self.results_table.setItem(row, col, item)
 
     def cancel_detection(self):
-        if self.is_detecting:
-            if QMessageBox.question(self, "确认", "确定取消查重？",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-            ) == QMessageBox.StandardButton.Yes:
-                self.is_detecting = False
-                if self.plagiarism_worker:
-                    self.plagiarism_worker.cancel()
-                if self.plagiarism_worker and self.plagiarism_worker.isRunning():
-                    self.plagiarism_worker.wait(3000)
-                self.start_btn.setEnabled(True)
-                self.cancel_btn.setEnabled(False)
+        if not self.is_detecting:
+            return
+        if QMessageBox.question(self, "确认", "确定取消查重？",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        ) != QMessageBox.StandardButton.Yes:
+            return
+        if self.plagiarism_worker:
+            self.plagiarism_worker.cancel()
+        self.cancel_btn.setEnabled(False)
+        self.detail_label.setText("取消中…（当前比对阶段结束后停止）")
+        # 不在 GUI 线程 wait()：查重 O(N²) 比对阶段可能整段不响应取消，wait 会
+        # 冻结界面。start_btn 保持禁用，待 on_detection_cancelled 信号真正收尾再恢复。
+
+    def is_running(self) -> bool:
+        """后台查重线程是否仍在运行（供主窗口关窗判断）。"""
+        return self.plagiarism_worker is not None and self.plagiarism_worker.isRunning()
+
+    def stop_and_wait(self):
+        """窗口关闭前调用：协作取消并等待线程退出，超时强制终止。"""
+        w = self.plagiarism_worker
+        if w is not None and w.isRunning():
+            w.cancel()
+            if not w.wait(5000):
+                w.terminate()
+                w.wait(2000)
 
     def export_report(self):
         """导出查重报告（CSV）到 results/reports/。"""
@@ -306,10 +327,16 @@ class PlagiarismPanel(QWidget):
             entries = shared().entries()
             if not entries:
                 return
-            e = entries[0]
-            out_dir = resolve_reports_dir(e.class_name, e.experiment_id, shared().semester())
+            semester = shared().semester()
+            e0 = entries[0]
+            # 多班级时与 worker 的 JSON 同落 _跨班级比对/plagiarism/（中立位置，便于归档）；
+            # 单班级仍落该班 results/reports/。
+            if len(entries) > 1:
+                out_dir = resolve_cross_class_dir(semester, "plagiarism")
+            else:
+                out_dir = resolve_reports_dir(e0.class_name, e0.experiment_id, semester)
             out_dir.mkdir(parents=True, exist_ok=True)
-            base = f"{e.class_name}_跨班级_查重" if len(entries) > 1 else f"{e.class_name}_{e.experiment_id}_查重"
+            base = f"{e0.class_name}_跨班级_查重" if len(entries) > 1 else f"{e0.class_name}_{e0.experiment_id}_查重"
             csv_path = out_dir / f"{base}.csv"
             with open(csv_path, "w", encoding="utf-8-sig", newline="") as f:
                 w = csv.writer(f)

@@ -20,21 +20,27 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QSize, QMargins, QPoint
 from PyQt6.QtGui import QFont, QColor, QPalette, QPixmap
 
-from tools.teaching_management_gui.path_helper import grading_dir as resolve_grading_dir
+from tools.teaching_management_gui.path_helper import (
+    grading_dir as resolve_grading_dir,
+    DEFAULT_SEMESTER,
+)
 from tools.teaching_management_gui.class_analysis import analyze
 
 
 class ClassReportDialog(QDialog):
     """班级报告对话框"""
 
-    def __init__(self, class_name: str, experiment_id: str, parent=None):
+    def __init__(self, class_name: str, experiment_id: str,
+                 semester: Optional[str] = None, parent=None):
         super().__init__(parent)
 
         self.class_name = class_name
         self.experiment_id = experiment_id
+        # 学期决定产物路径；未传则回退默认学期。此前构造函数不接学期，
+        # load_report_data 落回 DEFAULT_SEMESTER，跨学期会「检查用真学期、显示读
+        # 默认学期」读错班数据。
+        self.semester = semester or DEFAULT_SEMESTER
         self.grading_results: List[Dict] = []
-        self.class_report: Dict = {}
-        self._data_loaded = False
         self._updating_ui = False
         self.analysis = None  # ClassAnalysis，由 load_report_data 计算
 
@@ -55,7 +61,7 @@ class ClassReportDialog(QDialog):
 
     def init_ui(self):
         """初始化UI"""
-        self.setWindowTitle(f"班级报告 - {self.class_name}")
+        self.setWindowTitle(f"班级报告 - {self.class_name}（{self.semester}）")
         self.setMinimumSize(1100, 750)
 
         # 恢复样式表（确认不是样式表导致的问题）
@@ -446,12 +452,12 @@ class ClassReportDialog(QDialog):
         self.cat_bars = {}
 
         categories = [
-            ("编译检查", "#3498db", "build"),
-            ("代码质量", "#9b59b6", "code"),
-            ("报告质量", "#e67e22", "report"),
+            ("编译检查", "#3498db", "#2980b9", "build"),
+            ("代码质量", "#9b59b6", "#8e44ad", "code"),
+            ("报告质量", "#e67e22", "#d35400", "report"),
         ]
 
-        for cat_name, color, key in categories:
+        for cat_name, color, end_color, key in categories:
             bar_container = QWidget()
             bar_layout = QVBoxLayout()
             bar_layout.setSpacing(8)
@@ -499,7 +505,7 @@ class ClassReportDialog(QDialog):
                 }}
                 QProgressBar::chunk {{
                     background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                        stop:0 {color}, stop:1 {color.replace('6', '7')});
+                        stop:0 {color}, stop:1 {end_color});
                     border-radius: 10px;
                 }}
             """)
@@ -609,24 +615,10 @@ class ClassReportDialog(QDialog):
             # 保存当前窗口大小和位置
             saved_geometry = self.geometry()
 
-            # 构建报告目录路径（统一走 path_config）
-            report_dir = resolve_grading_dir(self.class_name, self.experiment_id)
+            # 构建报告目录路径（统一走 path_config，用传入的学期）
+            report_dir = resolve_grading_dir(self.class_name, self.experiment_id, self.semester)
 
             print(f"[ClassReportDialog] 加载报告数据: {report_dir}")
-
-            # 读取班级报告
-            class_report_path = report_dir / "批阅汇总.json"
-            if class_report_path.exists():
-                try:
-                    with open(class_report_path, 'r', encoding='utf-8') as f:
-                        self.class_report = json.load(f)
-                    print(f"[ClassReportDialog] 班级报告加载成功: {len(self.class_report.get('grading_results', []))} 条记录")
-                except Exception as e:
-                    print(f"[ClassReportDialog] 读取班级报告失败: {e}")
-                    self.class_report = {}
-            else:
-                print(f"[ClassReportDialog] 班级报告文件不存在: {class_report_path}")
-                self.class_report = {}
 
             # 读取个人报告
             self.grading_results = []

@@ -12,9 +12,13 @@ Build Checker
 """
 
 import re
+import sys
+import time
+import threading
 import subprocess
 import shutil
 from pathlib import Path
+from types import SimpleNamespace
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional, Tuple
 from enum import Enum
@@ -114,6 +118,15 @@ class BuildChecker:
         if self.config.toolchain.keil_enabled and self.config.toolchain.keil_uv4_path:
             self.keil_available = Path(self.config.toolchain.keil_uv4_path).exists()
 
+        # 取消事件（可选，由 GUI 批阅 worker 注入）。默认 None：check_build 走
+        # subprocess.run 原路径，CLI/自检/单测行为完全不变；设置后改用可取消的
+        # Popen 轮询，命中取消即 kill make/gcc 子进程（批阅取消时不必等编译跑完）。
+        self._cancel_event: Optional[threading.Event] = None
+
+    def set_cancel_event(self, event: Optional[threading.Event]) -> None:
+        """注入取消事件（详见 self._cancel_event 注释）。"""
+        self._cancel_event = event
+
     def check_build(
         self,
         project_path: Path,
@@ -131,8 +144,6 @@ class BuildChecker:
         Returns:
             编译结果
         """
-        import time
-
         if not project_path.exists():
             return BuildResult(
                 status=BuildStatus.NOT_FOUND,
@@ -252,6 +263,87 @@ class BuildChecker:
         # 默认使用GCC
         return 'gcc'
 
+    def _execute_build(self, cmd: List[str], cwd: Optional[str]):
+        """运行编译命令，返回 ``(completed, cancelled)``。
+
+        - 无 ``_cancel_event``：用 ``subprocess.run``，与历史行为/单测 mock 完全一致。
+        - 有 ``_cancel_event``：用 ``Popen`` + ``communicate(timeout)`` 轮询，每 ~0.2s
+          检查一次取消事件：命中则 kill 子进程并返回 cancelled=True；到 build_timeout
+          仍 kill 并抛 TimeoutExpired（与原超时语义一致）。stderr 合并入 stdout（单管道，
+          轮询期间持续排空，避免管道缓冲写满导致子进程阻塞）。
+
+        ``completed`` 为类 CompletedProcess 对象（有 returncode/stdout/stderr），
+        交由 ``_decode_subprocess_output`` 统一解码。
+        """
+        timeout = self.config.toolchain.build_timeout
+        if self._cancel_event is None:
+            return subprocess.run(
+                cmd, capture_output=True, timeout=timeout, cwd=cwd
+            ), False
+
+        proc = subprocess.Popen(
+            cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=cwd,
+            **(dict(creationflags=subprocess.CREATE_NEW_PROCESS_GROUP)
+               if sys.platform == "win32" else {}),
+        )
+        deadline = time.monotonic() + timeout
+        try:
+            while True:
+                poll_t = max(0.05, min(0.2, deadline - time.monotonic()))
+                try:
+                    out, _ = proc.communicate(timeout=poll_t)
+                    return (
+                        SimpleNamespace(returncode=proc.returncode, stdout=out, stderr=None),
+                        False,
+                    )
+                except subprocess.TimeoutExpired:
+                    # communicate 超时后可安全重试（官方文档保证不丢输出）
+                    if self._cancel_event.is_set():
+                        self._kill(proc)
+                        return (
+                            SimpleNamespace(returncode=-1, stdout=b"", stderr=None),
+                            True,
+                        )
+                    if time.monotonic() >= deadline:
+                        self._kill(proc)
+                        raise
+        except BaseException:
+            # 任何异常/取消都确保进程被回收，避免孤儿 make/gcc
+            self._kill(proc)
+            raise
+
+    @staticmethod
+    def _kill(proc):
+        """终止并排空子进程管道，并尽力终结整棵进程树（幂等，失败静默）。
+
+        Popen.kill()/TerminateProcess 只终结「直接子进程」(make)；而 make all 会派生
+        arm-none-eabi-gcc / collect2 / ld 孙进程，且它们继承 make 的 stdout 管道。若只杀
+        make：①孙进程成孤儿继续跑、持有 build/ 下 .o/.elf/.map 文件句柄，导致下一名学生
+        ``shutil.rmtree(build_dir, ignore_errors=True)`` 静默漏删、make 增量编译复用过期
+        .o → 污染计分；②孙进程仍持有管道，communicate 会一直阻塞到超时。
+
+        故 Windows 下必须**先** ``taskkill /T /F /PID``（在父进程仍存活时按 PID 亲子链
+        递归终结全部后代，并关闭其继承的管道），再 proc.kill() 兜底、communicate 排空。
+        顺序不能反：父进程先死则其子被孤儿化、taskkill /T /PID 找不到树。
+        """
+        pid = proc.pid
+        if sys.platform == "win32":
+            try:
+                subprocess.run(
+                    ["taskkill", "/T", "/F", "/PID", str(pid)],
+                    capture_output=True, timeout=5,
+                )
+            except Exception:
+                pass
+        try:
+            proc.kill()
+        except Exception:
+            pass
+        try:
+            proc.communicate(timeout=5)
+        except Exception:
+            pass
+
     def _check_gcc_build(
         self,
         project_path: Path,
@@ -302,14 +394,18 @@ class BuildChecker:
         ]
 
         try:
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                timeout=self.config.toolchain.build_timeout,
-                cwd=str(makefile.parent)
-            )
+            result, cancelled = self._execute_build(cmd, str(makefile.parent))
         except subprocess.TimeoutExpired:
             raise
+
+        if cancelled:
+            return BuildResult(
+                status=BuildStatus.SKIPPED,
+                project_name=name,
+                project_path=project_path,
+                success=False,
+                error_message="编译已取消"
+            )
 
         # 解析输出（按字节捕获 + 容错解码，详见 _decode_subprocess_output）
         output = self._decode_subprocess_output(result)
@@ -387,13 +483,18 @@ class BuildChecker:
         ]
 
         try:
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                timeout=self.config.toolchain.build_timeout
-            )
+            result, cancelled = self._execute_build(cmd, None)
         except subprocess.TimeoutExpired:
             raise
+
+        if cancelled:
+            return BuildResult(
+                status=BuildStatus.SKIPPED,
+                project_name=name,
+                project_path=project_path,
+                success=False,
+                error_message="编译已取消"
+            )
 
         # 解析输出（按字节捕获 + 容错解码，详见 _decode_subprocess_output）
         output = self._decode_subprocess_output(result)

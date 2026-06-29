@@ -183,7 +183,9 @@ class TeachingPaths:
         semester_path = self.get_semester_dir(semester)
         if not semester_path.exists():
             return []
-        return [d for d in semester_path.iterdir() if d.is_dir()]
+        # 跳过下划线开头的非班级目录（如多班级合并产物 _跨班级比对/），避免被当成班级
+        return [d for d in semester_path.iterdir()
+                if d.is_dir() and not d.name.startswith("_")]
 
 
 # ===== 全局实例 =====
