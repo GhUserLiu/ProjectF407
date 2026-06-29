@@ -26,8 +26,10 @@ jieba==0.42.1              # 中文精确分词
 scikit-learn==1.5.2        # 机器学习算法
 
 # ========== 语义检测（可选） ==========
-sentence-transformers==2.7.0    # 语义嵌入模型，检测改写抄袭
-torch==2.4.0                     # PyTorch（sentence-transformers依赖）
+sentence-transformers==2.7.0    # 语义嵌入模型，检测改写抄袭（会自动拉取 torch 作为间接依赖，无需也无需重复 pin）
+# 注: torch 曾被显式 pin==2.4.0，但全仓无直接 import torch（仅 sentence-transformers
+#   惰性导入），属传递依赖。移除显式 pin，让 sentence-transformers 自行解析兼容 torch，
+#   避免强制特定版本与安装冲突。语义检测为可选能力，未装也不影响批阅核心。
 
 # ========== 图片处理（可选） ==========
 Pillow==10.4.0             # 图片相似度检测
