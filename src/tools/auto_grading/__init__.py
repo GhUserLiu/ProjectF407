@@ -55,7 +55,7 @@ __all__ = [
     "AutoGradingFacade",
 ]
 
-__version__ = "1.0.0"
+__version__ = "2.4.0"
 __author__ = "STM32F407 Teaching Team"
 
 # 注意：__all__ 仅在上面定义一次。此前此处存在重复定义（覆盖了上面的完整版本，

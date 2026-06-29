@@ -43,6 +43,14 @@ _UNASSESSABLE_BUILD_STATES = frozenset({
 })
 
 
+# 源码扫描防爆常量：_collect_source_text / _grade_source_check / _resolve_symbol_definers
+# 等多处源码扫描共用同一口径。历史遗留：曾在每个函数里各自硬编码 80 与 512*1024，
+# 一处分两处改就会出现"同一工程两次批阅结果不同"（受 MAX_FILES 截断 + rglob 顺序影响，
+# 俗称"摇骰子"）。统一为单一事实源。
+MAX_FILES = 80               # 单次扫描最多读取的源文件数
+MAX_FILE_BYTES = 512 * 1024  # 单个源文件读取大小上限（512 KB）
+
+
 # 厂商/第三方库目录标记：评分时只看学生自有代码，排除 ST HAL/CMSIS 等。
 # HAL 库自身定义并使用 HAL_Delay（stm32f4xx_hal.c / _dsi.c / _eth.c …），若一并扫描，
 # 任何包含 HAL 库的工程都会被判成"违反非阻塞"——这并非学生代码问题。任务检测与
@@ -201,8 +209,6 @@ def _collect_source_text(submission: "ProcessedSubmission", cache: Dict[Path, st
     sp = Path(sp)
     if sp in cache:
         return cache[sp]
-    MAX_FILES = 80
-    MAX_FILE_BYTES = 512 * 1024
     parts: List[str] = []
     files = list(getattr(pi, 'main_files', [])) \
             + list(getattr(pi, 'source_files', [])) \
@@ -582,7 +588,7 @@ def _resolve_symbol_definers(symbols, source_files, source_path):
         rx = re.compile(rf'^[\w\s\*\[\]]*?\b\w+\s+\*?{re.escape(sym)}\s*\(')
         for f in non_vendor:
             try:
-                if f.stat().st_size > 512 * 1024:
+                if f.stat().st_size > MAX_FILE_BYTES:
                     continue
                 text = f.read_text(encoding='utf-8', errors='ignore')
                 disp = str(f.relative_to(source_path)).replace('\\', '/')
@@ -697,7 +703,7 @@ def _detect_blocking_wrappers(source_path, files):
         # 第一遍：找封装函数（函数体含 HAL_Delay）
         for f in files:
             try:
-                if f.stat().st_size > 512 * 1024:
+                if f.stat().st_size > MAX_FILE_BYTES:
                     continue
                 text = f.read_text(encoding='utf-8', errors='ignore')
             except Exception:
@@ -758,7 +764,7 @@ def _detect_blocking_wrappers(source_path, files):
             defsites = set(wrappers.values())
             for f in files:
                 try:
-                    if f.stat().st_size > 512 * 1024:
+                    if f.stat().st_size > MAX_FILE_BYTES:
                         continue
                     text = f.read_text(encoding='utf-8', errors='ignore')
                 except Exception:
@@ -1428,9 +1434,6 @@ class AutoGradingEngine:
         max_points = cat.get('points', 10)
         patterns = cat.get('forbid_patterns', [r'HAL_Delay\s*\('])
         penalty_per_hit = cat.get('penalty_per_hit', 5)
-        # 防爆：单文件读取上限与扫描文件数上限
-        MAX_FILES = 80
-        MAX_FILE_BYTES = 512 * 1024
 
         compiled = []
         for p in patterns:
