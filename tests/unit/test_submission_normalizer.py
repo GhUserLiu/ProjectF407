@@ -46,16 +46,25 @@ class TestIsProjectRoot:
         (tmp_path / ".mxproject").write_text("x", encoding="utf-8")
         assert SN.is_project_root(tmp_path) is True
 
-    def test_core_dir(self, tmp_path):
+    def test_core_dir_alone_is_not_root(self, tmp_path):
+        # 仅凭 Core/ 目录不算工程根（需文件型构建标记）——否则只含同名包装目录的源码根会误判
         (tmp_path / "Core").mkdir()
-        assert SN.is_project_root(tmp_path) is True
+        assert SN.is_project_root(tmp_path) is False
 
-    def test_mdk_arm_dir(self, tmp_path):
-        (tmp_path / "MDK-ARM").mkdir()
-        assert SN.is_project_root(tmp_path) is True
-
-    def test_drivers_dir(self, tmp_path):
+    def test_drivers_dir_alone_is_not_root(self, tmp_path):
+        # 刘烊宏场景：源码根只套了一层 Drivers/ 包装，无 Makefile → 不是工程根
         (tmp_path / "Drivers").mkdir()
+        assert SN.is_project_root(tmp_path) is False
+
+    def test_bare_mdk_arm_dir_is_not_root(self, tmp_path):
+        # 空 MDK-ARM/ 目录（无 .uvprojx）不算工程根
+        (tmp_path / "MDK-ARM").mkdir()
+        assert SN.is_project_root(tmp_path) is False
+
+    def test_mdk_arm_uvprojx_is_root(self, tmp_path):
+        # Keil 工程根：MDK-ARM/ 下有 .uvprojx
+        (tmp_path / "MDK-ARM").mkdir()
+        (tmp_path / "MDK-ARM" / "proj.uvprojx").write_text("x", encoding="utf-8")
         assert SN.is_project_root(tmp_path) is True
 
     def test_ioc_glob(self, tmp_path):
@@ -136,6 +145,17 @@ class TestFlatten:
         assert r.original_depth == 1
         assert (tmp_path / "Makefile").is_file()
         assert not (tmp_path / "wrap").exists()
+
+    def test_drivers_named_wrapper_flattens(self, tmp_path):
+        """刘烊宏场景：源码根只套一层 Drivers/（与 HAL 的 Drivers 同名）。
+        旧实现把 Drivers/ 当 DIR_MARKER 误判 already_flat、不修；修复后应扁平化。"""
+        _make_project_root(tmp_path / "Drivers")   # 包装层名为 Drivers
+        r = SN.flatten(tmp_path)
+        assert r.flattened is True
+        assert r.original_depth == 1
+        assert (tmp_path / "Makefile").is_file()    # 工程已提到顶层
+        assert (tmp_path / "Core").is_dir()
+        assert not (tmp_path / "Drivers").exists()  # 空壳包装层已删
 
     def test_already_flat(self, tmp_path):
         _make_project_root(tmp_path)

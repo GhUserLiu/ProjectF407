@@ -103,8 +103,9 @@ class TestSourceStateWiring:
         result = checker.run(report, None, IDENTITY, "07-car-gear")
         try:
             assert result.source_state == "not_submitted"
-            # 无源码 → SKIPPED（排除出总分），与工具链无关
-            assert build_status_of(result.grading) == BuildStatus.SKIPPED
+            # 无源码 → FAILED（学生提交责任，0 分计入基数，不排除/不 rescale）。
+            # 仅"有工程但本机缺工具链"才 SKIPPED（排除出总分，非学生责任）。
+            assert build_status_of(result.grading) == BuildStatus.FAILED
         finally:
             SelfChecker.cleanup(result.temp_dirs)
 

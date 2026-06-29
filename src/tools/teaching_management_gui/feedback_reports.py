@@ -284,6 +284,17 @@ def _distinct_submitters(member_reports: List[Dict]) -> int:
     return len(owners)
 
 
+def _distinct_reporters(member_reports: List[Dict]) -> int:
+    """同组「各自上传了报告」的去重人数（报告维度）。读批阅时盖章的 ``group_reporter_count``
+    （组内一致，取 max 容错）；缺失（旧数据 / 未重跑）返回 0。与源码维度的
+    :func:`_distinct_submitters` 互补：源码只交一份但报告各交各的（如 闫建铭/李全：
+    两份报告、一份源码）也能据此检出 ≥2，从而触发"同组只交一份"提醒。
+    """
+    known = [int(r.get("group_reporter_count") or 0) for r in member_reports]
+    pos = [c for c in known if c > 0]
+    return max(pos) if pos else 0
+
+
 def pick_group_leader(member_reports: List[Dict]) -> Dict:
     """从同组多份报告里选出代表整组的那份（作为反馈正文基准）。
 
@@ -331,27 +342,29 @@ def build_group_feedback(
     leader = pick_group_leader(member_reports)
     roster = sorted(member_reports, key=lambda r: r.get('student_id', ''))
     shared = _members_share_source(roster)
-    submitter_count = _distinct_submitters(roster)
-    multi_submit = submitter_count >= 2
+    submitter_count = _distinct_submitters(roster)   # 源码维度
+    reporter_count = _distinct_reporters(roster)     # 报告维度（互补：报告各交各的也能检出）
+    shown_count = max(submitter_count, reporter_count)
+    multi_submit = shown_count >= 2
 
     lines: List[str] = []
     lines.append(f"小组反馈（组长：{leader.get('name', '')}，学号 {leader.get('student_id', '')}）")
     lines.append(f"班级：{class_name}　实验：{experiment_id}　组员 {len(roster)} 人")
     lines.append("")
-    # ≥2 人各自提交：置顶提醒"同组只交一份"，并修正"共用同一份报告"的虚假措辞
+    # ≥2 人各自提交（报告或源码）：置顶提醒"重复提交会导致评分不准确，同组只交一份"
     if multi_submit:
         lines.append(
-            f"【提交提醒】本组有 {submitter_count} 名成员各自上传了报告与源码"
-            "（学习通「按人导出」），机器已按每人各自提交分别评分，故下表总分可能不同。"
+            f"【提交提醒】检测到本组有 {shown_count} 人各自上传了作业（报告/源码，学习通「按人导出」）。"
+            "这种重复提交会让机器归因混乱，**可能导致本次评分不准确**（如本人分数被算到队友那份上、"
+            "源码归因错位、反馈与本人提交不符等）。"
         )
         lines.append(
-            "▶ 下次只需由组长一人提交一份报告 + 一份源码即可；组员不必重复上传，"
-            "以免机器归因混乱、反馈与本人提交不符。"
+            "▶ 下次只需由组长一人提交一份报告 + 一份源码即可，组员不必重复上传。"
+            "若本次分数与预期不符，请由组长按「一人一份」重新提交后联系教师重评。"
         )
         lines.append("")
         lines.append(
-            "【组员与成绩】（本组多人各自提交，工程/报告并非共用一份；下表按每人各自提交评定，"
-            "总分可能不同；组长另计组长加分）"
+            "【组员与成绩】（本组多人提交，已自动归并；重复提交可能致评分偏差；组长另计组长加分）"
         )
     elif shared:
         lines.append("【组员与成绩】（本组共用同一份工程与报告；组长额外计组长加分）")
@@ -373,6 +386,54 @@ def build_group_feedback(
             f"{bonus:.0f} | {role} |"
         )
     lines.append("")
+    # 身份核验：学号/姓名与教务花名册不符。分两类提示——
+    #  error(记0分)：本人提交却填错学号/姓名，自己的错；
+    #  warning(已更正)：仅被队友在团队表填错、本人未提交，已按花名册更正、保留组内分。
+    _id_errors, _id_corrected = [], []
+    for _r in roster:
+        for _i in (_r.get('issues') or []):
+            if _i.get('category') != '身份核验':
+                continue
+            sev = _i.get('severity')
+            tup = (_r.get('name', ''), _r.get('student_id', ''), _i)
+            if sev == 'error':
+                _id_errors.append(tup)
+            elif sev == 'warning':
+                _id_corrected.append(tup)
+            break
+    if _id_corrected:
+        lines.append("ℹ【学号已按花名册更正】以下成员的学号系团队信息表中填报有误，已按教务系统花名册自动更正，本次按组内共享分评定、不影响成绩：")
+        for _nm, _sid, _i in _id_corrected:
+            lines.append(f"- {_nm}（{_sid}）：{_i.get('message', '')}")
+        lines.append("")
+    if _id_errors:
+        lines.append("⚠【身份核验未通过 · 记 0 分】以下成员的学号/姓名与教务系统花名册不符，本次按规则记 0 分：")
+        for _nm, _sid, _i in _id_errors:
+            lines.append(f"- {_nm}（{_sid}）：{_i.get('message', '')}")
+        lines.append("请相关同学按花名册更正学号/姓名后重新提交，并联系教师重评。")
+        lines.append("")
+    # 名册声明但未生成独立评分的成员 → 点名提示，避免「少人」无声发生。
+    # 典型成因：该成员学号与别组同学重号（去重时被并掉），或本轮未单独提交。
+    # 注意：身份核验会把填错学号者 re-key 到真实学号，故匹配时"学号与姓名都不在
+    # 幸存成员中"才算缺失，避免把已 re-key 的人（如 210→211）误报为少人。
+    _declared: Dict[str, str] = {}
+    for _m in (leader.get('group_members') or []):
+        _msid = _m[0] if isinstance(_m, (list, tuple)) else _m.get('student_id')
+        _mname = _m[1] if isinstance(_m, (list, tuple)) else _m.get('name')
+        if _msid:
+            _declared.setdefault(str(_msid), _mname or '')
+    _survived_ids = {str(r.get('student_id', '')) for r in roster}
+    _survived_names = {(r.get('name') or '').strip() for r in roster}
+    _missing = [(sid, nm) for sid, nm in _declared.items()
+                if sid not in _survived_ids and (nm or '').strip() not in _survived_names]
+    if _missing:
+        _names_str = "、".join((f"{nm}({sid})" if nm else sid) for sid, nm in _missing)
+        lines.append(
+            f"⚠【学号/提交核对】本组名册声明 {len(_declared)} 人，实际生成独立评分 {len(roster)} 人；"
+            f"另有 {len(_missing)} 名成员（{_names_str}）未生成独立评分。常见原因是该成员学号与别组同学"
+            f"**重号**（去重时被并掉）或本轮未单独提交，**可能导致分数异常**。请该成员联系教师核对学号归属。"
+        )
+        lines.append("")
     if multi_submit:
         lines.append(
             "以下批阅反馈以组长那份为代表：报告部分（概述/设计/代码说明/调试/总结）对全组基本适用；"

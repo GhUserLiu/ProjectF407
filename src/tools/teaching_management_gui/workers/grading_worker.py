@@ -251,9 +251,21 @@ class ObservableFacade:
             self.stage_progress.emit("analyze", total, total)
             self.stage_completed.emit("analyze")
 
-        # 小组按成员展开后，同一学生可能出现在多份上传报告中；按学号去重保留最高分
+        # 小组按成员展开后，同一学生可能出现在多份上传报告中；按学号去重保留最高分。
+        # 传 rubric：让 dedupe 按组真实人数校正组长加分（多组长平摊 / 无组长全员平摊）。
+        # 花名册身份核验（re-key + 学号/姓名错误记0分）必须在去重之前：re-key 到真实学号后，
+        # 撞号两人各落不同学号，不再被去重并掉（如 安晓童 210→211 不再撞 王倩倩 210）。
         from tools.auto_grading.grading_engine import dedupe_team_members
-        grading_results = dedupe_team_members(grading_results)
+        try:
+            from tools.auto_grading.roster_check import load_id_roster, validate_identities
+            _cfg = self.facade.config
+            _roster = load_id_roster(_cfg.teaching_dir / _cfg.semester)
+            if _roster:
+                grading_results = validate_identities(grading_results, _roster)
+        except Exception as _e:
+            self.log_message.emit(f"  花名册核验跳过：{_e}")
+        grading_results = dedupe_team_members(
+            grading_results, rubric=getattr(self.facade.engine, 'rubric', None))
 
         result.grading_results = grading_results
         result.successful_graded = len(grading_results)

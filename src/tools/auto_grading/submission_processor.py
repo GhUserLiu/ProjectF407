@@ -66,6 +66,10 @@ class ProcessedSubmission:
 
 # 表式布局里不该被当作姓名的角色/表头词
 _ROLE_TOKENS = ("组长", "组员", "成员", "姓名", "学号", "班级", "角色", "学号 ", "分工")
+# 角色词也可能"夹在姓名与学号之间"——学生把角色并入姓名单元格，docx 抽出后呈
+# "李全\n组长\n23071140141"（姓名 / 角色 / 学号 各占一段）。parse_team_members 的
+# 配对正则需允许姓名与学号之间出现一个角色词，否则这种表会漏抓组员、同组被拆。
+_ROLE_BETWEEN_ALT = '(?:' + '|'.join(re.escape(t.strip()) for t in _ROLE_TOKENS if t.strip()) + ')'
 
 
 def parse_team_members(
@@ -95,8 +99,11 @@ def parse_team_members(
         [(学号, 姓名), ...]，至少 1 条。
     """
     text = report_text or ""
-    # 1) 定位团队信息章节
-    m = re.search(r'团队成员.{0,6}信息|团队成员基本信息|团队信息与分工|团队成员|分组|小组成员', text)
+    # 1) 定位团队信息章节：优先"团队成员基本信息"表头(紧贴表格)——避免落到其上方的
+    #    任务说明等无关段落。李全式报告：表头前有"1实验任务选择"+长段任务说明，旧实现
+    #    从更早的"团队信息与分工"起截，又被"1.2"等子节号提前截断，漏掉真正的成员表。
+    m = re.search(r'团队成员基本信息|团队成员.{0,6}信息', text) \
+        or re.search(r'团队信息与分工|团队成员|分组|小组成员', text)
     if not m:
         return [(primary_id, primary_name)]
     section = text[m.start():]
@@ -105,10 +112,11 @@ def parse_team_members(
     if end:
         section = section[:end.start()]
 
-    # 3) 抽取 (姓名, 11位学号)：姓名（2-5 汉字）+ 空白 + 11 位学号（首数字非 0）
+    # 3) 抽取 (姓名, 11位学号)：姓名（2-5 汉字）+ 可选角色词 + 空白 + 11 位学号（首数字非 0）
+    #    允许"姓名\n角色\n学号"（角色并入姓名单元格的常见排版，否则会漏抓组员）。
     pairs: List[Tuple[str, str]] = []
     seen = set()
-    for mm in re.finditer(r'([一-龥]{2,5})\s*([1-9]\d{10})', section):
+    for mm in re.finditer(r'([一-龥]{2,5})\s*' + _ROLE_BETWEEN_ALT + r'?\s*([1-9]\d{10})', section):
         name, sid = mm.group(1), mm.group(2)
         # 剥离可能的角色前缀（如"组长张三"），并跳过纯角色/表头词
         for tok in _ROLE_TOKENS:
@@ -129,7 +137,7 @@ def parse_team_members(
     #     错误合并成同组。数字串恰好 11 位已在第 3 步命中，这里只处理非 11 位的。
     if roster and len(pairs) < 2:
         existing_names = {n for _, n in pairs}
-        for mm in re.finditer(r'([一-龥]{2,5})\s*([0-9]{8,12})', section):
+        for mm in re.finditer(r'([一-龥]{2,5})\s*' + _ROLE_BETWEEN_ALT + r'?\s*([0-9]{8,12})', section):
             nm = mm.group(1)
             dg = mm.group(2)
             if len(dg) == 11:

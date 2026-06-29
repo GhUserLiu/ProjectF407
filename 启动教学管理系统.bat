@@ -1,66 +1,67 @@
 @echo off
-REM å±€éƒ¨åŒ–ç¯å¢ƒå˜é‡ï¼ˆPYTHONPATH ç­‰ï¼‰ï¼Œè„šæœ¬ç»“æŸè‡ªåŠ¨è¿˜åŸï¼Œä¸æ±¡æŸ“ç”¨æˆ· shell
+REM ¾Ö²¿»¯»·¾³±äÁ¿£¨PYTHONPATH µÈ£©£¬½Å±¾½áÊø×Ô¶¯»¹Ô­£¬²»ÎÛÈ¾ÓÃ»§ shell
 setlocal
 REM ============================================================
-REM æ•™å­¦ç®¡ç†ç³»ç»Ÿå¯åŠ¨å™¨ï¼ˆæ•™å¸ˆç«¯ï¼‰
+REM ½ÌÑ§¹ÜÀíÏµÍ³Æô¶¯Æ÷£¨½ÌÊ¦¶Ë£©
 REM Teaching Management System Launcher (teacher side)
 REM
-REM åŒå‡»å³å¯è¿è¡Œï¼šè‡ªåŠ¨å®šä½ä»“åº“æ ¹ç›®å½•ã€æ¿€æ´» conda ç¯å¢ƒ stm32_teachingã€
-REM å¯åŠ¨ PyQt6 GUIã€‚æ•´ä»“åº“è¿ç§»åä»å¯ç›´æ¥è¿è¡Œï¼ˆä»¥æœ¬ bat æ‰€åœ¨ç›®å½•ä¸ºæ ¹ï¼‰ã€‚
+REM Ë«»÷¼´¿ÉÔËĞĞ£º×Ô¶¯¶¨Î»²Ö¿â¸ùÄ¿Â¼¡¢¼¤»î conda »·¾³ stm32_teaching¡¢
+REM Æô¶¯ PyQt6 GUI¡£Õû²Ö¿âÇ¨ÒÆºóÈÔ¿ÉÖ±½ÓÔËĞĞ£¨ÒÔ±¾ bat ËùÔÚÄ¿Â¼Îª¸ù£©¡£
 REM
-REM ä¾èµ–ï¼šconda ç¯å¢ƒ stm32_teachingï¼ˆPython 3.11 + PyQt6ï¼‰ã€‚
-REM   æ³¨æ„ï¼šPyQt6 ä¸º GUI ä¾èµ–ï¼Œæœªå«äº requirements.txtï¼ˆåè€…ä»…è¦†ç›–æ–‡æ¡£/æ•°æ®/æ‰¹é˜…ç­‰
-REM   ä¾èµ–ï¼‰ï¼Œéœ€åœ¨ç¯å¢ƒå†…å•ç‹¬å®‰è£…ï¼špip install PyQt6
+REM ÒÀÀµ£ºconda »·¾³ stm32_teaching£¨Python 3.11 + PyQt6£©¡£
+REM   ×¢Òâ£ºPyQt6 Îª GUI ÒÀÀµ£¬Î´º¬ÓÚ requirements.txt£¨ºóÕß½ö¸²¸ÇÎÄµµ/Êı¾İ/ÅúÔÄµÈ
+REM   ÒÀÀµ£©£¬ĞèÔÚ»·¾³ÄÚµ¥¶À°²×°£ºpip install PyQt6
+REM
+REM ±àÂëÔ¼¶¨£º±¾ÎÄ¼şÒÔ GBK£¨CP936£©+ CRLF ±£´æ£¬Æ¥ÅäÖĞÎÄ Windows ¿ØÖÆÌ¨Ä¬ÈÏ´úÂëÒ³¡£
+REM   ÇĞÎğ´æÎª UTF-8 ºóÔÚ½Å±¾Àï chcp 65001 ¡ª¡ª »á´¥·¢ cmd Åú´¦Àí×Ö½ÚÆ«ÒÆ bug£¬
+REM   µ¼ÖÂĞĞËéÆ¬±»Ö´ĞĞ£¨'ui'/'M'/'src\"' µÈ±¨¡°²»ÊÇÃüÁî¡±£©ÇÒÖĞÎÄÂÒÂë¡£
 REM ============================================================
 
-REM åˆ‡æ¢åˆ° UTF-8 ä»£ç é¡µï¼Œä¿è¯ä¸­æ–‡è¾“å‡ºï¼ˆé”™è¯¯æç¤ºç­‰ï¼‰ä¸ä¹±ç 
-chcp 65001 >nul
-
-REM ä»¥æœ¬ bat æ‰€åœ¨ç›®å½•ï¼ˆä»“åº“æ ¹ï¼‰ä¸ºå·¥ä½œç›®å½•
+REM ÒÔ±¾ bat ËùÔÚÄ¿Â¼£¨²Ö¿â¸ù£©Îª¹¤×÷Ä¿Â¼
 cd /d "%~dp0"
 
-REM ä¸ä»“åº“ç»Ÿä¸€çº¦å®šï¼štools => src/toolsï¼Œä¾¿äºæ¨¡å—å†… `from tools.xxx` å¯¼å…¥
+REM Óë²Ö¿âÍ³Ò»Ô¼¶¨£ºtools => src/tools£¬±ãÓÚÄ£¿éÄÚ `from tools.xxx` µ¼Èë
 set "PYTHONPATH=%~dp0src"
 
-title æ•™å­¦ç®¡ç†ç³»ç»Ÿ
+title ½ÌÑ§¹ÜÀíÏµÍ³
 
-REM [1/4] æ£€æŸ¥ conda æ˜¯å¦å¯ç”¨
+REM [1/4] ¼ì²é conda ÊÇ·ñ¿ÉÓÃ
 where conda >nul 2>&1
 if errorlevel 1 (
-  echo [é”™è¯¯] æœªæ‰¾åˆ° condaã€‚è¯·å…ˆå®‰è£… Miniconda/Anaconda å¹¶å°†å…¶åŠ å…¥ PATHï¼Œ
-  echo        æˆ–ç›´æ¥ä»ã€ŒAnaconda Promptã€ä¸­è¿è¡Œæœ¬è„šæœ¬ã€‚
+  echo [´íÎó] Î´ÕÒµ½ conda¡£ÇëÏÈ°²×° Miniconda/Anaconda ²¢½«Æä¼ÓÈë PATH£¬
+  echo        »òÖ±½Ó´Ó¡¸Anaconda Prompt¡¹ÖĞÔËĞĞ±¾½Å±¾¡£
   goto :end
 )
 
-REM [2/4] æ£€æŸ¥ conda ç¯å¢ƒ stm32_teaching æ˜¯å¦å­˜åœ¨
+REM [2/4] ¼ì²é conda »·¾³ stm32_teaching ÊÇ·ñ´æÔÚ
 conda env list | findstr /B /C:"stm32_teaching " >nul
 if errorlevel 1 (
-  echo [é”™è¯¯] æœªæ‰¾åˆ° conda ç¯å¢ƒ stm32_teachingã€‚è¯·å…ˆåˆ›å»ºï¼š
+  echo [´íÎó] Î´ÕÒµ½ conda »·¾³ stm32_teaching¡£ÇëÏÈ´´½¨£º
   echo            conda create -n stm32_teaching python=3.11
   echo            conda activate stm32_teaching
   echo            pip install -r requirements.txt
-  echo            pip install PyQt6     ï¼ˆGUI ä¾èµ–ï¼Œæœªå«äº requirements.txtï¼‰
+  echo            pip install PyQt6     £¨GUI ÒÀÀµ£¬Î´º¬ÓÚ requirements.txt£©
   goto :end
 )
 
-REM [3/4] æ¿€æ´»ç¯å¢ƒ
+REM [3/4] ¼¤»î»·¾³
 call conda activate stm32_teaching
 if errorlevel 1 (
-  echo [é”™è¯¯] æ¿€æ´» stm32_teaching å¤±è´¥ã€‚è‹¥æœªå¯¹ cmd åˆå§‹åŒ–ï¼Œè¯·å…ˆæ‰§è¡Œï¼š
+  echo [´íÎó] ¼¤»î stm32_teaching Ê§°Ü¡£ÈôÎ´¶Ô cmd ³õÊ¼»¯£¬ÇëÏÈÖ´ĞĞ£º
   echo            conda init cmd.exe
-  echo        ç„¶åå…³é—­å¹¶é‡æ–°æ‰“å¼€å‘½ä»¤è¡Œçª—å£ï¼Œå†è¿è¡Œæœ¬è„šæœ¬ã€‚
+  echo        È»ºó¹Ø±Õ²¢ÖØĞÂ´ò¿ªÃüÁîĞĞ´°¿Ú£¬ÔÙÔËĞĞ±¾½Å±¾¡£
   goto :end
 )
 
-REM [4/4] å¯åŠ¨ GUI
-REM ç‰ˆæœ¬æ¨ªå¹…ï¼šéœ€ä¸ src/tools/teaching_management_gui/__init__.py çš„ __version__ ä¿æŒä¸€è‡´
-echo æ•™å­¦ç®¡ç†ç³»ç»Ÿ v2.2
-echo æ­£åœ¨å¯åŠ¨æ•™å­¦ç®¡ç†ç³»ç»Ÿ ...
+REM [4/4] Æô¶¯ GUI
+REM °æ±¾ºá·ù£ºĞèÓë src/tools/teaching_management_gui/__init__.py µÄ __version__ ±£³ÖÒ»ÖÂ
+echo ½ÌÑ§¹ÜÀíÏµÍ³ v2.3
+echo ÕıÔÚÆô¶¯½ÌÑ§¹ÜÀíÏµÍ³ ...
 python src\tools\teaching_management_gui\main.py
 set RC=%ERRORLEVEL%
 if not "%RC%"=="0" (
   echo.
-  echo [é”™è¯¯] ç¨‹åºå¼‚å¸¸é€€å‡ºï¼ˆé€€å‡ºç  %RC%ï¼‰ï¼Œè¯·æŸ¥çœ‹ä¸Šæ–¹æ—¥å¿—æ’æŸ¥ã€‚
+  echo [´íÎó] ³ÌĞòÒì³£ÍË³ö£¨ÍË³öÂë %RC%£©£¬Çë²é¿´ÉÏ·½ÈÕÖ¾ÅÅ²é¡£
 )
 
 :end

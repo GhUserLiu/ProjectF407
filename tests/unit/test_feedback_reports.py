@@ -18,15 +18,17 @@ from tools.teaching_management_gui.feedback_reports import (  # noqa: E402
 
 
 MEMBERS = [("23071140125", "靳皓杰"), ("23071140135", "薛松涛"), ("23071140136", "李志飞")]
+MEMBERS_TWO = [("23071140128", "闫建铭"), ("23071140141", "李全")]
 
 
 def _report(sid, name, *, total=80.0, leader=False, gk="23071140125",
             comp_earned=0.0, project_name=None, submitter_count=None,
-            members=None):
+            reporter_count=None, members=None):
     """构造一份最小可渲染的个人报告 dict。
 
     project_name 模拟 compilation 类目 build_result.project_name（自我归因后指向本人源码），
-    供 _distinct_submitters 兜底；submitter_count 模拟批阅时盖章的新字段。
+    供 _distinct_submitters 兜底；submitter_count 模拟批阅时盖章的新字段（源码维度）；
+    reporter_count 模拟 group_reporter_count（报告维度）。
     代码类分项默认全一致 → _members_share_source 返回 True（用于复现靳组 shared=True 的场景）。
     """
     comp_details = ([{"build_result": {"project_name": project_name, "status": "failed"}}]
@@ -51,6 +53,8 @@ def _report(sid, name, *, total=80.0, leader=False, gk="23071140125",
     }
     if submitter_count is not None:
         r["group_submitter_count"] = submitter_count
+    if reporter_count is not None:
+        r["group_reporter_count"] = reporter_count
     return r
 
 
@@ -106,7 +110,7 @@ class TestGroupFeedbackNotice:
                     project_name="23071140136-李志飞", members=MEMBERS),
         ]
         text = build_group_feedback(reps, "汽服2301B班", "final-project")
-        assert "本组有 3 名成员各自上传" in text
+        assert "本组有 3 人各自上传" in text
         assert "提交提醒" in text
         assert "只需由组长一人提交一份" in text
         assert "共用同一份工程与报告" not in text
@@ -122,7 +126,7 @@ class TestGroupFeedbackNotice:
                     project_name="23071140136-李志飞", members=MEMBERS),
         ]
         text = build_group_feedback(reps, "汽服2301B班", "final-project")
-        assert "本组有 3 名成员各自上传" in text
+        assert "本组有 3 人各自上传" in text
         assert "共用同一份工程与报告" not in text
 
     def test_explicit_field_drives_notice(self):
@@ -132,8 +136,23 @@ class TestGroupFeedbackNotice:
             _report("23071140135", "薛松涛", submitter_count=2, members=MEMBERS),
         ]
         text = build_group_feedback(reps, "汽服2301B班", "final-project")
-        assert "本组有 2 名成员各自上传" in text
+        assert "本组有 2 人各自上传" in text
         assert "共用同一份工程与报告" not in text
+
+    def test_report_multi_submit_fires_even_with_one_source(self):
+        """闫建铭/李全场景：两人各交一份报告(reporter=2)但只有一份源码(submitter=1)
+        → 报告维度仍触发"同组只交一份"提醒（源码维度漏检，报告维度补上）。"""
+        reps = [
+            _report("23071140128", "闫建铭", leader=False,
+                    reporter_count=2, submitter_count=1,
+                    project_name="23071140141-李全", members=MEMBERS_TWO),
+            _report("23071140141", "李全", leader=True,
+                    reporter_count=2, submitter_count=1,
+                    project_name="23071140141-李全", members=MEMBERS_TWO),
+        ]
+        text = build_group_feedback(reps, "汽服2301B班", "final-project")
+        assert "本组有 2 人各自上传" in text
+        assert "提交提醒" in text
 
     def test_single_submitter_keeps_shared_claim(self):
         """仅组长提交（他人 project_name 均回退到组长）→ 不触发、保留'共用同一份'（回归保护）。"""
@@ -149,3 +168,62 @@ class TestGroupFeedbackNotice:
         assert "各自上传" not in text
         assert "提交提醒" not in text
         assert "共用同一份工程与报告" in text
+
+
+class TestMissingMemberNotice:
+    """名册声明但未生成独立评分的成员（典型：学号与别组重号被并掉）→ 反馈点名提示。"""
+
+    def test_notes_missing_member_with_id_and_name(self):
+        """刘烊宏组：名册声明 3 人(237/206/210安晓童)，roster 只有 237/206
+        （210 安晓童因学号与王倩倩重号被去重并掉）→ 反馈点出安晓童(210) 未评分。"""
+        members = [("23071140237", "刘烊宏"), ("23071140206", "王晨露"), ("23071140210", "安晓童")]
+        reps = [
+            _report("23071140237", "刘烊宏", leader=True, gk="23071140206", members=members),
+            _report("23071140206", "王晨露", gk="23071140206", members=members),
+            # 注意：没有 23071140210 那份——安晓童被并掉了
+        ]
+        text = build_group_feedback(reps, "汽服2302B班", "final-project")
+        assert "安晓童" in text and "23071140210" in text
+        assert "未生成独立评分" in text
+        assert "可能导致分数异常" in text
+
+    def test_no_notice_when_roster_complete(self):
+        """名册全员都有结果 → 不提示缺人（回归保护）。"""
+        members = [("1", "甲"), ("2", "乙")]
+        reps = [
+            _report("1", "甲", leader=True, gk="G", members=members),
+            _report("2", "乙", gk="G", members=members),
+        ]
+        text = build_group_feedback(reps, "汽服2301B班", "final-project")
+        assert "未生成独立评分" not in text
+
+
+class TestIdentityCheckNotice:
+    """身份核验提示：error(记0分) 与 warning(已更正、保留分) 分别渲染。"""
+
+    def _rep_with_issue(self, sid, name, total, leader, issue):
+        r = _report(sid, name, leader=leader, gk="G", total=total,
+                    members=[(sid, name)])
+        r["issues"] = [issue]
+        return r
+
+    def test_zeroed_member_shown_in_zero_block(self):
+        """本人提交填错学号(severity=error) → 进『身份核验未通过·记0分』段。"""
+        reps = [self._rep_with_issue("23071140202", "陈乐莹", 0.0, False, {
+            "type": "submission", "category": "身份核验", "criterion": "学号错误",
+            "severity": "error", "points_lost": 88.0,
+            "message": "学号102有误，真实学号202，记0分。"})]
+        text = build_group_feedback(reps, "汽服2302B班", "final-project")
+        assert "身份核验未通过" in text and "记 0 分" in text
+        assert "陈乐莹" in text and "23071140202" in text
+
+    def test_corrected_member_shown_in_corrected_block_not_zero(self):
+        """被队友填错(severity=warning, 已更正) → 进『学号已按花名册更正』段，不进记0分段。"""
+        reps = [self._rep_with_issue("23071140211", "安晓童", 76.5, False, {
+            "type": "submission", "category": "身份核验", "criterion": "学号错误（队友填报，已更正）",
+            "severity": "warning", "points_lost": 0.0,
+            "message": "原填210有误(队友所填)，真实211，已更正；按组内共享分评定。"})]
+        text = build_group_feedback(reps, "汽服2302B班", "final-project")
+        assert "学号已按花名册更正" in text
+        assert "安晓童" in text and "23071140211" in text
+        assert "记 0 分" not in text  # 保留分数，不应出现记0分段

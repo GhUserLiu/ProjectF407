@@ -310,6 +310,7 @@ class AutoGradingFacade:
                 'group_key': grading_result.group_key,
                 'group_members': grading_result.group_members,
                 'group_submitter_count': grading_result.group_submitter_count,
+                'group_reporter_count': grading_result.group_reporter_count,
                 'is_team_leader': grading_result.is_team_leader,
                 'detected_task': grading_result.detected_task,
                 'detected_task_name': grading_result.detected_task_name,

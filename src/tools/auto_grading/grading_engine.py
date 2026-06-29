@@ -20,6 +20,7 @@ bonus（points_outside_base）单列；等级按 base/100 计算。
 - thinking_check：思考题 Q1~Q7 作答核对
 """
 
+import math
 import re
 from pathlib import Path
 from dataclasses import dataclass, field
@@ -80,6 +81,8 @@ class GradingResult:
     max_score: float = 100.0   # 满分（rubric.total_points）
     bonus_total: float = 0.0   # 基础分外加分（如组长加分）
     is_team_leader: bool = False  # 报告是否声明作者为组长（驱动组长加分）
+    leader_bonus_granted: float = 0.0  # 已发放的组长加分（grade_submission 先按唯一组长发全额；
+                                       # dedupe_team_members 再按组真实人数校正：多组长平摊 / 无组长全员平摊）
     grade: str = "N/A"         # 等级（A/B/C/D/F）
 
     # 小组信息（同组共用同一份工程/报告；供反馈按组聚合）
@@ -88,6 +91,10 @@ class GradingResult:
     # 本组「各自提交了源码」的去重成员数（未单独提交者回退到组长源码，不计数）；≥2 时
     # 反馈层提示「同组只交一份」。0=未知/个人实验。全组同值，由 dedupe_team_members 盖章。
     group_submitter_count: int = 0
+    # 本组「各自上传了报告」的去重人数（报告维度，= 组内结果数 ÷ 组员数）；≥2 时反馈提示
+    # 「同组只交一份」。与 group_submitter_count(源码维度)互补——源码只交一份但报告各交各的
+    # （如闫建铭/李全）也能被检出。全组同值，由 dedupe_team_members 盖章。
+    group_reporter_count: int = 0
 
     # 任务感知（final-project：任选其一，难度系数缩放最终分）
     detected_task: str = ""                 # 任务键 task1/task2/task3（无任务 rubric 时为空）
@@ -294,7 +301,129 @@ def detect_task(submission: "ProcessedSubmission",
     return fallback, 'default', True
 
 
-def dedupe_team_members(results: List[GradingResult]) -> List[GradingResult]:
+def _grade_from_scale(score: float, grading_scale: Dict) -> str:
+    """按 grading_scale 定级：半开区间匹配（按 min 降序），消除 B.max=89.9/A.min=90 之类
+    边界缝隙；与 RubricGrader._calculate_grade 语义一致。供 dedupe 校正后重定级复用。"""
+    for grade, info in sorted(grading_scale.items(), key=lambda x: x[1]['min'], reverse=True):
+        if score >= info['min']:
+            return grade
+    return 'F'
+
+
+def _grade_default(score: float, max_score: float) -> str:
+    """无 grading_scale 时的默认百分制定级。"""
+    percentage = (score / max_score) * 100 if max_score > 0 else 0
+    if percentage >= 90:
+        return 'A'
+    elif percentage >= 80:
+        return 'B'
+    elif percentage >= 70:
+        return 'C'
+    elif percentage >= 60:
+        return 'D'
+    else:
+        return 'F'
+
+
+def _adjust_leader_bonus(result: GradingResult, new_granted: float, grading_scale: Optional[Dict]) -> None:
+    """把 result 的组长加分从临时全额(leader_bonus_granted)改为 new_granted，并重算评价分/总分/等级。
+
+    评价分先扣回临时加分还原「加分前评价分」(已按可评基数折算)，再加 new_granted(封顶 100)；
+    bonus_total 同步替换；total_score = 评价分 × 难度系数；等级按总分重定。
+    """
+    old_granted = float(result.leader_bonus_granted or 0.0)
+    eval_pre = result.evaluation_score - old_granted        # 加分前评价分
+    headroom = max(100.0 - eval_pre, 0.0)
+    granted = round(min(float(new_granted), headroom), 1)
+    new_eval = round(min(eval_pre + granted, 100.0), 1)
+    result.evaluation_score = new_eval
+    result.total_score = round(new_eval * result.difficulty_ratio, 1)
+    result.bonus_total = round(result.bonus_total - old_granted + granted, 1)
+    result.leader_bonus_granted = granted
+    if grading_scale:
+        result.grade = _grade_from_scale(result.total_score, grading_scale)
+    else:
+        result.grade = _grade_default(result.total_score, 100.0)
+
+
+def _reconcile_leader_bonus(results, rubric: Dict) -> None:
+    """按组校正组长加分（由 dedupe_team_members 在去重后调用）。
+
+    - 同组多名组长(>=2)：每人加分 = ⌈leader_bonus / 组长人数⌉（2人→3、3人→2）；
+    - 同组无人声明组长（含单人组）：视作全员组长，每人加分 = ⌈leader_bonus / 人数⌉
+      （单人 = ⌈5/1⌉ = 5，封顶 100，评价分接近满分时实得可能 <5）；
+    - 唯一组长：不动（grade_submission 的临时全额即正确）。
+    校正后给每位受影响者追加说明性 issue（type=submission，machine/teacher 可读；不进学生必改区）。
+    """
+    try:
+        leader_bonus = float(rubric.get('leader_bonus', 0) or 0)
+    except (TypeError, ValueError):
+        leader_bonus = 0.0
+    if leader_bonus <= 0:
+        return
+    grading_scale = rubric.get('grading_scale')
+
+    # 按 (班级, 组键) 聚合本组去重后的成员（含单人组：无人声明组长时也按规则平摊）
+    groups: Dict[Tuple[str, str], List[GradingResult]] = {}
+    for r in results:
+        members = getattr(r, 'group_members', None) or []
+        if getattr(r, 'group_key', '') and len(members) >= 1:
+            groups.setdefault((r.class_name, r.group_key), []).append(r)
+
+    for (cls, gk), members in groups.items():
+        leaders = [m for m in members if m.is_team_leader]
+        if leaders:
+            if len(leaders) == 1:
+                continue  # 唯一组长：临时全额加分即正确，无需校正
+            recipients, scenario = leaders, 'multi'
+        else:
+            recipients, scenario = members, 'none'       # 无组长 → 全员平摊
+        num = len(recipients)
+        per_leader = math.ceil(leader_bonus / num)        # ⌈5/2⌉=3, ⌈5/3⌉=2
+        names = ", ".join(f"{m.name}({m.student_id})" for m in recipients)
+        for m in recipients:
+            old_granted = float(m.leader_bonus_granted or 0.0)
+            _adjust_leader_bonus(m, per_leader, grading_scale)
+            new_granted = m.leader_bonus_granted
+            if scenario == 'multi':
+                msg = (f"同组({gk})检测到 {num} 名组长：{names}；按规则组长加分 = "
+                       f"⌈{leader_bonus:g}/{num}⌉ = {per_leader}，已据此校正"
+                       f"（原 +{old_granted:g} → +{new_granted:g}）。")
+                fix = "每组宜仅一人任组长；已按人数平摊如实发放加分，无需额外操作。"
+                criterion, expected = "同组组长加分平摊", "每组一名组长"
+            else:  # none
+                msg = (f"本组({gk})报告未声明组长；按规则视作全员({num}人)组长，组长加分 = "
+                       f"⌈{leader_bonus:g}/{num}⌉ = {per_leader}，已据此发放（+{new_granted:g}）。")
+                fix = "建议在报告「团队信息与分工」中明确组长，以免加分被平摊。"
+                criterion, expected = "未声明组长·全员平摊", "明确组长归属"
+            m.issues.append({
+                "type": "submission",
+                "category": "组长归属",
+                "criterion": criterion,
+                "points_lost": 0,
+                "severity": "info",
+                "message": msg,
+                "fix": fix,
+                "expected": expected,
+            })
+
+
+def _names_look_like_same_person(a: str, b: str) -> bool:
+    """两个姓名是否像「同一人的不同写法」（同名异写）而非两个不同的人。
+
+    判据：姓名汉字集合重合度高——共有的不同汉字数 ≥ 较长名长度 − 1。
+    - 畅邵坤/畅绍坤、聂智聪/聂志聪 → True（同人，差异为同音/形近异写）
+    - 安晓童/王倩倩、申凯丽/张丽娟 → False（不同人，无共同汉字）
+
+    用于「学号重号」检测时过滤同名异写，避免对同一人误报。
+    """
+    ca, cb = set(a or ""), set(b or "")
+    if not ca or not cb:
+        return False
+    return len(ca & cb) >= max(len(ca), len(cb)) - 1
+
+
+def dedupe_team_members(results: List[GradingResult], rubric: Optional[Dict] = None) -> List[GradingResult]:
     """按学号去重评分结果。
 
     小组按成员展开后，同一学生可能出现在多份上传报告中（学习通「按人导出」，
@@ -306,8 +435,13 @@ def dedupe_team_members(results: List[GradingResult]) -> List[GradingResult]:
        时，才回退到最高分（共享组长源码）。
     2. **同组勿重复提交提醒**：若该生关联了 >1 个**不同**源码目录（多人各自上传了
        不同版本），在反馈 issues 中追加提醒，引导「同组由组长一人提交」。
+    3. **组长加分按组人数校正**（传 rubric 且 leader_bonus>0 时生效）：grade_submission
+       先按「唯一组长」给每人发了临时全额加分；此处按组真实情况校正——
+       同组多名组长：加分 = ⌈leader_bonus / 组长人数⌉（如 2 人 → 3、3 人 → 2）；
+       全组无人声明组长（含单人组）：视作全员组长，加分 = ⌈leader_bonus / 人数⌉（单人 = ⌈5/1⌉ = 5）；
+       唯一组长：不校正。校正后重算评价分/总分/等级，并追加说明性 issue。
 
-    对个人实验（无团队成员表、不展开）为空操作。
+    对个人实验（无团队成员表、不展开）为空操作。自检/单提交路径不传 rubric → 不校正。
     """
     def _source_token(r: GradingResult) -> str:
         """该结果所用源码目录名（= 报告组长的源码包）；无源码返回 ''。"""
@@ -351,28 +485,40 @@ def dedupe_team_members(results: List[GradingResult]) -> List[GradingResult]:
                 "expected": "每组一份报告 + 一份源码",
             })
 
-    # 同组多名组长告警（罕见：同组多份报告各自声明了不同组长）。
-    # 仅提示教师复核——不改分：leader_bonus 已在 grade_submission 折进评价分/最终分，
-    # 此处安全地回扣需依赖 rubric 与重新定级，跨 rubric 类型不稳健；故用 advisory 暴露。
-    _leaders_by_group: Dict[str, List[GradingResult]] = {}
-    for r in best.values():
-        if r.is_team_leader and r.group_key:
-            _leaders_by_group.setdefault(r.group_key, []).append(r)
-    for gk, ldrs in _leaders_by_group.items():
-        if len(ldrs) <= 1:
+    # 学号重号检测：同一学号关联 ≥2 个不同姓名，且并非全是「同名异写(同一人)」
+    # → 在**幸存**的 best[sid] 上盖告警（写在被并掉的那条上会随它一起丢失）。
+    # 不改变去重行为（仍按学号取一份）；重号是上游数据错误，工具不擅自决定保留谁，
+    # 只提示教师核定归属（与既有 type=submission advisory 一致，不进学生必改区）。
+    for sid, rs in by_id.items():
+        names: List[str] = []
+        for r in rs:
+            n = (r.name or "").strip()
+            if n and n not in names:
+                names.append(n)
+        if len(names) < 2:
             continue
-        names = ", ".join(f"{r.name}({r.student_id})" for r in ldrs)
-        for r in ldrs:
-            r.issues.append({
+        # 所有姓名两两都像同一人 → 同名异写，不告警
+        if all(_names_look_like_same_person(names[i], names[j])
+               for i in range(len(names)) for j in range(i + 1, len(names))):
+            continue
+        if sid in best:
+            best[sid].issues.append({
                 "type": "submission",
-                "category": "组长归属",
-                "criterion": "同组唯一组长",
+                "category": "学号重号",
+                "criterion": "疑似学号重号",
                 "points_lost": 0,
                 "severity": "warning",
-                "message": f"同组({gk})检测到多名组长：{names}；可能各成员报告里组长声明不一致，组长加分或被重复发放。",
-                "fix": "请教师核对同组组长归属，确保每组仅一人享受组长加分，必要时手动调整。",
-                "expected": "每组一名组长",
+                "message": (f"学号 {sid} 同时关联多个不同姓名（{' / '.join(names)}），"
+                            f"疑为学号重号，**可能导致评分异常**（另一人评分被并掉）。请联系教师核对学号归属。"),
+                "fix": "请教师核对该学号的真实归属；若为重号，更正其中一方学号后重评即可。",
+                "expected": "一个学号对应一名学生",
             })
+
+    # 组长加分按组人数校正（任务书约定）。grade_submission 已按「唯一组长」给每人发了临时
+    # 全额加分(leader_bonus_granted)；这里按组真实人数回扣/补发：多组长平摊、无组长全员平摊。
+    # 唯一组长/单人组不校正。仅在传入 rubric(含 leader_bonus)时生效。
+    if rubric is not None:
+        _reconcile_leader_bonus(best.values(), rubric)
 
     # 本组「各自提交了源码」的去重成员数：组内 best 结果里非空 _source_token 的去重数。
     # 未单独提交者会回退到组长源码（_is_self_sourced=False），不增加去重 token，故该值
@@ -387,6 +533,21 @@ def dedupe_team_members(results: List[GradingResult]) -> List[GradingResult]:
         if r.group_key:
             r.group_submitter_count = len(_group_tokens.get(r.group_key, ()))
 
+    # 同组「各自上传了报告」的去重人数（报告维度）：每份报告按团队展开为(组员数)条结果，
+    # 故 组内结果数 ÷ 组员数 ≈ 上传报告的人数。≥2 时反馈提示"同组只交一份"。与源码维度
+    # (group_submitter_count)互补——源码只交一份但报告各交各的(如 闫建铭/李全)也能被检出。
+    _group_entry_count: Dict[str, int] = {}
+    _group_member_set: Dict[str, set] = {}
+    for r in results:
+        if r.group_key:
+            _group_entry_count[r.group_key] = _group_entry_count.get(r.group_key, 0) + 1
+            _group_member_set.setdefault(r.group_key, set()).add(r.student_id)
+    for r in best.values():
+        if r.group_key:
+            mc = len(_group_member_set.get(r.group_key, ()))
+            ec = _group_entry_count.get(r.group_key, 0)
+            r.group_reporter_count = (ec // mc) if mc else 1
+
     # 按首次出现顺序输出
     seen = set()
     out = []
@@ -398,7 +559,229 @@ def dedupe_team_members(results: List[GradingResult]) -> List[GradingResult]:
     return out
 
 
-def _summarize_build_failure(br: BuildResult) -> Tuple[str, str]:
+def _resolve_symbol_definers(symbols, source_files, source_path):
+    """对每个未定义符号，在学生自有 .c 源码里找它的函数定义所在文件。
+
+    返回 {symbol: [相对路径...]}。仅匹配**函数定义头**（行尾非分号、形如
+    ``ret sym(...) {``），从而区分定义与调用/声明；排除厂商库。
+    """
+    definers = {}
+    if not symbols or not source_files:
+        return definers
+    non_vendor = [f for f in source_files
+                  if not _is_vendor_file(f) and f.suffix.lower() == '.c']
+    for sym in symbols:
+        if not sym:
+            continue
+        # 要求"返回类型 + sym(" 才算定义头（排除裸调用）；不锚定行尾以兼容单行定义
+        # `void sym(...){ ... }`；行尾分号(声明/调用语句)跳过。
+        rx = re.compile(rf'^[\w\s\*\[\]]*?\b\w+\s+\*?{re.escape(sym)}\s*\(')
+        for f in non_vendor:
+            try:
+                if f.stat().st_size > 512 * 1024:
+                    continue
+                text = f.read_text(encoding='utf-8', errors='ignore')
+                disp = str(f.relative_to(source_path)).replace('\\', '/')
+            except Exception:
+                continue
+            for line in text.splitlines():
+                if line.rstrip().endswith(';'):
+                    continue
+                if rx.match(line):
+                    definers.setdefault(sym, []).append(disp)
+                    break
+    return definers
+
+
+def _makefile_c_sources(source_path) -> set:
+    """读 Makefile 的 C_SOURCES 变量，返回归一化相对路径集合（如 Core/Src/key.c）。
+
+    无 Makefile 或解析失败返回空集（调用方据此退化为"按文件名匹配"）。
+    """
+    mk = Path(source_path) / 'Makefile'
+    if not mk.is_file():
+        return set()
+    try:
+        text = mk.read_text(encoding='utf-8', errors='ignore')
+    except Exception:
+        return set()
+    out = set()
+    in_block = False
+    for line in text.splitlines():
+        s = line.strip()
+        if s.startswith('C_SOURCES') and '=' in s:
+            in_block = True
+            s = s.split('=', 1)[-1].strip()
+        if in_block:
+            for tok in re.findall(r'\.?/?([^\s]+\.c)', s):
+                out.add(tok.lstrip('./').lstrip('/'))
+            if not line.rstrip().endswith('\\'):
+                in_block = False
+    return out
+
+
+def _diagnose_missing_sources(undefined_symbols, submission) -> str:
+    """链接失败时：把 undefined reference 符号定位到学生工程里定义它们的 .c，
+    并指出这些文件未列入 Makefile 的 C_SOURCES。返回可直接拼进 fix 的句子（或 ''）。
+
+    失败必返回 ''——反馈增强绝不影响批阅主流程。
+    """
+    try:
+        pi = getattr(submission, 'project_info', None)
+        sp = getattr(submission, 'source_path', None)
+        source_files = list(getattr(pi, 'source_files', []) or [])
+        if not undefined_symbols or not source_files or not sp:
+            return ''
+        sp = Path(sp)
+        definers = _resolve_symbol_definers(undefined_symbols, source_files, sp)
+        if not definers:
+            return ''
+        c_sources = _makefile_c_sources(sp)
+        cs_basenames = {Path(c).name for c in c_sources}
+        file_syms = {}                       # file_rel -> [symbols]
+        for sym, files in definers.items():
+            for fr in files:
+                file_syms.setdefault(fr, []).append(sym)
+        missing = []                         # 定义了符号、却未在 C_SOURCES 的文件
+        for fr, syms in file_syms.items():
+            in_cs = (not c_sources) or (fr in c_sources) or (Path(fr).name in cs_basenames)
+            if not in_cs:
+                missing.append((fr, syms))
+        if not missing:
+            pos = "; ".join(f"{fr} 定义了 {', '.join(syms)}" for fr, syms in sorted(file_syms.items())[:4])
+            return f"（这些符号在你的源码里有定义：{pos}；请检查函数签名是否一致、工程是否需要重新生成。）"
+        parts = [f"{fr}（定义 {', '.join(sorted(set(syms)))}）" for fr, syms in sorted(missing)[:4]]
+        return ("（已定位：未定义的符号其实在你的源码里有定义，但对应文件未参与编译——"
+                "请把以下 .c 加入 Makefile 的 C_SOURCES 后重新生成/编译：" + "；".join(parts) + "。）")
+    except Exception:
+        return ''
+
+
+def _detect_blocking_wrappers(source_path, files):
+    """检测"封装了 HAL_Delay 的阻塞延时函数"及其调用点。
+
+    学生常把 HAL_Delay 包一层（如 ``HAL_Delay_ms()``）再在主循环调用，仅匹配字面
+    ``HAL_Delay(`` 会漏掉这些间接调用。本函数：
+
+    1. 逐文件按括号深度切出每个函数体，凡函数体内出现 ``HAL_Delay(`` 即记为封装函数；
+    2. 再统计这些封装函数在全工程被调用的位置。
+
+    返回 (wrappers, indirect_violations)：
+    - wrappers: {func_name: 'file:line'}（封装函数定义处）
+    - indirect_violations: [{file, line, wrapper}]（封装函数的调用点，不含其自身定义行）
+
+    失败必返回 ({}, [])——绝不影响批阅主流程。
+    """
+    try:
+        direct_re = re.compile(r'HAL_Delay\s*\(')
+        # 函数定义头：[修饰] 返回类型 name(args) 可选 { ——要求"有返回类型前缀"，
+        # 故裸调用/控制关键字不会命中；不锚定行尾，兼容单行定义 `void f(...){ ... }`。
+        header_re = re.compile(
+            r'^[ \t]*(?:static[ \t]+|extern[ \t]+|inline[ \t]+)*'
+            r'[\w\*][\w\*\s\[\]]*?\s+\*?(\w+)\s*\([^;]*\)\s*\{?'
+        )
+        _CONTROL = {'if', 'for', 'while', 'switch', 'return', 'else', 'do', 'sizeof'}
+
+        def _disp(f):
+            try:
+                return str(f.relative_to(source_path)).replace('\\', '/')
+            except Exception:
+                return f.name
+
+        wrappers = {}            # name -> "disp:def_line"（候选：体内含 HAL_Delay；下方按"是否被调用"再筛）
+        wrapper_ranges = {}      # name -> (disp, def_line, end_line)
+        # 第一遍：找封装函数（函数体含 HAL_Delay）
+        for f in files:
+            try:
+                if f.stat().st_size > 512 * 1024:
+                    continue
+                text = f.read_text(encoding='utf-8', errors='ignore')
+            except Exception:
+                continue
+            disp = _disp(f)
+            lines = text.splitlines()
+            i = 0
+            while i < len(lines):
+                m = header_re.match(lines[i])
+                if not m or m.group(1) in _CONTROL:
+                    i += 1
+                    continue
+                name = m.group(1)
+                # 前向声明（行尾分号）不是定义，跳过
+                if lines[i].rstrip().endswith(';'):
+                    i += 1
+                    continue
+                # 定位函数体起点 { ：同行(K&R) 或下一非空行(Allman)；都没有则放弃
+                if '{' in lines[i]:
+                    body_start = i
+                else:
+                    k = i + 1
+                    while k < len(lines) and lines[k].strip() == '':
+                        k += 1
+                    if k < len(lines) and lines[k].lstrip().startswith('{'):
+                        body_start = k
+                    else:
+                        i += 1
+                        continue
+                # 从 body_start 按括号深度取整个函数体
+                depth = 0
+                seen_open = False
+                j = body_start
+                while j < len(lines):
+                    ln = lines[j]
+                    opens, closes = ln.count('{'), ln.count('}')
+                    if opens:
+                        seen_open = True
+                    depth += opens - closes
+                    if seen_open and depth <= 0:
+                        break
+                    j += 1
+                body = '\n'.join(lines[i:j + 1])
+                if direct_re.search(body):
+                    wrappers[name] = f"{disp}:{i + 1}"
+                    wrapper_ranges[name] = (disp, i + 1, j + 1)   # 1-based 首尾行
+                i = j + 1 if j > i else i + 1
+
+        # 第二遍：统计封装函数的调用点（排除定义行、前向声明/原型、注释行）
+        indirect = []
+        if wrappers:
+            call_res = {nm: re.compile(rf'\b{re.escape(nm)}\s*\(') for nm in wrappers}
+            # 前向声明/原型行：有"返回类型 + name(args) + ;"（与第一遍同口径），
+            # 不应被当成调用点（否则 .c/.h 里的原型会让 indirect 虚高）。
+            decl_res = {nm: re.compile(
+                rf'^\s*(?:static\s+|extern\s+|inline\s+)*[\w\*][\w\*\s\[\]]*?\s+\*?{re.escape(nm)}\s*\([^;]*\)\s*;'
+            ) for nm in wrappers}
+            defsites = set(wrappers.values())
+            for f in files:
+                try:
+                    if f.stat().st_size > 512 * 1024:
+                        continue
+                    text = f.read_text(encoding='utf-8', errors='ignore')
+                except Exception:
+                    continue
+                disp = _disp(f)
+                for ln, raw in enumerate(text.splitlines(), start=1):
+                    if f"{disp}:{ln}" in defsites:
+                        continue
+                    line = re.sub(r'//.*$', '', raw)   # 去行尾注释，避免注释里提到 name() 被误计
+                    for nm, rx in call_res.items():
+                        if decl_res[nm].match(raw):
+                            continue                   # 该行是 nm 的前向声明/原型，非调用
+                        for _mm in rx.finditer(line):  # 同行多次调用逐个计
+                            indirect.append({'file': disp, 'line': ln, 'wrapper': nm})
+
+        # 只把"被调用过"的封装函数当成 wrapper：它的违例按调用点计、体内 HAL_Delay 不重复计。
+        # 体内含 HAL_Delay 但**无人调用**的函数（如 main，或一次性业务函数）不算封装——
+        # 其体内 HAL_Delay 直接计为违例（否则会被误排除而漏判）。
+        called = {v['wrapper'] for v in indirect}
+        wrappers = {nm: loc for nm, loc in wrappers.items() if nm in called}
+        body_ranges = [wrapper_ranges[nm] for nm in wrappers]
+        return wrappers, indirect, body_ranges
+    except Exception:
+        return {}, [], []
+
+
+def _summarize_build_failure(br: BuildResult, submission: Optional["ProcessedSubmission"] = None) -> Tuple[str, str]:
     """把编译失败结果转成 (给学生看的反馈句, 改进建议句)。
 
     优先用 build_result.issues 里的真实诊断（编译错误 / 链接错误 / Makefile 语法错误），
@@ -438,6 +821,17 @@ def _summarize_build_failure(br: BuildResult) -> Tuple[str, str]:
             or 'multiple definition' in blob:
         fix = ('链接失败：通常是 Makefile 的 C_SOURCES 漏加了某个 .c 源文件，或调用了未实现/'
                '未包含的函数。请把缺失的源文件加入 Makefile，或补全被引用函数的实现。')
+        # 详细定位：把 undefined reference 符号对应到学生工程里定义它们的 .c，
+        # 并指出这些文件未列入 Makefile 的 C_SOURCES（高雅梅：4 个自建模块漏列）。
+        if submission is not None and 'undefined reference' in blob:
+            syms = []
+            for e in errs:
+                mm = re.search(r"undefined reference to [`'\"]*(\w+)", e)
+                if mm and mm.group(1) not in syms:
+                    syms.append(mm.group(1))
+            extra = _diagnose_missing_sources(syms, submission)
+            if extra:
+                fix = fix + ' ' + extra
     elif 'missing separator' in blob or re.search(r'\*\*\*.+?stop\.', blob):
         # Makefile 语法错误签名是 `*** ... Stop.`（missing separator / No rule to make target）。
         # 不能用裸 `*** ` 判：普通编译/链接失败结尾都有 `make: *** [target] Error N`，会误判。
@@ -657,9 +1051,10 @@ class AutoGradingEngine:
             if method == 'build' and cs.details:
                 br = cs.details[0].get('build_result')
                 result.compilation_result = br
-                # 编译"无法评估"（无源码/无 Makefile/工具链缺失/超时/错误）：非学生责任，
-                # 汇总时把该类分值排除出总分与等级基数，避免误判为编译失败拖低预测分。
-                # 仅真正编译失败的 FAILED 才计入。仅对基础分内类别生效（bonus 类本就单列）。
+                # 编译"无法评估"仅指本机工具链缺失/超时（非学生责任）：汇总时把该类分值
+                # 排除出总分与等级基数，避免误判为编译失败拖低预测分。注意：学生提交层面的
+                # 问题（未提交/损坏/嵌套/空/纯Keil）已在 _grade_compilation 判为 FAILED
+                # （计入基数），不会走到这里。仅对基础分内类别生效（bonus 类本就单列）。
                 if (br is not None
                         and getattr(br, 'status', None) in _UNASSESSABLE_BUILD_STATES
                         and not cat.get('points_outside_base')):
@@ -691,12 +1086,18 @@ class AutoGradingEngine:
             else:
                 eval_score = round(min(base_earned, total_points), 1)
             # 组长加分（任务书约定）：评价分 +leader_bonus，封顶 100；再按难度系数缩放。
-            # granted 为实际生效的加分（评价分已接近满分时不足 5），累入 bonus_total 供反馈展示。
+            # 这里先按「唯一组长」发临时全额加分（leader_bonus_granted）；dedupe_team_members 会
+            # 按组真实人数校正——同组多名组长时加分 = ⌈leader_bonus/组长人数⌉，全组无人声明组长
+            # (member_count>=2) 时视作全员组长平摊。单提交/自检路径不经 dedupe，临时全额即最终值
+            # （单人组 = 1 名组长 = ⌈5/1⌉ = 5，本就正确）。granted 为实际生效的临时加分（评价分已
+            # 接近满分时不足 5），累入 bonus_total 供反馈展示。
             leader_bonus = float(self.rubric.get('leader_bonus', 0) or 0)
+            granted = 0.0
             if leader_bonus > 0 and is_leader:
                 granted = round(min(leader_bonus, max(total_points - eval_score, 0.0)), 1)
                 eval_score = round(min(eval_score + granted, total_points), 1)
                 bonus_total += granted
+            result.leader_bonus_granted = granted
             result.evaluation_score = eval_score
             result.total_score = round(eval_score * result.difficulty_ratio, 1)  # 期末最终分
             result.max_score = 100.0
@@ -737,11 +1138,13 @@ class AutoGradingEngine:
         """build：真实编译检查。
 
         - 无源码/工程：按 source_state 分类，在学生反馈中给出**具体原因 + 改进方法**。
-          * 纯 Keil 工程（keil_only）：判为真实编译失败（FAILED，0 分计入总分）。
-          * 损坏/嵌套/空/未提交：无法评估（SKIPPED，排除出总分），但仍带反馈。
+          * 所有不可机器编译的提交状态（纯Keil/损坏/嵌套/空/未提交）一律判真实编译失败
+            （FAILED，0 分计入总分基数，不排除、不触发 rescale）——属学生提交责任。
+          * 仅"有可编译工程但本机缺 make/gcc 工具链"（下方 check_build 返回 SKIPPED）
+            才排除出总分（非学生责任）。
         - 同一 source_path 的编译结果缓存：小组多名成员共享同一工程，只编译一次。
         """
-        from .source_state import STATE_KEIL_ONLY, STATE_OK
+        from .source_state import STATE_OK
         max_points = cat.get('points', 10)
         name = f"{submission.student_id}-{submission.name}"
 
@@ -755,11 +1158,12 @@ class AutoGradingEngine:
                 reason = ss.feedback_reason
                 fix = ss.feedback_fix
                 st = ss.state
-                # 纯 Keil 工程：判为真实编译失败（计入总分），其余格式问题判 SKIPPED（排除）
-                if st == STATE_KEIL_ONLY:
-                    status, feedback = BuildStatus.FAILED, f"{reason} {fix}"
-                else:
-                    status, feedback = BuildStatus.SKIPPED, f"{reason} {fix}"
+                # 源码不可机器编译（纯Keil/损坏/嵌套/空/未提交）一律属学生提交责任：
+                # 判真实编译失败 FAILED（0 分计入总分基数，不排除、不触发 rescale）。
+                # 仅"有可编译工程但本机缺 make/gcc 工具链"（下方 check_build 返回 SKIPPED，
+                # 非学生责任）才在汇总时排除出基数。这样未交源码者不再因 rescale 被白送约 5 分
+                # （此前 not_submitted 等误入 SKIPPED 享受排除）。反馈仍用 source_state 的具体原因。
+                status, feedback = BuildStatus.FAILED, f"{reason} {fix}"
                 br = BuildResult(
                     status=status,
                     project_name=name,
@@ -828,7 +1232,7 @@ class AutoGradingEngine:
             # 摘要进反馈，让学生看到具体错在哪，而非笼统的「未识别错误」。fix_hint 同时供
             # _generate_feedback 作为可操作的改进建议。纯警告构建状态为 SUCCESS，已拿满分。
             earned_points = 0
-            feedback, fix_hint = _summarize_build_failure(build_result)
+            feedback, fix_hint = _summarize_build_failure(build_result, submission)
         else:
             earned_points = 0
             feedback = f"无法编译: {build_result.error_message}"
@@ -1058,6 +1462,17 @@ class AutoGradingEngine:
                     'feedback': '无可评估的源代码（源码包未解开/为空/损坏/未提交），非阻塞检查无法进行，记 0 分；具体原因与改进方法见「编译检查」项。',
                 }]
             )
+        # 先检测"封装了 HAL_Delay 的阻塞延时函数"——其调用点同样是阻塞延时，按任务书
+        # 「禁止阻塞延时」计入扣分（直接 HAL_Delay 与经封装函数间接调用同口径）；而封装
+        # 函数体内那条 HAL_Delay 是"成因"，不与其调用点重复计分。
+        wrappers, indirect, body_ranges = _detect_blocking_wrappers(submission.source_path, files)
+
+        def _in_wrapper_body(file_disp, ln):
+            for bf, b0, b1 in body_ranges:
+                if bf == file_disp and b0 <= ln <= b1:
+                    return True
+            return False
+
         for f in files[:MAX_FILES]:
             try:
                 if f.stat().st_size > MAX_FILE_BYTES:
@@ -1068,24 +1483,34 @@ class AutoGradingEngine:
             except Exception:
                 continue
             for ln, line in enumerate(text.splitlines(), start=1):
+                if _in_wrapper_body(file_disp, ln):
+                    continue   # 封装函数体内的 HAL_Delay 是"成因"，不与调用点重复计
                 for rx in compiled:
                     for m in rx.finditer(line):
                         violations.append({
-                            'file': file_disp,
-                            'line': ln,
-                            'match': m.group(0),
+                            'file': file_disp, 'line': ln, 'match': m.group(0),
                         })
 
+        # 封装函数的调用点 = 间接阻塞调用，一并计入扣分
+        for v in indirect:
+            violations.append({
+                'file': v['file'], 'line': v['line'],
+                'match': f"{v['wrapper']}(...)", 'wrapper': v['wrapper'],
+            })
+
         hit_count = len(violations)
+        wnames = "、".join(wrappers.keys())
         if hit_count == 0:
             earned = float(max_points)
-            feedback = "未发现 HAL_Delay 调用，符合非阻塞要求"
+            feedback = "未发现阻塞延时调用（直接 HAL_Delay 或经封装函数间接调用），符合非阻塞要求"
         else:
             earned = max(0.0, max_points - hit_count * penalty_per_hit)
-            sample = ", ".join(f"{v['file']}:{v['line']}" for v in violations[:3])
-            more = "…" if hit_count > 3 else ""
-            feedback = (f"发现 {hit_count} 处 HAL_Delay 调用（{sample}{more}），"
-                        "违反非阻塞要求，需改用基于 HAL_GetTick() 的非阻塞实现")
+            sample = ", ".join(f"{v['file']}:{v['line']}" for v in violations[:6])
+            more = "…" if hit_count > 6 else ""
+            wnote = f"，含封装函数 {wnames}() 的间接调用" if wrappers else ""
+            feedback = (f"发现 {hit_count} 处阻塞延时调用{wnote}（{sample}{more}），违反非阻塞要求。"
+                        "任务书禁止阻塞延时：直接 HAL_Delay 与经封装函数（如 HAL_Delay_ms()）间接"
+                        "调用 HAL_Delay 同样视为违反，需全部改为基于 HAL_GetTick() 差值判定的非阻塞写法。")
 
         return CategoryScore(
             category_id=cat['id'],
@@ -1095,6 +1520,8 @@ class AutoGradingEngine:
             details=[{
                 'violations': violations[:20],
                 'hit_count': hit_count,
+                'blocking_wrappers': wrappers,
+                'indirect_hit_count': len(indirect),
                 'feedback': feedback,
             }]
         )
@@ -1235,9 +1662,11 @@ class AutoGradingEngine:
                         'points_lost': lost,
                         'severity': 'error',
                         'message': d.get('feedback', '源码含 HAL_Delay 调用'),
-                        'detail': '; '.join(f"{v['file']}:{v['line']}" for v in d.get('violations', [])),
-                        'expected': '全部使用基于 HAL_GetTick() 的非阻塞延时，禁止 HAL_Delay()',
-                        'fix': '将 HAL_Delay(...) 改为基于 HAL_GetTick() 差值判定的非阻塞写法',
+                        'detail': '; '.join(
+                            f"{v['file']}:{v['line']}" + (f"(间接·{v['wrapper']})" if v.get('wrapper') else "")
+                            for v in d.get('violations', [])),
+                        'expected': '全部使用基于 HAL_GetTick() 的非阻塞延时；直接 HAL_Delay 与经封装函数(如 HAL_Delay_ms)间接调用均禁止',
+                        'fix': '将所有阻塞延时(含封装函数内部的 HAL_Delay 及其调用点)改为基于 HAL_GetTick() 差值判定的非阻塞写法',
                     })
             else:  # keyword/manual：逐准则失分
                 criteria_scores = (cs.details[0].get('criteria_scores') if cs.details else []) or []
@@ -1386,25 +1815,10 @@ class AutoGradingEngine:
         }
 
     def _calculate_grade(self, score: float, grading_scale: Dict) -> str:
-        # 半开区间匹配（按 min 降序），消除 B.max=89.9/A.min=90 之类边界缝隙；
-        # 与 RubricGrader._calculate_grade 语义保持一致。
-        for grade, info in sorted(grading_scale.items(), key=lambda x: x[1]['min'], reverse=True):
-            if score >= info['min']:
-                return grade
-        return 'F'
+        return _grade_from_scale(score, grading_scale)
 
     def _calculate_grade_default(self, score: float, max_score: float) -> str:
-        percentage = (score / max_score) * 100 if max_score > 0 else 0
-        if percentage >= 90:
-            return 'A'
-        elif percentage >= 80:
-            return 'B'
-        elif percentage >= 70:
-            return 'C'
-        elif percentage >= 60:
-            return 'D'
-        else:
-            return 'F'
+        return _grade_default(score, max_score)
 
     # --------------------------------------------------------------
     # 批量与班级报告
@@ -1419,7 +1833,19 @@ class AutoGradingEngine:
         # 小组按成员展开后，同一学生可能出现在多份上传报告中（学习通「按人导出」，
         # 同组成员各自上传）；按学号去重，保留得分最高的一份（同组多版本取最优，
         # 对学生最有利且确定）。个人实验无团队成员表→不展开→去重为空操作。
-        return dedupe_team_members(results)
+        # 传 rubric：让 dedupe 按组真实人数校正组长加分（多组长平摊 / 无组长全员平摊）。
+        # 花名册身份核验（re-key + 学号/姓名错误记0分）必须在去重之前——re-key 到真实学号
+        # 后，撞号两人各落不同学号，不再被去重并掉。无花名册则跳过（向后兼容）。
+        roster = None
+        try:
+            from .roster_check import load_id_roster, validate_identities
+            semester_dir = self.config.teaching_dir / self.config.semester
+            roster = load_id_roster(semester_dir)
+            if roster:
+                results = validate_identities(results, roster)
+        except Exception:
+            pass
+        return dedupe_team_members(results, rubric=self.rubric)
 
     def generate_class_report(self, results: List[GradingResult]) -> Dict:
         if not results:

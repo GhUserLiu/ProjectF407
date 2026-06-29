@@ -40,8 +40,12 @@ EXPECTED_SECTIONS = [
 QUESTION_PATTERNS = [
     re.compile(r'Q\s*(\d)', re.IGNORECASE),
     re.compile(r'问题\s*(\d)'),
+    re.compile(r'思考题\s*(\d)'),  # "思考题1/思考题2"等标题式编号
     re.compile(r'(?:^|\D)(\d)\s*[\.、）)]'),
 ]
+# 散文式作答标记："答：/答:"。不少报告不写题号，改用"问…答：…"格式逐题作答
+# （如"通用思考题/任务二专属思考题"标题下直接写题目+答：），靠它兜底补齐题号漏检。
+ANSWER_MARKER_RE = re.compile(r'答\s*[:：]')
 
 
 def detect_report_format(path) -> str:
@@ -383,6 +387,19 @@ class SubmissionValidator:
                         answered.add(n)
                 except (ValueError, IndexError):
                     continue
+        # 兜底：纯题号正则只认 Q1/问题1/1./思考题1 等显式编号，漏检"问…答：…"散文式作答
+        # （报告按"通用思考题/任务二专属思考题"分组、题目下直接写"答：…"）。统计"答："作答
+        # 标记数，按期望题数补齐已作答题号，避免把已答的报告误报为"未作答/0 个题号"。
+        # 仅在题号正则未覆盖时启用，且不超出期望题数。
+        if len(answered) < len(expected_nums):
+            ans_markers = len(ANSWER_MARKER_RE.findall(q_text))
+            fill = min(ans_markers, len(expected_nums)) - len(answered)
+            for n in sorted(expected_nums):
+                if fill <= 0:
+                    break
+                if n not in answered:
+                    answered.add(n)
+                    fill -= 1
         report.missing_questions = [qid for qid in ids if self._qid_num(qid) not in answered]
 
         body = re.sub(r'\s', '', q_text)

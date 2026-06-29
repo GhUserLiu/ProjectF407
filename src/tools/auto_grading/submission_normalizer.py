@@ -67,10 +67,12 @@ class NormalizeResult:
 class SubmissionNormalizer:
     """学生提交源码规整器（无实例状态，全部 classmethod/staticmethod）。"""
 
-    # 工程根标记：命中任一即判定为 STM32 工程根
-    _FILE_MARKERS: Tuple[str, ...] = ("Makefile", ".mxproject")          # 精确文件名
-    _DIR_MARKERS: Tuple[str, ...] = ("Core", "MDK-ARM", "Drivers")       # 精确目录名
-    _GLOB_MARKERS: Tuple[str, ...] = ("*.ioc", "*.uvprojx")              # glob 文件名
+    # 工程根标记：必须有**文件型构建标记**。不能仅凭 Core/MDK-ARM/Drivers 目录名判定——
+    # 否则"源码根只含一个同名包装目录(如 Drivers/)"会被误判为工程根，flatten 漏修嵌套
+    # （刘烊宏场景：包多套一层 Drivers/，根目录无 Makefile → 误判 already_flat）。
+    _FILE_MARKERS: Tuple[str, ...] = ("Makefile", ".mxproject")          # 根目录精确文件
+    _GLOB_MARKERS: Tuple[str, ...] = ("*.ioc", "*.uvprojx")              # 根目录 glob 文件
+    _SUB_GLOB_MARKERS: Tuple[str, ...] = ("MDK-ARM/*.uvprojx",)          # Keil: .uvprojx 在 MDK-ARM/ 下
 
     # 下探深度上限：真实嵌套为 2 层；8 层防病态/恶意树与无限循环
     MAX_DEPTH = 8
@@ -82,16 +84,23 @@ class SubmissionNormalizer:
     # ------------------------------------------------------------------
     @classmethod
     def is_project_root(cls, d: Path) -> bool:
-        """目录 d 是否为一个 STM32 工程根（含结构性标记）。"""
+        """目录 d 是否为一个 STM32 工程根——必须含**文件型构建标记**
+        (Makefile / .mxproject / *.ioc / *.uvprojx / MDK-ARM/*.uvprojx)。
+
+        刻意**不**仅凭 Core/Drivers/MDK-ARM 目录名判定：那会把"只含一个同名包装目录"
+        的源码根误判为工程根(如 Drivers/ 包装层)，导致 flatten 误认 already_flat、嵌套
+        工程无法自动修复。真实工程根必有构建文件（GCC 有 Makefile，CubeMX 有 .ioc，
+        Keil 有 .uvprojx）。
+        """
         if not d.is_dir():
             return False
         for name in cls._FILE_MARKERS:
             if (d / name).is_file():
                 return True
-        for name in cls._DIR_MARKERS:
-            if (d / name).is_dir():
-                return True
         for pat in cls._GLOB_MARKERS:
+            if any(d.glob(pat)):
+                return True
+        for pat in cls._SUB_GLOB_MARKERS:
             if any(d.glob(pat)):
                 return True
         return False
@@ -263,24 +272,36 @@ class SubmissionNormalizer:
                     skip_cause=NormalizeResult._CAUSE_COLLISION,
                 )
 
-        # STEP 5：上移工程根全部内容到 source_dir
+        # STEP 5+6：上移工程根全部内容到 source_dir。
+        # 经同卷临时目录中转，避开"工程根某子条目与工程根/包装层同名"的移动碰撞——如工程根
+        # 名为 Drivers、其下又有 HAL 的 Drivers/（刘烊宏场景），直接 move 会让 Drivers/Drivers
+        # 落到仍存在的工程根上而失败。同卷 rename 不拷贝内容，深树也不受 Windows 路径长限制。
+        # 流程：工程根内容 → 临时目录 → 删空工程根/包装层(释放同名) → 临时目录内容 → source_dir。
+        import tempfile
+        work = Path(tempfile.mkdtemp(prefix="_flatten_", dir=str(source_dir.parent)))
         try:
             for name in project_entries:
-                shutil.move(str(project_root / name), str(source_dir / name))
+                shutil.move(str(project_root / name), str(work / name))
+            # 删除空的工程根 + 包装层，释放可能同名的位置（含工程根本身的名字）
+            for d in [project_root] + list(reversed(wrappers)):
+                try:
+                    d.rmdir()
+                except OSError:
+                    pass
+            # 此时 source_dir 中原包装链已清空，同名位置空出；把临时目录内容回搬
+            for name in os.listdir(work):
+                shutil.move(str(work / name), str(source_dir / name))
         except (PermissionError, OSError) as e:
-            # 移动中途失败：已移动的留在顶层（仍可被识别），未移动的原样保留
+            # 移动中途失败：source_dir 原结构基本未动（内容先去了临时目录），尽力保留可识别状态
             return NormalizeResult(
                 flattened=False, source_dir=source_dir, located_root=project_root,
                 original_depth=project_depth,
-                reason=f"移动文件失败（部分内容可能已上移）：{e}",
+                reason=f"移动文件失败（部分内容可能已转存到临时目录）：{e}",
                 skip_cause=NormalizeResult._CAUSE_PERMISSION,
             )
-
-        # STEP 6：由深至浅删除空壳（best-effort；残留空目录不影响批阅）
-        to_remove = [project_root] + list(reversed(wrappers))
-        for d in to_remove:
+        finally:
             try:
-                d.rmdir()
+                work.rmdir()   # 已搬空则删；非空(best-effort)忽略
             except OSError:
                 pass
 
