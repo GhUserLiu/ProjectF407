@@ -10,11 +10,12 @@ Grading Worker Thread
 import threading
 from pathlib import Path
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Set
 
 from PyQt6.QtCore import QThread, pyqtSignal
 
 from tools.auto_grading import AutoGradingFacade, AutoGradingConfig
+from tools.auto_grading import batch_checkpoint
 from tools.auto_grading.facade import PipelineResult
 from tools.teaching_management_gui.data_source import ClassEntry
 
@@ -36,6 +37,7 @@ class GradingWorker(QThread):
         entries,
         semester: str = "2026-春季",
         config: Optional[AutoGradingConfig] = None,
+        resume: bool = False,
     ):
         """
         初始化批量批阅工作线程
@@ -50,6 +52,7 @@ class GradingWorker(QThread):
         self.semester = semester
         self.config = config or AutoGradingConfig()
         self.config.semester = semester
+        self.resume = resume   # Phase B: True 时跳过各班 checkpoint 里已完成的学号
         self.is_cancelled = False
         # 取消事件：cancel() 置位后，引擎内 build_checker 正在跑的 make 编译会在
         # 下一次轮询（~0.2s）被 kill，而不必等它跑完或超时。
@@ -87,11 +90,21 @@ class GradingWorker(QThread):
                     lambda: self.is_cancelled,
                     self._cancel_event,
                 )
+                # 续跑：读取该班级 checkpoint 的已完成学号集（Phase B）
+                _resume_ids = None
+                if self.resume:
+                    _gdir = self.config.get_output_dir(entry.class_name, entry.experiment_id)
+                    _meta = batch_checkpoint.load_meta(_gdir)
+                    if _meta and _meta.get("completed_ids"):
+                        _resume_ids = set(_meta["completed_ids"])
+                        self.log_message.emit(
+                            f"  续跑：{entry.class_name} 跳过已完成 {len(_resume_ids)} 人")
                 result = facade.run_full_pipeline(
                     zip_path,
                     entry.class_name,
                     entry.experiment_id,
                     False,
+                    resume_completed_ids=_resume_ids,
                 )
                 all_results.extend(result.grading_results)
                 all_failures.extend(result.failures)
@@ -179,7 +192,8 @@ class ObservableFacade:
         class_zip: Path,
         class_name: str,
         experiment_id: str,
-        skip_organization: bool = False
+        skip_organization: bool = False,
+        resume_completed_ids: Optional[Set[str]] = None,
     ) -> PipelineResult:
         """运行完整流水线（带信号通知）"""
         result = PipelineResult(
@@ -275,12 +289,32 @@ class ObservableFacade:
         failures = []  # per-student 评分异常收集（不再静默丢弃），供 GUI 展示
         total = len(submissions)
 
+        # 断点续跑 checkpoint（Phase B）：每成功评一个学生就增量写缓存 + meta，
+        # 崩溃/取消后下次「开始批阅」可检测到并跳过已完成者；批阅成功完成则清掉。
+        _gdir = self.facade.config.get_output_dir(class_name, experiment_id)
+        _resume_ids = set(resume_completed_ids or [])
+        _meta = batch_checkpoint.new_meta(
+            class_name, experiment_id, self.facade.config.semester, total)
+        if _resume_ids:
+            _meta["completed_ids"] = sorted(_resume_ids)
+        else:
+            batch_checkpoint.clear_checkpoint(_gdir)  # 全新开始：清掉上次残留
+        batch_checkpoint.write_meta(_gdir, _meta)
+
         for i, submission in enumerate(submissions):
             if self.is_cancelled():
                 break
 
             self.log_message.emit(f"评分 ({i+1}/{total}): {submission.student_id}-{submission.name}")
             self.stage_progress.emit("analyze", i + 1, total)
+
+            # 续跑：该生已完成 → 复用缓存、不重评（缓存缺失/损坏则落到下方重评）
+            if submission.student_id in _resume_ids:
+                _cached = batch_checkpoint.load_result_cache(_gdir, submission.student_id)
+                if _cached is not None:
+                    self.log_message.emit("  续跑：跳过（已完成，复用缓存）")
+                    grading_results.append(_cached)
+                    continue
 
             try:
                 grading_result = self.facade.engine.grade_submission(submission)
@@ -295,8 +329,14 @@ class ObservableFacade:
                     'error': str(e),
                     'stage': 'analyze',
                 })
+                _meta["failed_ids"].append(submission.student_id)
+                batch_checkpoint.write_meta(_gdir, _meta)
                 continue
             grading_results.append(grading_result)
+            # 增量写 checkpoint（崩溃前已落盘的部分下次可续跑）
+            batch_checkpoint.write_result_cache(_gdir, grading_result)
+            _meta["completed_ids"].append(submission.student_id)
+            batch_checkpoint.write_meta(_gdir, _meta)
 
             self.log_message.emit(f"  得分: {grading_result.total_score:.1f}/{grading_result.max_score:.1f} ({grading_result.grade})")
 
@@ -337,6 +377,8 @@ class ObservableFacade:
             if grading_results:
                 class_report = self.facade.engine.generate_class_report(grading_results)
                 self.facade._save_reports(result, class_report)
+                # 批阅成功完成 → 清除 checkpoint（保持 results/ 干净，下次全新开始）
+                batch_checkpoint.clear_checkpoint(_gdir)
                 self.log_message.emit("  班级报告已生成")
                 self.log_message.emit("  个人报告已生成")
                 self.stage_progress.emit("report", 10, 10)

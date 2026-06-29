@@ -216,6 +216,47 @@ class GradingPanel(QWidget):
             self.log_text.append(f"[{ts}] {message}")
 
     # ---------------- 批量批阅 ----------------
+    def _detect_resume(self, entries):
+        """检测选中班级有无中断的批阅 checkpoint，弹框询问续跑/重开/取消（Phase B）。
+
+        Returns: True=续跑（跳过已完成）；False=重新开始（已清残留 checkpoint）；None=取消。
+        """
+        from tools.auto_grading import batch_checkpoint as _bc
+        interrupted = []
+        semester = shared().semester()
+        for e in entries:
+            try:
+                gdir = self.config.get_output_dir(e.class_name, e.experiment_id, semester)
+            except Exception:
+                continue
+            m = _bc.load_meta(gdir)
+            if _bc.is_interrupted(m):
+                interrupted.append((e, m))
+        if not interrupted:
+            return False
+        detail = "、".join(
+            f"{e.class_name}({len(m['completed_ids'])}/{m['total']})" for e, m in interrupted)
+        msg = QMessageBox(self)
+        msg.setIcon(QMessageBox.Icon.Question)
+        msg.setWindowTitle("检测到未完成的批阅")
+        msg.setText(f"检测到上次批阅中断：{detail}。\n是否继续未完成的部分？")
+        b_resume = msg.addButton("继续未完成", QMessageBox.ButtonRole.AcceptRole)
+        b_fresh = msg.addButton("重新开始", QMessageBox.ButtonRole.RejectRole)
+        b_cancel = msg.addButton("取消", QMessageBox.ButtonRole.RejectRole)
+        msg.exec()
+        clicked = msg.clickedButton()
+        if clicked is b_resume:
+            return True
+        if clicked is b_fresh:
+            for e, _m in interrupted:
+                try:
+                    _bc.clear_checkpoint(self.config.get_output_dir(
+                        e.class_name, e.experiment_id, semester))
+                except Exception:
+                    pass
+            return False
+        return None  # 取消
+
     def start_grading(self):
         # 防止在上一轮 worker 仍存活时覆盖引用（导致 QThread 被提前销毁）
         if self.grading_worker is not None and self.grading_worker.isRunning():
@@ -225,6 +266,11 @@ class GradingPanel(QWidget):
         if not entries:
             QMessageBox.warning(self, "警告", "请先到「数据源」页选择班级压缩包")
             return
+
+        # 断点续跑检测（Phase B）：选中班级里有无上次中断的 checkpoint
+        resume = self._detect_resume(entries)
+        if resume is None:
+            return  # 用户在续跑提示框点了「取消」
 
         self.is_grading = True
         self.start_btn.setEnabled(False)
@@ -236,7 +282,7 @@ class GradingPanel(QWidget):
         self.start_time = datetime.now()
         self.log(f"开始批量批阅：共 {len(entries)} 个班级")
 
-        self.grading_worker = GradingWorker(entries, shared().semester(), self.config)
+        self.grading_worker = GradingWorker(entries, shared().semester(), self.config, resume=resume)
         self.grading_worker.stage_started.connect(self.on_stage_started)
         self.grading_worker.stage_progress.connect(self.on_stage_progress)
         self.grading_worker.stage_completed.connect(self.on_stage_completed)
