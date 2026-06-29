@@ -16,6 +16,7 @@ from PyQt6.QtWidgets import (
     QGroupBox, QLabel, QPushButton,
     QTableWidget, QTableWidgetItem, QHeaderView, QProgressBar,
     QTextEdit, QSplitter, QFileDialog, QMessageBox, QComboBox, QInputDialog,
+    QDialog, QApplication,
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
@@ -36,6 +37,7 @@ class GradingPanel(QWidget):
         super().__init__(parent)
         self.config = AutoGradingConfig()
         self.all_results = []          # 跨班级合并的 GradingResult 列表
+        self.all_failures = []         # per-student 评分失败清单（{student_id,name,...,error}）
         self.is_grading = False
         self.grading_worker = None
         self.start_time = None
@@ -155,6 +157,15 @@ class GradingPanel(QWidget):
         filter_row.addWidget(self.class_filter)
         filter_row.addStretch()
         layout.addLayout(filter_row)
+
+        # 失败清单横幅：N>0 时显示「⚠ N 人批阅失败」，点击弹明细（修静默丢学生）
+        self.failure_btn = QPushButton("⚠ 0 人批阅失败")
+        self.failure_btn.setStyleSheet(
+            "QPushButton { color: #b00; font-weight: bold; text-align: left; padding: 4px 8px; }")
+        self.failure_btn.clicked.connect(self._show_failures)
+        self.failure_btn.setVisible(False)
+        layout.addWidget(self.failure_btn)
+
         self.results_table = QTableWidget()
         self.results_table.setColumnCount(8)
         self.results_table.setHorizontalHeaderLabels([
@@ -252,8 +263,9 @@ class GradingPanel(QWidget):
     def on_stage_completed(self, stage_id):
         pass
 
-    def on_grading_completed(self, results):
+    def on_grading_completed(self, results, failures=None):
         self.all_results = results or []
+        self.all_failures = failures or []
         self.is_grading = False
         self.start_btn.setEnabled(True)
         self.cancel_btn.setEnabled(False)
@@ -264,12 +276,55 @@ class GradingPanel(QWidget):
             elapsed = (datetime.now() - self.start_time).total_seconds()
             self.time_label.setText(f"用时: {int(elapsed // 60)}:{int(elapsed % 60):02d}")
 
-        total = len(self.all_results)
-        avg = (sum(r.total_score for r in self.all_results) / total) if total else 0
-        self.total_label.setText(f"总提交: {total}")
+        # 修正完成数失真：原 len(all_results) 只数成功，漏算被丢弃的失败学生
+        ok = len(self.all_results)
+        bad = len(self.all_failures)
+        total = ok + bad
+        avg = (sum(r.total_score for r in self.all_results) / ok) if ok else 0
+        self.total_label.setText(f"成功 {ok} · 失败 {bad} · 共 {total}")
         self.avg_label.setText(f"平均分: {avg:.1f}")
+        self._update_failure_banner()
         self._fill_results_table()
-        self.log(f"批阅完成！共 {total} 人，平均 {avg:.1f}")
+        self.log(f"批阅完成！成功 {ok} / 失败 {bad} / 共 {total}，平均 {avg:.1f}")
+
+    def _update_failure_banner(self):
+        n = len(self.all_failures)
+        if n > 0:
+            self.failure_btn.setText(f"⚠ {n} 人批阅失败 — 点击查看清单")
+            self.failure_btn.setVisible(True)
+        else:
+            self.failure_btn.setVisible(False)
+
+    def _show_failures(self):
+        """弹窗展示 per-student 评分失败清单（学号/姓名/班级/实验/原因），可一键复制。"""
+        if not self.all_failures:
+            return
+        dlg = QDialog(self)
+        dlg.setWindowTitle(f"批阅失败清单（{len(self.all_failures)} 人）")
+        dlg.resize(820, 420)
+        v = QVBoxLayout(dlg)
+        table = QTableWidget(len(self.all_failures), 5)
+        table.setHorizontalHeaderLabels(["学号", "姓名", "班级", "实验", "失败原因"])
+        table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        table.horizontalHeader().setStretchLastSection(True)
+        for row, f in enumerate(self.all_failures):
+            table.setItem(row, 0, QTableWidgetItem(str(f.get("student_id", ""))))
+            table.setItem(row, 1, QTableWidgetItem(str(f.get("name", ""))))
+            table.setItem(row, 2, QTableWidgetItem(str(f.get("class_name", ""))))
+            table.setItem(row, 3, QTableWidgetItem(str(f.get("experiment_id", ""))))
+            table.setItem(row, 4, QTableWidgetItem(str(f.get("error", ""))))
+        v.addWidget(table)
+        copy_btn = QPushButton("复制全部（供粘贴到通知）")
+        copy_btn.clicked.connect(lambda: QApplication.clipboard().setText(
+            "\n".join(
+                f"{x.get('student_id', '')}\t{x.get('name', '')}\t{x.get('class_name', '')}\t"
+                f"{x.get('experiment_id', '')}\t{x.get('error', '')}"
+                for x in self.all_failures
+            )
+        ))
+        v.addWidget(copy_btn)
+        dlg.exec()
 
     def on_grading_failed(self, error_message):
         self.is_grading = False

@@ -27,7 +27,7 @@ class GradingWorker(QThread):
     stage_progress = pyqtSignal(str, int, int)  # (stage_id, current, total)
     stage_completed = pyqtSignal(str)  # (stage_id)
     log_message = pyqtSignal(str)  # (message)
-    grading_completed = pyqtSignal(object)  # (list[GradingResult]，跨班级合并)
+    grading_completed = pyqtSignal(object, object)  # (list[GradingResult], list[失败dict])，跨班级合并
     grading_cancelled = pyqtSignal()  # 取消：不发部分结果，避免被面板当成"完成"
     grading_failed = pyqtSignal(str)  # (error_message)
 
@@ -59,6 +59,7 @@ class GradingWorker(QThread):
         """对每个班级条目依次执行批阅，合并所有 GradingResult。"""
         try:
             all_results = []
+            all_failures = []   # per-student 评分失败（跨班级合并），供面板展示「⚠ N 人批阅失败」
             total = len(self.entries)
             self.log_message.emit(f"开始批量批阅：共 {total} 个班级")
 
@@ -93,6 +94,7 @@ class GradingWorker(QThread):
                     False,
                 )
                 all_results.extend(result.grading_results)
+                all_failures.extend(result.failures)
                 self.stage_progress.emit("analyze", i + 1, total)
 
             # 取消时不发 grading_completed（避免部分结果被当成"完成"），改发取消信号
@@ -100,7 +102,7 @@ class GradingWorker(QThread):
                 self.log_message.emit(f"批阅已取消（已丢弃 {len(all_results)} 条部分结果）")
                 self.grading_cancelled.emit()
             else:
-                self.grading_completed.emit(all_results)
+                self.grading_completed.emit(all_results, all_failures)
 
         except Exception as e:
             self.grading_failed.emit(str(e))
@@ -110,6 +112,30 @@ class GradingWorker(QThread):
         self.is_cancelled = True
         self._cancel_event.set()   # 通知引擎内 build_checker kill 当前 make 子进程
         self.log_message.emit("正在取消...")
+
+
+class _LogTee:
+    """把 log_message 信号同时 tee 到文件的包装器。
+
+    ObservableFacade 在 run_full_pipeline 开头把 self.log_message 重新赋值为
+    _LogTee(raw_signal, log_path)，之后现有 30+ 处 self.log_message.emit(...)
+    调用无需改动，即同时把每行日志 append 到 results/grading/batch_run.log
+    （每次 emit 独立 open/write/close + 即时落盘，崩溃前已写的内容不丢，
+    也避免跨班级累积文件句柄）。"""
+
+    def __init__(self, signal, log_path):
+        self._signal = signal
+        self._log_path = Path(log_path)
+
+    def emit(self, message):
+        try:
+            ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            with open(self._log_path, "a", encoding="utf-8") as f:
+                f.write(f"[{ts}] {message}\n")
+        except Exception:
+            # 日志落盘失败绝不能影响批阅主流程
+            pass
+        self._signal.emit(message)
 
 
 class ObservableFacade:
@@ -179,6 +205,19 @@ class ObservableFacade:
                     'experiment_name', None)
                 or self.facade.engine.rubric_path or '(默认)'))
 
+        # 持久化日志：把本类所有 self.log_message.emit(...) 同时 tee 到
+        # results/grading/batch_run.log（append，每行带时间戳；崩溃前已落盘，
+        # 切走标签页/关窗都不丢）。失败不影响批阅。
+        try:
+            _log_path = self.facade.config.get_output_dir(class_name, experiment_id) / "batch_run.log"
+            _log_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(_log_path, "a", encoding="utf-8") as _hf:
+                _hf.write(f"\n=== run started {datetime.now():%Y-%m-%d %H:%M:%S} "
+                          f"| {class_name} / {experiment_id} ===\n")
+            self.log_message = _LogTee(self.log_message, _log_path)
+        except Exception:
+            pass
+
         # 阶段1: 整理提交格式
         if not skip_organization:
             self.log_message.emit("阶段1: 整理提交格式")
@@ -233,6 +272,7 @@ class ObservableFacade:
         self.stage_started.emit("analyze", "评分中")
 
         grading_results = []
+        failures = []  # per-student 评分异常收集（不再静默丢弃），供 GUI 展示
         total = len(submissions)
 
         for i, submission in enumerate(submissions):
@@ -245,8 +285,16 @@ class ObservableFacade:
             try:
                 grading_result = self.facade.engine.grade_submission(submission)
             except Exception as e:
-                # 单个提交异常不应中断整批：跳过该生并记录，其余继续评分
-                self.log_message.emit(f"  跳过：评分异常 {e}")
+                # 单个提交异常不应中断整批：记录失败原因，其余继续（不再静默丢弃）
+                self.log_message.emit(f"  ⚠ 评分异常，已记入失败清单：{e}")
+                failures.append({
+                    'student_id': submission.student_id,
+                    'name': submission.name,
+                    'class_name': class_name,
+                    'experiment_id': experiment_id,
+                    'error': str(e),
+                    'stage': 'analyze',
+                })
                 continue
             grading_results.append(grading_result)
 
@@ -275,6 +323,7 @@ class ObservableFacade:
 
         result.grading_results = grading_results
         result.successful_graded = len(grading_results)
+        result.failures = failures
 
         # 阶段4: 生成报告。取消则不落盘部分结果，避免与 grading_cancelled 信号不一致。
         if not cancelled:

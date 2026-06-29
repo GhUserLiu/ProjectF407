@@ -67,6 +67,10 @@ class PipelineResult:
     total_submissions: int = 0
     successful_graded: int = 0
 
+    # 部分失败清单：per-student 评分异常被收集（不再静默丢弃），供 GUI 展示「⚠ N 人批阅失败」。
+    # 每条 = {student_id, name, class_name, experiment_id, error, stage}
+    failures: List[Dict] = field(default_factory=list)
+
     # 时间戳
     started_at: datetime = field(default_factory=datetime.now)
     completed_at: Optional[datetime] = None
