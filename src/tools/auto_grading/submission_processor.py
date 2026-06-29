@@ -19,7 +19,7 @@ from dataclasses import dataclass, field
 from typing import List, Dict, Optional, Tuple, Any
 from datetime import datetime
 
-from ..security.zip_validator import safe_extract_text_from_docx
+from ..security.zip_validator import safe_extract_text_from_docx, ZipLimits
 from ..security.xml_parser import extract_text_from_docx_xml
 from .source_state import SourceStateClassifier
 
@@ -383,6 +383,15 @@ class SubmissionProcessor:
                 return f"[PDF文件: {report_path.name}]"
             else:
                 # 读取docx文件并提取文本
+                # 前置尺寸预检：safe_extract_text_from_docx 的尺寸校验在 read() 之后，
+                # 拦不住"把超大 docx 整篇读进内存"本身——先 stat() 预检避免 OOM。
+                try:
+                    _docx_size = report_path.stat().st_size
+                except OSError:
+                    _docx_size = 0
+                if _docx_size > ZipLimits().max_inner_size:
+                    print(f"警告: 报告过大，跳过读取 {report_path.name} ({_docx_size:,} bytes)")
+                    return ""
                 with open(report_path, 'rb') as f:
                     docx_data = f.read()
                 xml_content = safe_extract_text_from_docx(docx_data)

@@ -612,6 +612,8 @@ def _makefile_c_sources(source_path) -> set:
     if not mk.is_file():
         return set()
     try:
+        if mk.stat().st_size > MAX_FILE_BYTES:
+            return set()
         text = mk.read_text(encoding='utf-8', errors='ignore')
     except Exception:
         return set()
@@ -1360,6 +1362,8 @@ class AutoGradingEngine:
         if submission.source_path and submission.project_info:
             for main_file in submission.project_info.main_files:
                 try:
+                    if main_file.stat().st_size > MAX_FILE_BYTES:
+                        continue
                     code_to_analyze += main_file.read_text(encoding='utf-8', errors='ignore') + "\n\n"
                 except Exception:
                     pass
