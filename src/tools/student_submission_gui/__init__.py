@@ -12,5 +12,5 @@ Student Submission Self-Check & Self-Grade GUI
 不含查重（查重是跨学生比对，学生无法自检）。
 """
 
-__version__ = "2.4.0"
+__version__ = "2.5.0"
 __author__ = "STM32F407 Teaching Team"
