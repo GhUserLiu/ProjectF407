@@ -96,6 +96,21 @@ class ImageCounter:
         try:
             from docx import Document
 
+            # 安全前置校验：python-docx 会把 .docx 当作 zip 直接打开，绕过
+            # security/ 的 zip 炸弹/尺寸/文件数防护。先用安全包装校验通过再解析，
+            # 与 submission_processor._read_report（safe_extract_text_from_docx）同口径。
+            # 校验不过→抛 ZipValidationError→外层 except 退化为 0（与既有失败口径一致）。
+            from ...security.zip_validator import validate_zip_size, ZipLimits
+            import zipfile as _zf
+            _limits = ZipLimits()
+            docx_path = Path(docx_path)
+            if docx_path.stat().st_size > _limits.max_outer_size:
+                print(f"[警告] docx 过大，跳过图片统计: {docx_path.name} "
+                      f"({docx_path.stat().st_size:,} bytes)")
+                return 0
+            with _zf.ZipFile(docx_path, 'r') as _zf_check:
+                validate_zip_size(_zf_check, _limits)
+
             doc = Document(docx_path)
             image_count = 0
 
