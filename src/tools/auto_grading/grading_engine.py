@@ -937,36 +937,15 @@ class AutoGradingEngine:
     # --------------------------------------------------------------
     # 主评分入口
     # --------------------------------------------------------------
-    def grade_submission(self, submission: ProcessedSubmission) -> GradingResult:
-        result = GradingResult(
-            student_id=submission.student_id,
-            name=submission.name,
-            class_name=submission.class_name
-        )
+    def _resolve_task_active_rubric(self, submission: ProcessedSubmission,
+                                    result: GradingResult) -> Dict:
+        """任务感知：按学生所选任务构造 active_rubric 并设置 result 的任务相关字段。
 
-        # 透传小组信息（同组共用工程/报告；供反馈按组生成）
-        result.group_key = getattr(submission, 'group_key', '') or submission.student_id
-        result.group_members = list(
-            getattr(submission, 'group_members', [])
-            or [(submission.student_id, submission.name)]
-        )
-
-        # 1. 提交完整性校验（advisory，不参与计分）
-        try:
-            result.validation_report = self.validator.validate(submission, self.rubric)
-        except Exception as e:
-            print(f"警告: 提交校验异常: {e}")
-            result.validation_report = None
-
-        # 无 rubric 时降级（不应发生，facade 已强制接通）
-        if not self.rubric:
-            result.max_score = 100.0
-            result.grade = self._calculate_grade_default(result.total_score, result.max_score)
-            return result
-
-        # 任务感知：final-project 等带 task_difficulty 的 rubric，按学生所选任务构造
-        # active_rubric（统一 /100 刻度，但 keyword 准则的关键词按任务取，避免跨任务误扣）。
-        # 非任务 rubric（07-car-gear 等）active_rubric = self.rubric，行为零变化。
+        - 任务 rubric（含 task_difficulty）：detect_task 定任务 → 建 active_rubric（统一 /100
+          刻度，keyword 准则按任务取，避免跨任务误扣）→ 设 detected_*/difficulty_ratio/
+          task_full_marks；报告声明与源码信号冲突时追加 advisory issue。
+        - 非任务 rubric（07-car-gear 等）：active_rubric = self.rubric，行为零变化。
+        """
         self._source_cache: Dict[Path, str] = getattr(self, '_source_cache', {})
         if 'task_difficulty' in self.rubric:
             task_key, task_src, task_ambiguous = detect_task(submission, self.rubric, self._source_cache)
@@ -999,6 +978,38 @@ class AutoGradingEngine:
         else:
             self._active_rubric = self.rubric
             active_rubric = self.rubric
+        return active_rubric
+
+    def grade_submission(self, submission: ProcessedSubmission) -> GradingResult:
+        result = GradingResult(
+            student_id=submission.student_id,
+            name=submission.name,
+            class_name=submission.class_name
+        )
+
+        # 透传小组信息（同组共用工程/报告；供反馈按组生成）
+        result.group_key = getattr(submission, 'group_key', '') or submission.student_id
+        result.group_members = list(
+            getattr(submission, 'group_members', [])
+            or [(submission.student_id, submission.name)]
+        )
+
+        # 1. 提交完整性校验（advisory，不参与计分）
+        try:
+            result.validation_report = self.validator.validate(submission, self.rubric)
+        except Exception as e:
+            print(f"警告: 提交校验异常: {e}")
+            result.validation_report = None
+
+        # 无 rubric 时降级（不应发生，facade 已强制接通）
+        if not self.rubric:
+            result.max_score = 100.0
+            result.grade = self._calculate_grade_default(result.total_score, result.max_score)
+            return result
+
+        # 任务感知：抽出至 _resolve_task_active_rubric（设 result.detected_*/difficulty_ratio
+        # /active_rubric；报告声明与源码冲突时追加 advisory issue）。
+        active_rubric = self._resolve_task_active_rubric(submission, result)
 
         # 2. RubricGrader 跑一次 keyword/manual 类别（需要报告文本）；任务 rubric 用 active_rubric
         rg_result = None
