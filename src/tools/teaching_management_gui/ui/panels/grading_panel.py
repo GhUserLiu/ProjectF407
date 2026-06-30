@@ -385,7 +385,7 @@ class GradingPanel(QWidget):
         self.start_btn.setEnabled(True)
         self.cancel_btn.setEnabled(False)
         self.detail_label.setText("批阅已取消")
-        self.log("批阅已取消（部分结果未保留）")
+        self.log("批阅已取消（已评部分已保存为 checkpoint，下次「开始批阅」可续跑）")
 
     def _fill_results_table(self):
         results = self.all_results
