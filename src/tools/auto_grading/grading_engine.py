@@ -980,6 +980,62 @@ class AutoGradingEngine:
             active_rubric = self.rubric
         return active_rubric
 
+    def _finalize_scores(self, result: GradingResult, base_earned: float,
+                         bonus_total: float, excluded_points: float,
+                         is_leader: bool) -> None:
+        """汇总与定级：base_earned/excluded_points/is_leader → result 的 total/max/grade/eval/leader_bonus/bonus。"""
+        # 4. 汇总
+        if 'task_difficulty' in self.rubric:
+            # 任务 rubric：统一 /100 评价 + 难度系数缩放最终分。
+            # 评价分 = Σ base_earned（categories 和=100，无 points_outside_base 除外项）。
+            # 工具链缺失时编译被排除：评价分按可评基数折算回 /100（与下方同思路）。
+            total_points = 100
+            if excluded_points > 0:
+                assessable_max = max(total_points - excluded_points, 0.01)
+                eval_score = round((base_earned / assessable_max) * total_points, 1)
+            else:
+                eval_score = round(min(base_earned, total_points), 1)
+            # 组长加分（任务书约定）：评价分 +leader_bonus，封顶 100；再按难度系数缩放。
+            # 这里先按「唯一组长」发临时全额加分（leader_bonus_granted）；dedupe_team_members 会
+            # 按组真实人数校正——同组多名组长时加分 = ⌈leader_bonus/组长人数⌉，全组无人声明组长
+            # (member_count>=2) 时视作全员组长平摊。单提交/自检路径不经 dedupe，临时全额即最终值
+            # （单人组 = 1 名组长 = ⌈5/1⌉ = 5，本就正确）。granted 为实际生效的临时加分（评价分已
+            # 接近满分时不足 5），累入 bonus_total 供反馈展示。
+            leader_bonus = float(self.rubric.get('leader_bonus', 0) or 0)
+            granted = 0.0
+            if leader_bonus > 0 and is_leader:
+                granted = round(min(leader_bonus, max(total_points - eval_score, 0.0)), 1)
+                eval_score = round(min(eval_score + granted, total_points), 1)
+                bonus_total += granted
+            result.leader_bonus_granted = granted
+            result.evaluation_score = eval_score
+            result.total_score = round(eval_score * result.difficulty_ratio, 1)  # 期末最终分
+            result.max_score = 100.0
+            if 'grading_scale' in self.rubric:
+                result.grade = self._calculate_grade(result.total_score, self.rubric['grading_scale'])
+            else:
+                result.grade = self._calculate_grade_default(result.total_score, result.max_score)
+        else:
+            # 非任务 rubric：原逻辑（base 封顶 total_points，编译 skip 时按可评基数折算）
+            total_points = self.rubric.get('total_points', 100)
+            if excluded_points > 0:
+                assessable_max = max(total_points - excluded_points, 0.01)
+                result.max_score = round(assessable_max, 1)
+                result.total_score = round(min(base_earned, assessable_max), 1)
+                effective = (base_earned / assessable_max) * total_points
+                if 'grading_scale' in self.rubric:
+                    result.grade = self._calculate_grade(effective, self.rubric['grading_scale'])
+                else:
+                    result.grade = self._calculate_grade_default(result.total_score, result.max_score)
+            else:
+                result.total_score = round(min(base_earned, total_points), 1)
+                result.max_score = total_points
+                if 'grading_scale' in self.rubric:
+                    result.grade = self._calculate_grade(result.total_score, self.rubric['grading_scale'])
+                else:
+                    result.grade = self._calculate_grade_default(result.total_score, result.max_score)
+        result.bonus_total = round(bonus_total, 1)
+
     def grade_submission(self, submission: ProcessedSubmission) -> GradingResult:
         result = GradingResult(
             student_id=submission.student_id,
@@ -1097,57 +1153,8 @@ class AutoGradingEngine:
 
         result.category_scores = category_scores
 
-        # 4. 汇总
-        if 'task_difficulty' in self.rubric:
-            # 任务 rubric：统一 /100 评价 + 难度系数缩放最终分。
-            # 评价分 = Σ base_earned（categories 和=100，无 points_outside_base 除外项）。
-            # 工具链缺失时编译被排除：评价分按可评基数折算回 /100（与下方同思路）。
-            total_points = 100
-            if excluded_points > 0:
-                assessable_max = max(total_points - excluded_points, 0.01)
-                eval_score = round((base_earned / assessable_max) * total_points, 1)
-            else:
-                eval_score = round(min(base_earned, total_points), 1)
-            # 组长加分（任务书约定）：评价分 +leader_bonus，封顶 100；再按难度系数缩放。
-            # 这里先按「唯一组长」发临时全额加分（leader_bonus_granted）；dedupe_team_members 会
-            # 按组真实人数校正——同组多名组长时加分 = ⌈leader_bonus/组长人数⌉，全组无人声明组长
-            # (member_count>=2) 时视作全员组长平摊。单提交/自检路径不经 dedupe，临时全额即最终值
-            # （单人组 = 1 名组长 = ⌈5/1⌉ = 5，本就正确）。granted 为实际生效的临时加分（评价分已
-            # 接近满分时不足 5），累入 bonus_total 供反馈展示。
-            leader_bonus = float(self.rubric.get('leader_bonus', 0) or 0)
-            granted = 0.0
-            if leader_bonus > 0 and is_leader:
-                granted = round(min(leader_bonus, max(total_points - eval_score, 0.0)), 1)
-                eval_score = round(min(eval_score + granted, total_points), 1)
-                bonus_total += granted
-            result.leader_bonus_granted = granted
-            result.evaluation_score = eval_score
-            result.total_score = round(eval_score * result.difficulty_ratio, 1)  # 期末最终分
-            result.max_score = 100.0
-            if 'grading_scale' in self.rubric:
-                result.grade = self._calculate_grade(result.total_score, self.rubric['grading_scale'])
-            else:
-                result.grade = self._calculate_grade_default(result.total_score, result.max_score)
-        else:
-            # 非任务 rubric：原逻辑（base 封顶 total_points，编译 skip 时按可评基数折算）
-            total_points = self.rubric.get('total_points', 100)
-            if excluded_points > 0:
-                assessable_max = max(total_points - excluded_points, 0.01)
-                result.max_score = round(assessable_max, 1)
-                result.total_score = round(min(base_earned, assessable_max), 1)
-                effective = (base_earned / assessable_max) * total_points
-                if 'grading_scale' in self.rubric:
-                    result.grade = self._calculate_grade(effective, self.rubric['grading_scale'])
-                else:
-                    result.grade = self._calculate_grade_default(result.total_score, result.max_score)
-            else:
-                result.total_score = round(min(base_earned, total_points), 1)
-                result.max_score = total_points
-                if 'grading_scale' in self.rubric:
-                    result.grade = self._calculate_grade(result.total_score, self.rubric['grading_scale'])
-                else:
-                    result.grade = self._calculate_grade_default(result.total_score, result.max_score)
-        result.bonus_total = round(bonus_total, 1)
+        # 4-5. 汇总与定级（抽出至 _finalize_scores）
+        self._finalize_scores(result, base_earned, bonus_total, excluded_points, is_leader)
 
         # 6. 生成结构化反馈（issues + thinking_check + 兼容 strengths/weaknesses）
         self._generate_feedback(result, submission)
