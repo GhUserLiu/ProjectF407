@@ -270,7 +270,7 @@ class MainWindow(QMainWindow):
             "关于",
             f"""
             <h3>教学管理系统 v{__version__}</h3>
-            <p>STM32F407教学项目专用工具</p>
+            <p>STM32F407 嵌入式教学平台专用工具</p>
             <p><b>功能模块：</b></p>
             <ul>
                 <li>📊 自动评分 - 批量批阅学生作业</li>

@@ -1,4 +1,4 @@
-# STM32F407 项目发布工作流
+# STM32F407 嵌入式教学平台 - 发布工作流
 name: Release
 
 on:
@@ -28,7 +28,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         tag_name: ${{ github.ref }}
-        release_name: STM32F407 项目 ${{ steps.get_version.outputs.version }}
+        release_name: STM32F407 嵌入式教学平台 ${{ steps.get_version.outputs.version }}
         draft: false
         prerelease: false
 
